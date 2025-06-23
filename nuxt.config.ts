@@ -9,7 +9,18 @@ export default defineNuxtConfig({
   },
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
-  modules: ["@nuxt/icon", "@nuxt/fonts", "@nuxt/image", "shadcn-nuxt"],
+  modules: [
+    "@nuxt/icon",
+    "@nuxt/fonts",
+    "@nuxt/image",
+    "shadcn-nuxt",
+    "@nuxtjs/color-mode",
+  ],
+  colorMode: {
+    preference: "system", // default theme
+    dataValue: "theme", // activate data-theme in <html> tag
+    classSuffix: "",
+  },
   // Add Tailwind
   vite: {
     plugins: [tailwindcss()],
