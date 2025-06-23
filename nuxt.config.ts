@@ -9,10 +9,21 @@ export default defineNuxtConfig({
   },
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
-  modules: ["@nuxt/icon", "@nuxt/fonts", "@nuxt/image"],
+  modules: ["@nuxt/icon", "@nuxt/fonts", "@nuxt/image", "shadcn-nuxt"],
   // Add Tailwind
   vite: {
     plugins: [tailwindcss()],
   },
   css: ["~/assets/css/main.css"],
+  shadcn: {
+    /**
+     * Prefix for all the imported component
+     */
+    prefix: "",
+    /**
+     * Directory that the component lives in.
+     * @default "./components/ui"
+     */
+    componentDir: "./components/ui",
+  },
 });
