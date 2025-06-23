@@ -5,14 +5,11 @@
     <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
       <!-- Header -->
       <div class="text-center mb-8">
-        <h1 class="text-2xl font-bold text-gray-800 mb-2">
-          Admin Toko Roti Dlillah
-        </h1>
-        <p class="text-gray-600">Masuk ke dashboard admin</p>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">Login</h1>
       </div>
 
       <!-- Form -->
-      <form @submit.prevent="handleLogin" class="space-y-6">
+      <form @submit.prevent="handleLogin" class="space-y-2">
         <!-- Email Field -->
         <div>
           <label
@@ -58,7 +55,7 @@
         <button
           type="submit"
           :disabled="loading"
-          class="w-full bg-gradient-to-r from-lime-400 to-lime-500 text-white py-2 px-4 rounded-md hover:from-lime-500 hover:to-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50"
+          class="w-full mt-6 bg-gradient-to-r from-lime-400 to-lime-500 text-white py-2 px-4 rounded-md hover:from-lime-500 hover:to-lime-600 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:ring-offset-2 transition duration-200 disabled:opacity-50"
         >
           <span v-if="loading">Memproses...</span>
           <span v-else>Masuk</span>
