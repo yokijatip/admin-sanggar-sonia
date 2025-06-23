@@ -13,7 +13,28 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+let app;
+let auth;
+let db;
+let storage;
+
+export default defineNuxtPlugin(() => {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
+
+  return {
+    provide: {
+      firebase: {
+        app,
+        auth,
+        db,
+        storage,
+      },
+    },
+  };
+});
+
+// Export for direct usage
+export { auth, db, storage };
