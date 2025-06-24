@@ -17,7 +17,6 @@ import {
 } from "lucide-vue-next";
 
 import NavMain from "@/components/NavMain.vue";
-import NavProjects from "@/components/NavProjects.vue";
 import NavSecondary from "@/components/NavSecondary.vue";
 import NavUser from "@/components/NavUser.vue";
 import {
@@ -35,6 +34,9 @@ const props = withDefaults(defineProps<SidebarProps>(), {
   variant: "inset",
 });
 
+// Get User data
+const { user } = useAuth();
+
 const data = {
   user: {
     name: "Yoki Jati Perkasa",
@@ -42,6 +44,12 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Command,
+      isActive: true,
+    },
     {
       title: "Products",
       url: "/products/productDashboard",
@@ -146,23 +154,6 @@ const data = {
       title: "Feedback",
       url: "/feedback",
       icon: Send,
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "/projects/design",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "/projects/marketing",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "/projects/travel",
-      icon: Map,
     },
   ],
 };
