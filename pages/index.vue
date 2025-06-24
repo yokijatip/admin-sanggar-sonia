@@ -69,77 +69,71 @@ const chartData = {
         <!-- Content Dashboard untuk Overview -->
         <div class="flex flex-1 flex-col gap-2 p-4 pt-0">
           <div class="grid auto-rows-min gap-4 md:grid-cols-4">
-            <div class="aspect-video rounded-xl bg-muted/50">
-              <!-- Total Pemasukan  -->
-              <Card>
-                <CardHeader
-                  class="flex flex-row items-center justify-between space-y-0"
-                >
-                  <CardTitle class="text-sm font-medium">
-                    Total Pemasukan
-                  </CardTitle>
-                  <BanknoteArrowUp />
-                </CardHeader>
-                <CardContent>
-                  <div class="text-xl font-bold">Rp 45,231.89</div>
-                  <p class="text-xs text-muted-foreground">
-                    +20.1% dari bulan sebelumnya
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
+            <!-- Total Pemasukan  -->
+            <Card>
+              <CardHeader
+                class="flex flex-row items-center justify-between space-y-0"
+              >
+                <CardTitle class="text-sm font-medium">
+                  Total Pemasukan
+                </CardTitle>
+                <BanknoteArrowUp />
+              </CardHeader>
+              <CardContent>
+                <div class="text-xl font-bold">Rp 45,231.89</div>
+                <p class="text-xs text-muted-foreground">
+                  +20.1% dari bulan sebelumnya
+                </p>
+              </CardContent>
+            </Card>
             <!-- Sales -->
-            <div class="aspect-video rounded-xl bg-muted/50">
-              <Card>
-                <CardHeader
-                  class="flex flex-row items-center justify-between space-y-0"
-                >
-                  <CardTitle class="text-sm font-medium"> Penjualan </CardTitle>
-                  <ShoppingCart />
-                </CardHeader>
-                <CardContent>
-                  <div class="text-xl font-bold">4000</div>
-                  <p class="text-xs text-muted-foreground">
-                    +39.1% dari bulan sebelumnya
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            <div class="aspect-video rounded-xl bg-muted/50">
-              <Card>
-                <CardHeader
-                  class="flex flex-row items-center justify-between space-y-0"
-                >
-                  <CardTitle class="text-sm font-medium"> Customers </CardTitle>
-                  <Users />
-                </CardHeader>
-                <CardContent>
-                  <div class="text-xl font-bold">24</div>
-                  <p class="text-xs text-muted-foreground">
-                    +20.1% dari bulan sebelumnya
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            <div class="aspect-video rounded-xl bg-muted/50">
-              <Card>
-                <CardHeader
-                  class="flex flex-row items-center justify-between space-y-0"
-                >
-                  <CardTitle class="text-sm font-medium">
-                    Total Pengeluaran
-                  </CardTitle>
-                  <BanknoteArrowDown />
-                </CardHeader>
-                <CardContent>
-                  <div class="text-xl font-bold">Rp 100,231.89</div>
-                  <p class="text-xs text-muted-foreground">
-                    +100.1% dari bulan sebelumnya
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+
+            <Card>
+              <CardHeader
+                class="flex flex-row items-center justify-between space-y-0"
+              >
+                <CardTitle class="text-sm font-medium"> Penjualan </CardTitle>
+                <ShoppingCart />
+              </CardHeader>
+              <CardContent>
+                <div class="text-xl font-bold">4000</div>
+                <p class="text-xs text-muted-foreground">
+                  +39.1% dari bulan sebelumnya
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader
+                class="flex flex-row items-center justify-between space-y-0"
+              >
+                <CardTitle class="text-sm font-medium"> Customers </CardTitle>
+                <Users />
+              </CardHeader>
+              <CardContent>
+                <div class="text-xl font-bold">24</div>
+                <p class="text-xs text-muted-foreground">
+                  +20.1% dari bulan sebelumnya
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader
+                class="flex flex-row items-center justify-between space-y-0"
+              >
+                <CardTitle class="text-sm font-medium">
+                  Total Pengeluaran
+                </CardTitle>
+                <BanknoteArrowDown />
+              </CardHeader>
+              <CardContent>
+                <div class="text-xl font-bold">Rp 100,231.89</div>
+                <p class="text-xs text-muted-foreground">
+                  +100.1% dari bulan sebelumnya
+                </p>
+              </CardContent>
+            </Card>
           </div>
           <!-- Charts and Recent Activity -->
           <div
