@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Calendar, Home, Package2, Search, Settings } from "lucide-vue-next";
+import { ShoppingCart, Home, Package2, Users, Settings } from "lucide-vue-next";
 import {
   Sidebar,
   SidebarContent,
@@ -24,18 +24,18 @@ const items = [
     icon: Package2,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
+    title: "Order",
+    url: "/order",
+    icon: ShoppingCart,
   },
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Customer",
+    url: "/customer",
+    icon: Users,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
 ];
