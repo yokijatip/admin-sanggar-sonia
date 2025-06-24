@@ -1,648 +1,249 @@
-<script setup>
-import {
-  CircleUser,
-  File,
-  Home,
-  LineChart,
-  ListFilter,
-  MoreHorizontal,
-  Package,
-  Package2,
-  PanelLeft,
-  PlusCircle,
-  Search,
-  Settings,
-  ShoppingCart,
-  Users2,
-} from "lucide-vue-next";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Icon } from "@iconify/vue";
-import { useColorMode } from "#imports";
-
-const colorMode = useColorMode();
-</script>
-
 <template>
-  <div class="flex min-h-screen w-full flex-col bg-muted/40">
-    <aside
-      class="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex"
-    >
-      <nav class="flex flex-col items-center gap-4 px-2 py-4">
-        <a
-          href="#"
-          class="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-        >
-          <Package2 class="h-4 w-4 transition-all group-hover:scale-110" />
-          <span class="sr-only">Acme Inc</span>
-        </a>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Home class="h-5 w-5" />
-                <span class="sr-only">Dashboard</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Dashboard </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <ShoppingCart class="h-5 w-5" />
-                <span class="sr-only">Orders</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Orders </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Package class="h-5 w-5" />
-                <span class="sr-only">Products</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Products </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Users2 class="h-5 w-5" />
-                <span class="sr-only">Customers</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Customers </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <LineChart class="h-5 w-5" />
-                <span class="sr-only">Analytics</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Analytics </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </nav>
-      <nav class="mt-auto flex flex-col items-center gap-4 px-2 py-4">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger as-child>
-              <a
-                href="#"
-                class="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
-              >
-                <Settings class="h-5 w-5" />
-                <span class="sr-only">Settings</span>
-              </a>
-            </TooltipTrigger>
-            <TooltipContent side="right"> Settings </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </nav>
-    </aside>
-    <div class="flex flex-col sm:gap-4 sm:py-4 sm:pl-14">
-      <header
-        class="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6"
-      >
-        <Sheet>
-          <SheetTrigger as-child>
-            <Button size="icon" variant="outline" class="sm:hidden">
-              <PanelLeft class="h-5 w-5" />
-              <span class="sr-only">Toggle Menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" class="sm:max-w-xs">
-            <nav class="grid gap-6 text-lg font-medium">
-              <a
-                href="#"
-                class="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-              >
-                <Package2
-                  class="h-5 w-5 transition-all group-hover:scale-110"
-                />
-                <span class="sr-only">Acme Inc</span>
-              </a>
-              <a
-                href="#"
-                class="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <Home class="h-5 w-5" />
-                Dashboard
-              </a>
-              <a
-                href="#"
-                class="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <ShoppingCart class="h-5 w-5" />
-                Orders
-              </a>
-              <a
-                href="#"
-                class="flex items-center gap-4 px-2.5 text-foreground"
-              >
-                <Package class="h-5 w-5" />
-                Products
-              </a>
-              <a
-                href="#"
-                class="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <Users2 class="h-5 w-5" />
-                Customers
-              </a>
-              <a
-                href="#"
-                class="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-              >
-                <LineChart class="h-5 w-5" />
-                Settings
-              </a>
-            </nav>
-          </SheetContent>
-        </Sheet>
-        <Breadcrumb class="hidden md:flex">
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink as-child>
-                <a href="#">Dashboard</a>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbLink as-child>
-                <a href="#">Products</a>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>All Products</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
-        <div class="relative ml-auto flex-1 md:grow-0">
-          <Search
-            class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"
-          />
-          <Input
-            type="search"
-            placeholder="Search..."
-            class="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[320px]"
-          />
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button variant="outline">
-              <Icon
-                icon="radix-icons:moon"
-                class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-              />
-              <Icon
-                icon="radix-icons:sun"
-                class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-              />
-              <span class="sr-only">Toggle theme</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem @click="colorMode.preference = 'light'">
-              Light
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="colorMode.preference = 'dark'">
-              Dark
-            </DropdownMenuItem>
-            <DropdownMenuItem @click="colorMode.preference = 'system'">
-              System
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button variant="secondary" size="icon" class="rounded-full">
-              <CircleUser class="h-5 w-5" />
-              <span class="sr-only">Toggle user menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </header>
-      <main class="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8">
-        <Tabs default-value="all">
+  <div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-16">
+          <!-- Logo/Title -->
           <div class="flex items-center">
-            <TabsList>
-              <TabsTrigger value="all"> All </TabsTrigger>
-              <TabsTrigger value="active"> Active </TabsTrigger>
-              <TabsTrigger value="draft"> Draft </TabsTrigger>
-              <TabsTrigger value="archived" class="hidden sm:flex">
-                Archived
-              </TabsTrigger>
-            </TabsList>
-            <div class="ml-auto flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger as-child>
-                  <Button variant="outline" size="sm" class="h-7 gap-1">
-                    <ListFilter class="h-3.5 w-3.5" />
-                    <span class="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                      Filter
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem checked> Active </DropdownMenuItem>
-                  <DropdownMenuItem>Draft</DropdownMenuItem>
-                  <DropdownMenuItem> Archived </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button size="sm" variant="outline" class="h-7 gap-1">
-                <File class="h-3.5 w-3.5" />
-                <span class="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Export
-                </span>
-              </Button>
-              <Button size="sm" class="h-7 gap-1">
-                <PlusCircle class="h-3.5 w-3.5" />
-                <span class="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                  Add Product
-                </span>
-              </Button>
+            <h1 class="text-xl font-semibold text-gray-900">
+              Admin Toko Roti Dlillah
+            </h1>
+          </div>
+
+          <!-- User Menu -->
+          <div class="flex items-center space-x-4">
+            <span class="text-sm text-gray-600"> Halo, {{ user?.email }} </span>
+            <button
+              @click="handleLogout"
+              class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md text-sm transition duration-200"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Welcome Section -->
+      <div class="mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
+        <p class="text-gray-600">Kelola toko roti Anda dengan mudah</p>
+      </div>
+
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Total Produk -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-blue-100 rounded-lg">
+              <svg
+                class="w-6 h-6 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Produk</p>
+              <p class="text-2xl font-semibold text-gray-900">24</p>
             </div>
           </div>
-          <TabsContent value="all">
-            <Card>
-              <CardHeader>
-                <CardTitle>Products</CardTitle>
-                <CardDescription>
-                  Manage your products and view their sales performance.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead class="hidden w-[100px] sm:table-cell">
-                        <span class="sr-only">img</span>
-                      </TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead class="hidden md:table-cell">
-                        Price
-                      </TableHead>
-                      <TableHead class="hidden md:table-cell">
-                        Total Sales
-                      </TableHead>
-                      <TableHead class="hidden md:table-cell">
-                        Created at
-                      </TableHead>
-                      <TableHead>
-                        <span class="sr-only">Actions</span>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        Laser Lemonade Machine
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline"> Draft </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $499.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 25 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2023-07-12 10:42 AM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        Hypernova Headphones
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline"> Active </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $129.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 100 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2023-10-18 03:21 PM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        AeroGlow Desk Lamp
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline"> Active </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $39.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 50 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2023-11-29 08:15 AM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        TechTonic Energy Drink
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary"> Draft </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $2.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 0 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2023-12-25 11:59 PM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        Gamer Gear Pro Controller
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline"> Active </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $59.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 75 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2024-01-01 12:00 AM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell class="hidden sm:table-cell">
-                        <img
-                          alt="Product image"
-                          class="aspect-square rounded-md object-cover"
-                          height="64"
-                          src="./placeholder.svg"
-                          width="64"
-                        />
-                      </TableCell>
-                      <TableCell class="font-medium">
-                        Luminous VR Headset
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline"> Active </Badge>
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        $199.99
-                      </TableCell>
-                      <TableCell class="hidden md:table-cell"> 30 </TableCell>
-                      <TableCell class="hidden md:table-cell">
-                        2024-02-14 02:14 PM
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              aria-haspopup="true"
-                              size="icon"
-                              variant="ghost"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                              <span class="sr-only">Toggle menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-              <CardFooter>
-                <div class="text-xs text-muted-foreground">
-                  Showing <strong>1-10</strong> of <strong>32</strong>
-                  products
-                </div>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </main>
-    </div>
+        </div>
+
+        <!-- Pesanan Hari Ini -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-green-100 rounded-lg">
+              <svg
+                class="w-6 h-6 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Pesanan Hari Ini</p>
+              <p class="text-2xl font-semibold text-gray-900">8</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stok Menipis -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-yellow-100 rounded-lg">
+              <svg
+                class="w-6 h-6 text-yellow-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Stok Menipis</p>
+              <p class="text-2xl font-semibold text-gray-900">3</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pendapatan Hari Ini -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center">
+            <div class="p-2 bg-lime-100 rounded-lg">
+              <svg
+                class="w-6 h-6 text-lime-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                ></path>
+              </svg>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">
+                Pendapatan Hari Ini
+              </p>
+              <p class="text-2xl font-semibold text-gray-900">Rp 1.250.000</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Kelola Produk -->
+        <div
+          class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition duration-200 cursor-pointer"
+        >
+          <div class="text-center">
+            <div
+              class="p-3 bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"
+            >
+              <svg
+                class="w-8 h-8 text-blue-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Kelola Produk
+            </h3>
+            <p class="text-gray-600 text-sm">
+              Tambah, edit, atau hapus produk roti
+            </p>
+          </div>
+        </div>
+
+        <!-- Kelola Pesanan -->
+        <div
+          class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition duration-200 cursor-pointer"
+        >
+          <div class="text-center">
+            <div
+              class="p-3 bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"
+            >
+              <svg
+                class="w-8 h-8 text-green-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              Kelola Pesanan
+            </h3>
+            <p class="text-gray-600 text-sm">
+              Monitor dan kelola pesanan masuk
+            </p>
+          </div>
+        </div>
+
+        <!-- Laporan -->
+        <div
+          class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition duration-200 cursor-pointer"
+        >
+          <div class="text-center">
+            <div
+              class="p-3 bg-lime-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4"
+            >
+              <svg
+                class="w-8 h-8 text-lime-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2 2z"
+                ></path>
+              </svg>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Laporan</h3>
+            <p class="text-gray-600 text-sm">
+              Lihat laporan penjualan dan analisis
+            </p>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 </template>
+
+<script setup>
+// Protect this page with auth middleware
+definePageMeta({
+  middleware: "auth",
+});
+
+const { user, logout } = useAuth();
+
+const handleLogout = async () => {
+  await logout();
+};
+</script>
