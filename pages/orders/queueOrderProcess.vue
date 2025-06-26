@@ -295,7 +295,7 @@
 
     <!-- Order Details Modal -->
     <Dialog v-model:open="showDetailsModal">
-      <DialogContent class="max-w-3xl">
+      <DialogContent class="max-w-3xl overflow-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Order Details & Priority Breakdown</DialogTitle>
         </DialogHeader>

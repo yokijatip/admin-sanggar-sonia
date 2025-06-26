@@ -91,10 +91,6 @@ const data = {
           title: "Queue Order",
           url: "/orders/queueOrderProcess",
         },
-        {
-          title: "Tracking Order",
-          url: "/orders/trackingOrder",
-        },
       ],
     },
     {
