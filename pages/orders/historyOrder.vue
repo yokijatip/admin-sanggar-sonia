@@ -27,7 +27,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <!-- Date Range -->
           <div>
-            <Label>Date Range</Label>
+            <Label class="pb-2">Date Range</Label>
             <Select
               v-model="filters.dateRange"
               @update:modelValue="applyFilters"
@@ -48,7 +48,7 @@
 
           <!-- Status Filter -->
           <div>
-            <Label>Status</Label>
+            <Label class="pb-2">Status</Label>
             <Select v-model="filters.status" @update:modelValue="applyFilters">
               <SelectTrigger>
                 <SelectValue placeholder="All Status" />
@@ -64,7 +64,7 @@
 
           <!-- Customer Type -->
           <div>
-            <Label>Customer Type</Label>
+            <Label class="pb-2">Customer Type</Label>
             <Select
               v-model="filters.customerType"
               @update:modelValue="applyFilters"
@@ -82,7 +82,7 @@
 
           <!-- Value Range -->
           <div>
-            <Label>Order Value</Label>
+            <Label class="pb-2">Order Value</Label>
             <Select
               v-model="filters.valueRange"
               @update:modelValue="applyFilters"
@@ -121,48 +121,66 @@
 
     <!-- Summary Stats -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 px-4">
+      <!-- Total Orders -->
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">{{ filteredStats.totalOrders }}</p>
-            <p class="text-sm text-muted-foreground">Total Orders</p>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Total Orders </CardTitle>
+          <ShoppingCart />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ filteredStats.totalOrders }}</div>
+        </CardContent>
+      </Card>
+
+      <!-- Total Revenue -->
+      <Card>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Total Revenue </CardTitle>
+          <DollarSign class="text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">
+            Rp {{ formatPrice(filteredStats.totalRevenue) }}
           </div>
         </CardContent>
       </Card>
+
+      <!-- Average Order Value -->
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">
-              Rp {{ formatPrice(filteredStats.totalRevenue) }}
-            </p>
-            <p class="text-sm text-muted-foreground">Total Revenue</p>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Avg Order Value </CardTitle>
+          <TrendingUp class="text-purple-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">
+            Rp {{ formatPrice(filteredStats.avgOrderValue) }}
           </div>
         </CardContent>
       </Card>
+
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">
-              Rp {{ formatPrice(filteredStats.avgOrderValue) }}
-            </p>
-            <p class="text-sm text-muted-foreground">Avg Order Value</p>
-          </div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">
-              {{ filteredStats.completionRate }}%
-            </p>
-            <p class="text-sm text-muted-foreground">Completion Rate</p>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Completion Rate </CardTitle>
+          <CheckCircle class="text-emerald-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">
+            {{ filteredStats.completionRate }}%
           </div>
         </CardContent>
       </Card>
     </div>
 
     <!-- History Table -->
-    <div class="border mx-4">
+    <div class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -512,6 +530,12 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CheckCircle,
+  ShoppingCart,
+  DollarSign,
+  LineChart,
+  BarChart3,
+  TrendingUp,
 } from "lucide-vue-next";
 
 // State

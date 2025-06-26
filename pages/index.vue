@@ -86,8 +86,8 @@ const chartData = {
                 </p>
               </CardContent>
             </Card>
-            <!-- Sales -->
 
+            <!-- Sales -->
             <Card>
               <CardHeader
                 class="flex flex-row items-center justify-between space-y-0"
