@@ -632,7 +632,6 @@ const clearSelection = () => {
 const navigateToAddOrder = () => {
   console.log("Navigate to add order");
   // navigateTo('/admin/orders/add');
-  showOrderModal.value = true;
 };
 
 const viewOrder = (id) => {
