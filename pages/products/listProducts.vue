@@ -1,12 +1,9 @@
 <template>
   <div class="container mx-auto">
     <!-- Title and Button -->
-    <div class="flex items-center justify-between mb-8">
-      <div class="ml-4">
-        <h1 class="text-3xl font-bold tracking-tight">Products</h1>
-        <p class="text-muted-foreground">Manage your product inventory</p>
-      </div>
-      <Button @click="navigateToAddProduct" class="bg-primary mr-4">
+    <div class="flex items-center justify-between px-4">
+      <HeadersContent title="Products" description="Manage your products" />
+      <Button @click="navigateToAddProduct" class="bg-primary">
         <Plus class="mr-2 h-4 w-4" />
         Add Product
       </Button>
@@ -250,6 +247,7 @@
 </template>
 
 <script setup>
+import HeadersContent from "~/components/ui/HeadersContent.vue";
 import { ref, computed, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
