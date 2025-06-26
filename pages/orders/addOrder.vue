@@ -1,13 +1,9 @@
 <template>
   <div>
-    
+    <h1>Ini halaman Add Orders</h1>
   </div>
 </template>
 
-<script setup>
+<script setup></script>
 
-</script>
-
-<style>
-
-</style>
+<style></style>
