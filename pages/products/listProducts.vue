@@ -1,5 +1,6 @@
 <template>
-  <div class="container mx-auto py-10">
+  <div class="container mx-auto">
+    <!-- Title and Button -->
     <div class="flex items-center justify-between mb-8">
       <div class="ml-4">
         <h1 class="text-3xl font-bold tracking-tight">Products</h1>
@@ -22,7 +23,7 @@
           @input="filterProducts"
         />
       </div>
-      
+
       <Select v-model="selectedCategory" @update:modelValue="filterProducts">
         <SelectTrigger class="w-48">
           <SelectValue placeholder="Select category" />
@@ -50,13 +51,13 @@
     </div>
 
     <!-- Data Table -->
-    <div class="rounded-md border">
+    <div class="border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead class="w-12">
-              <Checkbox 
-                :checked="selectAll" 
+              <Checkbox
+                :checked="selectAll"
                 @update:checked="toggleSelectAll"
               />
             </TableHead>
@@ -64,67 +65,94 @@
             <TableHead>Title</TableHead>
             <TableHead>Category</TableHead>
             <TableHead class="w-64">Description</TableHead>
-            <TableHead class="text-right">Price</TableHead>
-            <TableHead class="text-center">Stock</TableHead>
-            <TableHead class="text-center">Status</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
+            <TableHead class="text-left">Price</TableHead>
+            <TableHead class="text-left">Stock</TableHead>
+            <TableHead class="text-left">Status</TableHead>
+            <TableHead class="text-center">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow 
-            v-for="product in paginatedProducts" 
+          <TableRow
+            v-for="product in paginatedProducts"
             :key="product.id"
             class="hover:bg-muted/50"
           >
+            <!-- Checkbox -->
             <TableCell>
-              <Checkbox 
+              <Checkbox
                 :checked="selectedProducts.includes(product.id)"
                 @update:checked="toggleProductSelection(product.id)"
               />
             </TableCell>
+            <!-- Product ID -->
             <TableCell class="font-mono text-sm">
               {{ product.id }}
             </TableCell>
+            <!-- Product Title -->
             <TableCell class="font-medium">
               {{ product.title }}
             </TableCell>
+            <!-- Product Category -->
             <TableCell>
               <Badge variant="outline" class="capitalize">
                 {{ product.category }}
               </Badge>
             </TableCell>
+            <!-- Product Description -->
             <TableCell class="max-w-64">
               <p class="truncate text-sm text-muted-foreground">
                 {{ product.description }}
               </p>
             </TableCell>
-            <TableCell class="text-right font-medium">
+            <!-- Product Price -->
+            <TableCell class="text-left font-medium">
               ${{ product.price.toLocaleString() }}
             </TableCell>
-            <TableCell class="text-center">
-              <Badge 
-                :variant="product.stock > 10 ? 'default' : product.stock > 0 ? 'secondary' : 'destructive'"
+            <!-- Product Stock -->
+            <TableCell class="text-left">
+              <Badge
+                :variant="
+                  product.stock > 10
+                    ? 'default'
+                    : product.stock > 0
+                    ? 'secondary'
+                    : 'destructive'
+                "
               >
                 {{ product.stock }}
               </Badge>
             </TableCell>
-            <TableCell class="text-center">
-              <Badge 
+            <!-- Product Status -->
+            <TableCell class="text-left">
+              <Badge
                 :variant="getStatusVariant(product.status)"
                 class="capitalize"
               >
-                {{ product.status.replace('_', ' ') }}
+                {{ product.status.replace("_", " ") }}
               </Badge>
             </TableCell>
+            <!-- Actions -->
             <TableCell class="text-right">
               <div class="flex items-center justify-end gap-2">
-                <Button variant="ghost" size="sm" @click="viewProduct(product.id)">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="viewProduct(product.id)"
+                >
                   <Eye class="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" @click="editProduct(product.id)">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="editProduct(product.id)"
+                >
                   <Pencil class="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" @click="deleteProduct(product.id)">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  @click="deleteProduct(product.id)"
+                >
                   <Trash2 class="h-4 w-4 text-destructive" />
                 </Button>
               </div>
@@ -135,7 +163,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between space-x-2 py-4">
+    <div class="flex items-center justify-between space-x-2 p-4">
       <div class="flex items-center space-x-2">
         <p class="text-sm font-medium">Rows per page</p>
         <Select v-model="itemsPerPage" @update:modelValue="changePage(1)">
@@ -150,7 +178,7 @@
           </SelectContent>
         </Select>
       </div>
-      
+
       <div class="flex items-center space-x-6 lg:space-x-8">
         <div class="flex w-32 items-center justify-center text-sm font-medium">
           Page {{ currentPage }} of {{ totalPages }}
@@ -193,9 +221,16 @@
     </div>
 
     <!-- Bulk Actions -->
-    <div v-if="selectedProducts.length > 0" class="fixed bottom-4 left-1/2 transform -translate-x-1/2">
-      <div class="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-        <span class="text-sm font-medium">{{ selectedProducts.length }} selected</span>
+    <div
+      v-if="selectedProducts.length > 0"
+      class="fixed bottom-4 left-1/2 transform -translate-x-1/2"
+    >
+      <div
+        class="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-4"
+      >
+        <span class="text-sm font-medium"
+          >{{ selectedProducts.length }} selected</span
+        >
         <div class="flex gap-2">
           <Button variant="secondary" size="sm" @click="bulkDelete">
             <Trash2 class="h-4 w-4 mr-1" />
@@ -212,252 +247,263 @@
       </div>
     </div>
   </div>
-  
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { 
+import { ref, computed, onMounted } from "vue";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow 
-} from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import { 
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue 
-} from '@/components/ui/select'
-import { 
-  Plus, 
-  Search, 
-  Eye, 
-  Pencil, 
-  Trash2, 
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Plus,
+  Search,
+  Eye,
+  Pencil,
+  Trash2,
   Settings,
   X,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
-  ChevronsRight
-} from 'lucide-vue-next'
+  ChevronsRight,
+} from "lucide-vue-next";
 
 // Sample data - replace with Firebase data later
 const allProducts = ref([
   {
-    id: 'PRD-001',
-    title: 'iPhone 15 Pro Max',
-    category: 'electronics',
-    description: 'Latest iPhone with titanium design and advanced camera system',
+    id: "PRD-001",
+    title: "iPhone 15 Pro Max",
+    category: "electronics",
+    description:
+      "Latest iPhone with titanium design and advanced camera system",
     price: 1199,
     stock: 25,
-    status: 'active'
+    status: "active",
   },
   {
-    id: 'PRD-002',
-    title: 'Nike Air Max 270',
-    category: 'clothing',
-    description: 'Comfortable running shoes with air cushioning technology',
+    id: "PRD-002",
+    title: "Nike Air Max 270",
+    category: "clothing",
+    description: "Comfortable running shoes with air cushioning technology",
     price: 150,
     stock: 5,
-    status: 'active'
+    status: "active",
   },
   {
-    id: 'PRD-003',
-    title: 'MacBook Pro M3',
-    category: 'electronics',
-    description: 'Powerful laptop for professional work with M3 chip',
+    id: "PRD-003",
+    title: "MacBook Pro M3",
+    category: "electronics",
+    description: "Powerful laptop for professional work with M3 chip",
     price: 2399,
     stock: 0,
-    status: 'out_of_stock'
+    status: "out_of_stock",
   },
   {
-    id: 'PRD-004',
-    title: 'The Psychology of Money',
-    category: 'books',
-    description: 'Timeless lessons on wealth, greed, and happiness by Morgan Housel',
+    id: "PRD-004",
+    title: "The Psychology of Money",
+    category: "books",
+    description:
+      "Timeless lessons on wealth, greed, and happiness by Morgan Housel",
     price: 15,
     stock: 100,
-    status: 'active'
+    status: "active",
   },
   {
-    id: 'PRD-005',
-    title: 'Smart Garden Kit',
-    category: 'home',
-    description: 'Automated indoor garden system for growing herbs and vegetables',
+    id: "PRD-005",
+    title: "Smart Garden Kit",
+    category: "home",
+    description:
+      "Automated indoor garden system for growing herbs and vegetables",
     price: 299,
     stock: 12,
-    status: 'inactive'
+    status: "inactive",
   },
   {
-    id: 'PRD-006',
-    title: 'Wireless Headphones',
-    category: 'electronics',
-    description: 'Premium noise-cancelling wireless headphones with 30h battery',
+    id: "PRD-006",
+    title: "Wireless Headphones",
+    category: "electronics",
+    description:
+      "Premium noise-cancelling wireless headphones with 30h battery",
     price: 249,
     stock: 45,
-    status: 'active'
+    status: "active",
   },
   {
-    id: 'PRD-007',
-    title: 'Designer T-Shirt',
-    category: 'clothing',
-    description: 'Premium cotton t-shirt with minimalist design',
+    id: "PRD-007",
+    title: "Designer T-Shirt",
+    category: "clothing",
+    description: "Premium cotton t-shirt with minimalist design",
     price: 89,
     stock: 8,
-    status: 'active'
+    status: "active",
   },
   {
-    id: 'PRD-008',
-    title: 'Coffee Maker Pro',
-    category: 'home',
-    description: 'Professional espresso machine with built-in grinder',
+    id: "PRD-008",
+    title: "Coffee Maker Pro",
+    category: "home",
+    description: "Professional espresso machine with built-in grinder",
     price: 599,
     stock: 3,
-    status: 'active'
-  }
-])
+    status: "active",
+  },
+]);
 
 // Reactive data
-const searchQuery = ref('')
-const selectedCategory = ref('all')
-const selectedStatus = ref('all')
-const filteredProducts = ref([...allProducts.value])
-const selectedProducts = ref([])
-const currentPage = ref(1)
-const itemsPerPage = ref(10)
+const searchQuery = ref("");
+const selectedCategory = ref("all");
+const selectedStatus = ref("all");
+const filteredProducts = ref([...allProducts.value]);
+const selectedProducts = ref([]);
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
 
 // Computed properties
 const selectAll = computed(() => {
-  return paginatedProducts.value.length > 0 && 
-         paginatedProducts.value.every(product => selectedProducts.value.includes(product.id))
-})
+  return (
+    paginatedProducts.value.length > 0 &&
+    paginatedProducts.value.every((product) =>
+      selectedProducts.value.includes(product.id)
+    )
+  );
+});
 
 const totalPages = computed(() => {
-  return Math.ceil(filteredProducts.value.length / parseInt(itemsPerPage.value))
-})
+  return Math.ceil(
+    filteredProducts.value.length / parseInt(itemsPerPage.value)
+  );
+});
 
 const paginatedProducts = computed(() => {
-  const start = (currentPage.value - 1) * parseInt(itemsPerPage.value)
-  const end = start + parseInt(itemsPerPage.value)
-  return filteredProducts.value.slice(start, end)
-})
+  const start = (currentPage.value - 1) * parseInt(itemsPerPage.value);
+  const end = start + parseInt(itemsPerPage.value);
+  return filteredProducts.value.slice(start, end);
+});
 
 // Methods
 const filterProducts = () => {
-  let filtered = allProducts.value
+  let filtered = allProducts.value;
 
   // Filter by search query
   if (searchQuery.value) {
-    filtered = filtered.filter(product => 
-      product.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
+    filtered = filtered.filter(
+      (product) =>
+        product.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+        product.description
+          .toLowerCase()
+          .includes(searchQuery.value.toLowerCase()) ||
+        product.id.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
   }
 
   // Filter by category
-  if (selectedCategory.value && selectedCategory.value !== 'all') {
-    filtered = filtered.filter(product => product.category === selectedCategory.value)
+  if (selectedCategory.value && selectedCategory.value !== "all") {
+    filtered = filtered.filter(
+      (product) => product.category === selectedCategory.value
+    );
   }
 
   // Filter by status
-  if (selectedStatus.value && selectedStatus.value !== 'all') {
-    filtered = filtered.filter(product => product.status === selectedStatus.value)
+  if (selectedStatus.value && selectedStatus.value !== "all") {
+    filtered = filtered.filter(
+      (product) => product.status === selectedStatus.value
+    );
   }
 
-  filteredProducts.value = filtered
-  currentPage.value = 1
-  selectedProducts.value = []
-}
+  filteredProducts.value = filtered;
+  currentPage.value = 1;
+  selectedProducts.value = [];
+};
 
 const getStatusVariant = (status) => {
   switch (status) {
-    case 'active':
-      return 'default'
-    case 'inactive':
-      return 'secondary'
-    case 'out_of_stock':
-      return 'destructive'
+    case "active":
+      return "default";
+    case "inactive":
+      return "secondary";
+    case "out_of_stock":
+      return "destructive";
     default:
-      return 'outline'
+      return "outline";
   }
-}
+};
 
 const toggleSelectAll = (checked) => {
   if (checked) {
-    selectedProducts.value = [...paginatedProducts.value.map(p => p.id)]
+    selectedProducts.value = [...paginatedProducts.value.map((p) => p.id)];
   } else {
-    selectedProducts.value = []
+    selectedProducts.value = [];
   }
-}
+};
 
 const toggleProductSelection = (productId) => {
-  const index = selectedProducts.value.indexOf(productId)
+  const index = selectedProducts.value.indexOf(productId);
   if (index > -1) {
-    selectedProducts.value.splice(index, 1)
+    selectedProducts.value.splice(index, 1);
   } else {
-    selectedProducts.value.push(productId)
+    selectedProducts.value.push(productId);
   }
-}
+};
 
 const changePage = (page) => {
-  currentPage.value = page
-  selectedProducts.value = []
-}
+  currentPage.value = page;
+  selectedProducts.value = [];
+};
 
 const clearSelection = () => {
-  selectedProducts.value = []
-}
+  selectedProducts.value = [];
+};
 
 // Navigation methods (to be implemented with your router)
 const navigateToAddProduct = () => {
   // navigateTo('/admin/products/add')
-  console.log('Navigate to add product')
-}
+  console.log("Navigate to add product");
+};
 
 const viewProduct = (id) => {
   // navigateTo(`/admin/products/${id}`)
-  console.log('View product:', id)
-}
+  console.log("View product:", id);
+};
 
 const editProduct = (id) => {
   // navigateTo(`/admin/products/${id}/edit`)
-  console.log('Edit product:', id)
-}
+  console.log("Edit product:", id);
+};
 
 const deleteProduct = (id) => {
   // Show confirmation dialog and delete
-  console.log('Delete product:', id)
-}
+  console.log("Delete product:", id);
+};
 
 const bulkDelete = () => {
   // Show confirmation dialog and delete selected products
-  console.log('Bulk delete:', selectedProducts.value)
-}
+  console.log("Bulk delete:", selectedProducts.value);
+};
 
 const bulkStatusUpdate = () => {
   // Show status update dialog
-  console.log('Bulk status update:', selectedProducts.value)
-}
+  console.log("Bulk status update:", selectedProducts.value);
+};
 
 // Initialize
 onMounted(() => {
-  filterProducts()
-})
-
+  filterProducts();
+});
 </script>
 
-
-
-<style>
-
-</style>
+<style></style>
