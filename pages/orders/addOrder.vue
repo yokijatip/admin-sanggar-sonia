@@ -2,12 +2,10 @@
   <div class="container mx-auto px-4">
     <div class="mx-auto">
       <!-- Header -->
-      <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Add New Order</h1>
-        <p class="text-muted-foreground">
-          Create a new order for your customer
-        </p>
-      </div>
+      <HeadersContent
+        title="Add New Order"
+        description="Fill in the order details below"
+      />
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
@@ -416,6 +414,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlusIcon, TrashIcon, PackageIcon } from "lucide-vue-next";
+import HeadersContent from "~/components/ui/HeadersContent.vue";
 
 // State
 const form = reactive({
