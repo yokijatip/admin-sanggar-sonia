@@ -136,9 +136,6 @@ const chartData = {
             </Card>
           </div>
           <!-- Charts and Recent Activity -->
-          <div
-            class="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min"
-          />
           <div class="grid gap-4 md:grid-cols-3">
             <!-- Sales Overview Chart -->
             <Card class="md:col-span-2">
