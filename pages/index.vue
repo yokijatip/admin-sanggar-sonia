@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  middleware: "auth",
+});
+
 import {
   Card,
   CardHeader,
@@ -67,7 +71,7 @@ const chartData = {
       <!-- Tabs Content - Konten untuk setiap tab -->
       <TabsContent value="overview">
         <!-- Content Dashboard untuk Overview -->
-        <div class="flex flex-1 flex-col gap-2 p-4 pt-0">
+        <div class="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div class="grid auto-rows-min gap-4 md:grid-cols-4">
             <!-- Total Pemasukan  -->
             <Card>

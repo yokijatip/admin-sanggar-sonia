@@ -16,11 +16,29 @@
             for="name"
             class="block text-sm font-medium text-gray-700 mb-2"
           >
-            Nama Lengkap
+            First Name
           </label>
           <input
             id="name"
-            v-model="form.name"
+            v-model="form.firstName"
+            type="text"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+            placeholder="Nama Admin"
+          />
+        </div>
+
+        <!-- Name Field -->
+        <div>
+          <label
+            for="name"
+            class="block text-sm font-medium text-gray-700 mb-2"
+          >
+            Last Name
+          </label>
+          <input
+            id="name"
+            v-model="form.lastName"
             type="text"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
@@ -128,11 +146,12 @@ definePageMeta({
   middleware: "guest",
 });
 
-const { register } = useAuth();
+const { registerUser } = useAuth();
 const router = useRouter();
 
 const form = reactive({
-  name: "",
+  firstName: "",
+  lastName: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -147,7 +166,6 @@ const handleRegister = async () => {
   errorMessage.value = "";
   successMessage.value = "";
 
-  // Validation
   if (form.password !== form.confirmPassword) {
     errorMessage.value = "Password dan konfirmasi password tidak sama";
     loading.value = false;
@@ -161,29 +179,25 @@ const handleRegister = async () => {
   }
 
   try {
-    const result = await register(form.email, form.password);
+    await registerUser(
+      form.email,
+      form.password,
+      form.firstName,
+      form.lastName
+    );
 
-    if (result.success) {
-      successMessage.value = "Registrasi berhasil! Mengarahkan ke dashboard...";
+    successMessage.value = "Registrasi berhasil! Mengarahkan ke dashboard...";
 
-      // Optional: Save additional user info to Firestore
-      // await saveUserProfile(result.user.uid, { name: form.name, email: form.email })
-
-      setTimeout(() => {
-        router.push("/");
-      }, 2000);
-    } else {
-      errorMessage.value = getErrorMessage(result.error);
-    }
+    router.push("/");
   } catch (error) {
-    errorMessage.value = "Terjadi kesalahan. Silakan coba lagi.";
+    errorMessage.value = getErrorMessage(error.code);
   } finally {
     loading.value = false;
   }
 };
 
-const getErrorMessage = (error) => {
-  switch (error) {
+const getErrorMessage = (errorCode) => {
+  switch (errorCode) {
     case "auth/email-already-in-use":
       return "Email sudah digunakan";
     case "auth/invalid-email":

@@ -42,11 +42,11 @@
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="electronics">Electronics</SelectItem>
-                <SelectItem value="clothing">Clothing</SelectItem>
-                <SelectItem value="food">Food & Beverages</SelectItem>
-                <SelectItem value="books">Books</SelectItem>
-                <SelectItem value="home">Home & Garden</SelectItem>
+                <SelectItem value="electronics">Cake</SelectItem>
+                <SelectItem value="clothing">Bread</SelectItem>
+                <SelectItem value="food">Cookie</SelectItem>
+                <SelectItem value="books">Candy</SelectItem>
+                <SelectItem value="home">Ice Cream</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>

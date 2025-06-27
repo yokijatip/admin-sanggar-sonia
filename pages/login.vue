@@ -85,7 +85,7 @@ definePageMeta({
   middleware: "guest",
 });
 
-const { login } = useAuth();
+const { loginUser } = useAuth();
 const router = useRouter();
 
 const form = reactive({
@@ -101,22 +101,17 @@ const handleLogin = async () => {
   errorMessage.value = "";
 
   try {
-    const result = await login(form.email, form.password);
-
-    if (result.success) {
-      await router.push("/");
-    } else {
-      errorMessage.value = getErrorMessage(result.error);
-    }
+    await loginUser(form.email, form.password);
+    router.push("/");
   } catch (error) {
-    errorMessage.value = "Terjadi kesalahan. Silakan coba lagi.";
+    errorMessage.value = getErrorMessage(error.code);
   } finally {
     loading.value = false;
   }
 };
 
-const getErrorMessage = (error) => {
-  switch (error) {
+const getErrorMessage = (errorCode) => {
+  switch (errorCode) {
     case "auth/user-not-found":
       return "Email tidak ditemukan";
     case "auth/wrong-password":

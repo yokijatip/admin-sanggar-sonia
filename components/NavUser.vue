@@ -34,13 +34,12 @@ const props = defineProps<{
 }>();
 
 const { isMobile } = useSidebar();
+// Get User data
+const { logout } = useAuth();
 
 // Logout function
-const handleLogout = () => {
-  // Add your logout logic here
-  console.log("Logging out...");
-  // Example: await $auth.logout()
-  // Example: await navigateTo('/login')
+const handleLogout = async () => {
+  await logout();
 };
 </script>
 

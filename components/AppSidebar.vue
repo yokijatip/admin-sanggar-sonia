@@ -35,14 +35,9 @@ const props = withDefaults(defineProps<SidebarProps>(), {
 });
 
 // Get User data
-const { user } = useAuth();
+const { user }: any = useAuth();
 
 const data = {
-  user: {
-    name: "Yoki Jati Perkasa",
-    email: "yokijati@gmail.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Dashboard",
@@ -169,7 +164,14 @@ const data = {
       <NavSecondary :items="data.navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter>
-      <NavUser :user="data.user" />
+      <!-- Kirim data user yang diambil dari FIrestore -->
+      <NavUser
+        :user="{
+          name: user ? `${user.firstName} ${user.lastName}` : 'Guest',
+          email: user?.email || 'No Email',
+          avatar: '/avatars/shadcn.jpg', // default avatar sementara
+        }"
+      />
     </SidebarFooter>
   </Sidebar>
 </template>

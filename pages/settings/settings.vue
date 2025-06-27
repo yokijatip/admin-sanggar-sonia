@@ -27,6 +27,13 @@
               >
                 <component :is="section.icon" class="mr-3 h-4 w-4" />
                 {{ section.name }}
+                <Badge
+                  v-if="section.badge"
+                  :variant="section.badgeVariant"
+                  class="ml-auto"
+                >
+                  {{ section.badge }}
+                </Badge>
               </button>
             </nav>
           </CardContent>
@@ -34,6 +41,247 @@
 
         <!-- Settings Content -->
         <div class="lg:col-span-3 space-y-6">
+          <!-- Account Settings -->
+          <Card v-if="activeSection === 'account'">
+            <CardHeader>
+              <CardTitle class="flex items-center">
+                <User class="mr-2 h-5 w-5" />
+                Account Information
+              </CardTitle>
+              <CardDescription
+                >Manage your personal information and profile
+                settings</CardDescription
+              >
+            </CardHeader>
+            <CardContent class="space-y-6">
+              <!-- Profile Overview -->
+              <div
+                class="flex items-center space-x-6 p-4 bg-muted/50 rounded-lg"
+              >
+                <!-- Profile Picture -->
+                <div class="relative">
+                  <div
+                    class="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
+                  >
+                    <span class="text-xl font-bold text-white">
+                      {{ userProfile.firstName.charAt(0).toUpperCase()
+                      }}{{ userProfile.lastName.charAt(0).toUpperCase() }}
+                    </span>
+                  </div>
+                  <button
+                    @click="showAvatarModal = true"
+                    class="absolute -bottom-1 -right-1 h-6 w-6 bg-primary rounded-full flex items-center justify-center hover:bg-primary/90 transition-colors"
+                  >
+                    <Camera class="h-3 w-3 text-primary-foreground" />
+                  </button>
+                </div>
+
+                <!-- Basic Info -->
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold">
+                    {{ userProfile.firstName }} {{ userProfile.lastName }}
+                  </h3>
+                  <p class="text-muted-foreground">{{ userProfile.email }}</p>
+                  <div class="flex items-center space-x-3 mt-2">
+                    <Badge variant="default">{{ userProfile.plan }} Plan</Badge>
+                    <Badge variant="outline">{{ userProfile.role }}</Badge>
+                    <span class="text-sm text-muted-foreground">
+                      Member since {{ formatDate(userProfile.joinedAt) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Personal Information -->
+              <div class="space-y-4">
+                <h3 class="text-lg font-medium">Personal Information</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label for="firstName">First Name</Label>
+                    <Input
+                      id="firstName"
+                      v-model="userProfile.firstName"
+                      placeholder="Enter your first name"
+                    />
+                  </div>
+                  <div>
+                    <Label for="lastName">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      v-model="userProfile.lastName"
+                      placeholder="Enter your last name"
+                    />
+                  </div>
+                  <div>
+                    <Label for="email">Email Address</Label>
+                    <Input
+                      id="email"
+                      v-model="userProfile.email"
+                      type="email"
+                      placeholder="your@email.com"
+                    />
+                    <p class="text-xs text-muted-foreground mt-1">
+                      We'll send a verification email if you change this
+                    </p>
+                  </div>
+                  <div>
+                    <Label for="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      v-model="userProfile.phone"
+                      placeholder="+62 812-3456-7890"
+                    />
+                  </div>
+                  <div>
+                    <Label for="timezone">Timezone</Label>
+                    <Select v-model="userProfile.timezone">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Asia/Jakarta"
+                          >Asia/Jakarta (WIB)</SelectItem
+                        >
+                        <SelectItem value="Asia/Makassar"
+                          >Asia/Makassar (WITA)</SelectItem
+                        >
+                        <SelectItem value="Asia/Jayapura"
+                          >Asia/Jayapura (WIT)</SelectItem
+                        >
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label for="language">Preferred Language</Label>
+                    <Select v-model="userProfile.language">
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="id">Bahasa Indonesia</SelectItem>
+                        <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Business Information -->
+              <div class="space-y-4 border-t pt-6">
+                <h3 class="text-lg font-medium">Business Information</h3>
+                <div class="space-y-4">
+                  <div>
+                    <Label for="businessName">Business Name</Label>
+                    <Input
+                      id="businessName"
+                      v-model="userProfile.businessName"
+                      placeholder="Your bakery name"
+                    />
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label for="businessType">Business Type</Label>
+                      <Select v-model="userProfile.businessType">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select business type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="bakery">Bakery</SelectItem>
+                          <SelectItem value="cafe">Cafe</SelectItem>
+                          <SelectItem value="restaurant">Restaurant</SelectItem>
+                          <SelectItem value="catering">Catering</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label for="businessPhone">Business Phone</Label>
+                      <Input
+                        id="businessPhone"
+                        v-model="userProfile.businessPhone"
+                        placeholder="+62 21-1234-5678"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label for="businessAddress">Business Address</Label>
+                    <Textarea
+                      id="businessAddress"
+                      v-model="userProfile.businessAddress"
+                      placeholder="Complete business address"
+                      rows="3"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Account Status & Subscription -->
+              <div class="space-y-4 border-t pt-6">
+                <h3 class="text-lg font-medium">Account Status</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="p-4 border rounded-lg">
+                    <Label class="text-sm text-muted-foreground"
+                      >Current Plan</Label
+                    >
+                    <p class="text-lg font-semibold">{{ userProfile.plan }}</p>
+                    <p class="text-sm text-muted-foreground">
+                      {{ userProfile.planStatus }}
+                    </p>
+                  </div>
+                  <div class="p-4 border rounded-lg">
+                    <Label class="text-sm text-muted-foreground"
+                      >Next Billing</Label
+                    >
+                    <p class="text-lg font-semibold">
+                      {{ formatDate(userProfile.nextBilling) }}
+                    </p>
+                    <p class="text-sm text-muted-foreground">
+                      Auto-renewal enabled
+                    </p>
+                  </div>
+                  <div class="p-4 border rounded-lg">
+                    <Label class="text-sm text-muted-foreground"
+                      >Account Status</Label
+                    >
+                    <div class="flex items-center space-x-2">
+                      <div class="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <p class="text-lg font-semibold">Active</p>
+                    </div>
+                    <p class="text-sm text-muted-foreground">
+                      All features enabled
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Account Actions -->
+              <div class="space-y-4 border-t pt-6">
+                <h3 class="text-lg font-medium">Account Actions</h3>
+                <div class="flex flex-wrap gap-3">
+                  <Button @click="saveAccountInfo">
+                    <Save class="mr-2 h-4 w-4" />
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" @click="activeSection = 'security'">
+                    <Shield class="mr-2 h-4 w-4" />
+                    Security Settings
+                  </Button>
+                  <Button variant="outline" @click="exportAccountData">
+                    <Download class="mr-2 h-4 w-4" />
+                    Export Data
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    @click="showDeleteAccountModal = true"
+                  >
+                    <Trash2 class="mr-2 h-4 w-4" />
+                    Delete Account
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <!-- General Settings -->
           <Card v-if="activeSection === 'general'">
             <CardHeader>
@@ -704,6 +952,89 @@
         </div>
       </div>
     </div>
+
+    <!-- Avatar Upload Modal -->
+    <Dialog v-model:open="showAvatarModal">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Update Profile Picture</DialogTitle>
+          <DialogDescription>
+            Upload a new profile picture or choose from our avatars
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div class="text-center">
+            <div
+              class="h-32 w-32 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4"
+            >
+              <span class="text-4xl font-bold text-white">
+                {{ userProfile.firstName.charAt(0).toUpperCase()
+                }}{{ userProfile.lastName.charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <Input type="file" accept="image/*" class="mb-4" />
+            <p class="text-xs text-muted-foreground">
+              Recommended: Square image, at least 200x200px
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showAvatarModal = false">
+            Cancel
+          </Button>
+          <Button @click="updateAvatar">
+            <Upload class="mr-2 h-4 w-4" />
+            Upload
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Delete Account Modal -->
+    <Dialog v-model:open="showDeleteAccountModal">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle class="text-red-600">Delete Account</DialogTitle>
+          <DialogDescription>
+            This action cannot be undone. This will permanently delete your
+            account and all associated data.
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+            <h4 class="font-medium text-red-800 mb-2">What will be deleted:</h4>
+            <ul class="text-sm text-red-700 space-y-1">
+              <li>• All your orders and customer data</li>
+              <li>• Team members and permissions</li>
+              <li>• Billing history and invoices</li>
+              <li>• API keys and integrations</li>
+              <li>• All settings and preferences</li>
+            </ul>
+          </div>
+          <div>
+            <Label for="confirmDelete">Type "DELETE" to confirm</Label>
+            <Input
+              id="confirmDelete"
+              v-model="deleteConfirmation"
+              placeholder="DELETE"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="showDeleteAccountModal = false">
+            Cancel
+          </Button>
+          <Button
+            variant="destructive"
+            :disabled="deleteConfirmation !== 'DELETE'"
+            @click="deleteAccount"
+          >
+            <Trash2 class="mr-2 h-4 w-4" />
+            Delete Account
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
@@ -731,7 +1062,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Settings as SettingsIcon,
+  User,
   Bell,
   Shield,
   Plug,
@@ -746,19 +1086,52 @@ import {
   Upload,
   CreditCard,
   Smartphone,
+  Camera,
+  Trash2,
 } from "lucide-vue-next";
 
 // Active section
-const activeSection = ref("general");
+const activeSection = ref("account");
 
-// Setting sections
+// Modals
+const showAvatarModal = ref(false);
+const showDeleteAccountModal = ref(false);
+const deleteConfirmation = ref("");
+
+// Setting sections - Account added as first section
 const settingSections = [
+  {
+    id: "account",
+    name: "Account",
+    icon: User,
+    badge: "2FA",
+    badgeVariant: "default",
+  },
   { id: "general", name: "General", icon: SettingsIcon },
   { id: "notifications", name: "Notifications", icon: Bell },
   { id: "security", name: "Security", icon: Shield },
   { id: "integrations", name: "Integrations", icon: Plug },
   { id: "backup", name: "Backup & Export", icon: Database },
 ];
+
+// User profile data
+const userProfile = reactive({
+  firstName: "Ahmad",
+  lastName: "Rizki",
+  email: "ahmad@dlillah.com",
+  phone: "+62 812-3456-7890",
+  timezone: "Asia/Jakarta",
+  language: "id",
+  businessName: "Dlillah Cake Shop",
+  businessType: "bakery",
+  businessPhone: "+62 21-1234-5678",
+  businessAddress: "Jl. Raya Bogor No. 123, Jakarta Timur, DKI Jakarta 13750",
+  plan: "Professional",
+  planStatus: "Active",
+  role: "Owner",
+  joinedAt: "2023-01-15T08:00:00Z",
+  nextBilling: "2024-02-17T00:00:00Z",
+});
 
 // Settings data
 const settings = reactive({
@@ -790,7 +1163,7 @@ const settings = reactive({
     },
   },
   security: {
-    twoFactorEnabled: false,
+    twoFactorEnabled: true,
   },
   integrations: {
     googleAnalytics: {
@@ -910,20 +1283,52 @@ const recentBackups = ref([
   },
 ]);
 
-// Methods
+// Utility functions
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+
+// Account methods
+const saveAccountInfo = () => {
+  console.log("Saving account information:", userProfile);
+};
+
+const updateAvatar = () => {
+  console.log("Updating avatar");
+  showAvatarModal.value = false;
+};
+
+const exportAccountData = () => {
+  console.log("Exporting account data");
+};
+
+const deleteAccount = () => {
+  console.log("Deleting account");
+  showDeleteAccountModal.value = false;
+  deleteConfirmation.value = "";
+};
+
+// Settings methods
 const saveGeneralSettings = () => {
   console.log("Saving general settings:", settings.general);
-  // Implement save logic
 };
 
 const saveNotificationSettings = () => {
   console.log("Saving notification settings:", settings.notifications);
-  // Implement save logic
 };
 
 const changePassword = () => {
   console.log("Changing password");
-  // Implement password change logic
+  // Reset form
+  Object.assign(passwordForm, {
+    current: "",
+    new: "",
+    confirm: "",
+  });
 };
 
 const toggle2FA = () => {
@@ -933,57 +1338,46 @@ const toggle2FA = () => {
 
 const revokeSession = (sessionId) => {
   console.log("Revoking session:", sessionId);
-  // Implement session revocation
 };
 
 const revokeAllSessions = () => {
   console.log("Revoking all sessions");
-  // Implement bulk session revocation
 };
 
 const createApiKey = () => {
   console.log("Creating new API key");
-  // Implement API key creation
 };
 
 const revokeApiKey = (keyId) => {
   console.log("Revoking API key:", keyId);
-  // Implement API key revocation
 };
 
 const togglePaymentGateway = (gatewayId) => {
   console.log("Toggling payment gateway:", gatewayId);
-  // Implement payment gateway toggle
 };
 
 const toggleEmailService = (serviceId) => {
   console.log("Toggling email service:", serviceId);
-  // Implement email service toggle
 };
 
 const saveIntegrationSettings = () => {
   console.log("Saving integration settings");
-  // Implement save logic
 };
 
 const createBackup = () => {
   console.log("Creating manual backup");
-  // Implement backup creation
 };
 
 const downloadBackup = (backupId) => {
   console.log("Downloading backup:", backupId);
-  // Implement backup download
 };
 
 const exportData = () => {
   console.log("Exporting all data");
-  // Implement data export
 };
 
 const importData = () => {
   console.log("Importing data");
-  // Implement data import
 };
 </script>
 
