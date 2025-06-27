@@ -107,14 +107,6 @@ const data = {
           url: "/customers/addCustomer",
         },
         {
-          title: "History Customer",
-          url: "/customers/orderHistoryPerCustomer",
-        },
-        {
-          title: "Customer Loyalty",
-          url: "/customers/customerLoyalty",
-        },
-        {
           title: "Customer Information",
           url: "/customers/customerInformation",
         },
@@ -122,13 +114,9 @@ const data = {
     },
     {
       title: "Settings",
-      url: "/settings",
+      url: "/settings/settings",
       icon: Settings2,
       items: [
-        {
-          title: "General",
-          url: "/settings",
-        },
         {
           title: "Team",
           url: "/settings/team",
