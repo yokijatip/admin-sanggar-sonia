@@ -34,6 +34,14 @@ const props = defineProps<{
 }>();
 
 const { isMobile } = useSidebar();
+
+// Logout function
+const handleLogout = () => {
+  // Add your logout logic here
+  console.log("Logging out...");
+  // Example: await $auth.logout()
+  // Example: await navigateTo('/login')
+};
 </script>
 
 <template>
@@ -47,7 +55,7 @@ const { isMobile } = useSidebar();
           >
             <Avatar class="h-8 w-8 rounded-lg">
               <AvatarImage :src="user.avatar" :alt="user.name" />
-              <AvatarFallback class="rounded-lg"> DL </AvatarFallback>
+              <AvatarFallback class="rounded-lg">DL</AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">{{ user.name }}</span>
@@ -66,7 +74,7 @@ const { isMobile } = useSidebar();
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
                 <AvatarImage :src="user.avatar" :alt="user.name" />
-                <AvatarFallback class="rounded-lg"> CN </AvatarFallback>
+                <AvatarFallback class="rounded-lg">DL</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">{{ user.name }}</span>
@@ -76,22 +84,37 @@ const { isMobile } = useSidebar();
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
-              <BadgeCheck />
-              Account
+            <DropdownMenuItem as-child>
+              <NuxtLink
+                to="/settings/settings"
+                class="flex items-center gap-2 w-full"
+              >
+                <BadgeCheck class="h-4 w-4" />
+                Account
+              </NuxtLink>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <CreditCard />
-              Billing
+            <DropdownMenuItem as-child>
+              <NuxtLink
+                to="/settings/billing"
+                class="flex items-center gap-2 w-full"
+              >
+                <CreditCard class="h-4 w-4" />
+                Billing
+              </NuxtLink>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Bell />
-              Notifications
+            <DropdownMenuItem as-child>
+              <NuxtLink
+                to="/notification"
+                class="flex items-center gap-2 w-full"
+              >
+                <Bell class="h-4 w-4" />
+                Notifications
+              </NuxtLink>
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
-            <LogOut />
+          <DropdownMenuItem @click="handleLogout" class="cursor-pointer">
+            <LogOut class="h-4 w-4" />
             Log out
           </DropdownMenuItem>
         </DropdownMenuContent>
