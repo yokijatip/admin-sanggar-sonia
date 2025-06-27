@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto">
+  <div class="container mx-auto px-4">
     <!-- Title and Button -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent title="Products" description="Manage your products" />
