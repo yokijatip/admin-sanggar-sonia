@@ -7,6 +7,24 @@
         <p class="text-muted-foreground">Fill in the product details below</p>
       </div>
 
+      <!-- Alert with Transition -->
+      <Transition name="fade">
+        <Alert
+          v-show="message"
+          :class="
+            messageType === 'success'
+              ? 'border-green-200 bg-green-50'
+              : 'border-red-200 bg-red-50'
+          "
+          class="mb-4"
+        >
+          <AlertTitle>{{
+            messageType === "success" ? "Success" : "Error"
+          }}</AlertTitle>
+          <AlertDescription>{{ message }}</AlertDescription>
+        </Alert>
+      </Transition>
+
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <Card class="p-6">
@@ -182,7 +200,7 @@
             ? 'border-green-200 bg-green-50'
             : 'border-red-200 bg-red-50'
         "
-        class="mt-4"
+        class="mt-4 mb-4"
       >
         <AlertTitle>{{
           messageType === "success" ? "Success" : "Error"
@@ -376,4 +394,13 @@ const handleCancel = () => {
 };
 </script>
 
-<style></style>
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
