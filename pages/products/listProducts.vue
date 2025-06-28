@@ -471,6 +471,8 @@ const clearSelection = () => {
 const navigateToAddProduct = () => {
   // navigateTo('/admin/products/add')
   console.log("Navigate to add product");
+  // This should redirect to the add product page
+  navigateTo("/products/addProduct");
 };
 
 const viewProduct = (id) => {

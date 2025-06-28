@@ -13,8 +13,8 @@
     </div>
 
     <!-- Search and Filter -->
-    <div class="flex items-center gap-4 mb-6 ml-4">
-      <div class="relative flex-1 max-w-sm">
+    <div class="flex items-center gap-4 mb-4 px-4">
+      <div class="relative flex-1 w-full">
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           v-model="searchQuery"
@@ -632,6 +632,7 @@ const clearSelection = () => {
 const navigateToAddOrder = () => {
   console.log("Navigate to add order");
   // navigateTo('/admin/orders/add');
+  navigateTo("/orders/addOrder");
 };
 
 const viewOrder = (id) => {
