@@ -42,12 +42,12 @@
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="electronics">Cake</SelectItem>
-                <SelectItem value="clothing">Bread</SelectItem>
-                <SelectItem value="food">Cookie</SelectItem>
-                <SelectItem value="books">Candy</SelectItem>
-                <SelectItem value="home">Ice Cream</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem
+                  v-for="kategori in categories"
+                  :key="kategori.id"
+                  :value="kategori.id"
+                  >{{ kategori.name }}</SelectItem
+                >
               </SelectContent>
             </Select>
           </div>
@@ -221,12 +221,13 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { collection, getDocs } from "firebase/firestore";
 import {
   Select,
   SelectContent,
@@ -246,11 +247,34 @@ const form = reactive({
   imageFile: null,
 });
 
+// Reactive variables
 const isLoading = ref(false);
 const message = ref("");
 const messageType = ref("");
 const showPreview = ref(false);
 const imagePreview = ref("");
+
+// State
+const categories = ref([]);
+
+// Fetch categories from Firestore on mount
+const fetchCategories = async () => {
+  try {
+    const querySnapshot = await getDocs(collection($firebase.db, "categories"));
+    categories.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    showMessage("Failed to load categories", "error");
+  }
+};
+
+// Fetch categories when component is mounted
+onMounted(() => {
+  fetchCategories();
+});
 
 // Form validation
 const validateForm = () => {
