@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto px-4">
+  <div class="container mx-auto">
     <!-- Title and Button -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent title="Products" description="Manage your products" />
@@ -10,8 +10,8 @@
     </div>
 
     <!-- Search and Filter -->
-    <div class="flex items-center gap-4 mb-6 ml-4">
-      <div class="relative flex-1 max-w-sm">
+    <div class="flex items-center gap-4 mb-4 px-4">
+      <div class="relative flex-1 w-full">
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           v-model="searchQuery"
