@@ -138,59 +138,6 @@
                 {{ errors.address }}
               </p>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <!-- City -->
-              <div>
-                <Label for="city" class="required mb-2">City</Label>
-                <Input
-                  id="city"
-                  v-model="customerData.address.city"
-                  placeholder="City"
-                  :class="{ 'border-red-500': errors.city }"
-                  required
-                />
-                <p v-if="errors.city" class="text-sm text-red-500 mt-1">
-                  {{ errors.city }}
-                </p>
-              </div>
-
-              <!-- Province -->
-              <div>
-                <Label for="province" class="required mb-2">Province</Label>
-                <Select v-model="customerData.address.province">
-                  <SelectTrigger :class="{ 'border-red-500': errors.province }">
-                    <SelectValue placeholder="Select province" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="jakarta">DKI Jakarta</SelectItem>
-                    <SelectItem value="west_java">West Java</SelectItem>
-                    <SelectItem value="central_java">Central Java</SelectItem>
-                    <SelectItem value="east_java">East Java</SelectItem>
-                    <SelectItem value="banten">Banten</SelectItem>
-                    <SelectItem value="yogyakarta">Yogyakarta</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p v-if="errors.province" class="text-sm text-red-500 mt-1">
-                  {{ errors.province }}
-                </p>
-              </div>
-
-              <!-- Postal Code -->
-              <div>
-                <Label for="postalCode" class="mb-2">Postal Code</Label>
-                <Input
-                  id="postalCode"
-                  v-model="customerData.address.postalCode"
-                  placeholder="12345"
-                  :class="{ 'border-red-500': errors.postalCode }"
-                  required
-                />
-                <p v-if="errors.postalCode" class="text-sm text-red-500 mt-1">
-                  {{ errors.postalCode }}
-                </p>
-              </div>
-            </div>
           </CardContent>
         </Card>
 

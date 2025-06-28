@@ -146,9 +146,11 @@ definePageMeta({
   middleware: "guest",
 });
 
+// Import necessary modules
 const { registerUser } = useAuth();
 const router = useRouter();
 
+// Reactive form state
 const form = reactive({
   firstName: "",
   lastName: "",
@@ -157,10 +159,12 @@ const form = reactive({
   confirmPassword: "",
 });
 
+// Reactive state for loading and messages
 const loading = ref(false);
 const errorMessage = ref("");
 const successMessage = ref("");
 
+// Handle registration logic
 const handleRegister = async () => {
   loading.value = true;
   errorMessage.value = "";
@@ -196,6 +200,7 @@ const handleRegister = async () => {
   }
 };
 
+// Error handling function and Messages
 const getErrorMessage = (errorCode) => {
   switch (errorCode) {
     case "auth/email-already-in-use":

@@ -14,7 +14,7 @@
 
     <!-- Search and Filter -->
     <div class="flex items-center gap-4 mb-6 px-4">
-      <div class="relative flex-1 max-w-sm">
+      <div class="relative flex-1 w-full">
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           v-model="searchQuery"
@@ -64,36 +64,57 @@
     </div>
 
     <!-- Customer Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 px-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 px-4">
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">{{ filteredStats.total }}</p>
-            <p class="text-sm text-muted-foreground">Total Customers</p>
-          </div>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium">Total Customers</CardTitle>
+          <Users />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ filteredStats.total }}</div>
         </CardContent>
       </Card>
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-yellow-600">
-              {{ filteredStats.vip }}
-            </p>
-            <p class="text-sm text-muted-foreground">VIP Customers</p>
-          </div>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium">VIP Customers</CardTitle>
+          <CrownIcon />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ filteredStats.vip }}</div>
         </CardContent>
       </Card>
       <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold text-green-600">
-              {{ filteredStats.active }}
-            </p>
-            <p class="text-sm text-muted-foreground">Active Customers</p>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium">Active Customers</CardTitle>
+          <Activity />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ filteredStats.active }}</div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"
+            >Total Customer Value</CardTitle
+          >
+          <ChartBarIncreasing />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">
+            Rp {{ formatPrice(filteredStats.totalValue) }}
           </div>
         </CardContent>
       </Card>
-      <Card>
+      <!-- <Card>
         <CardContent class="p-4">
           <div class="text-center">
             <p class="text-2xl font-bold">
@@ -102,11 +123,11 @@
             <p class="text-sm text-muted-foreground">Total Customer Value</p>
           </div>
         </CardContent>
-      </Card>
+      </Card> -->
     </div>
 
     <!-- Customer Table -->
-    <div class="border mx-4">
+    <div class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -393,6 +414,10 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Users,
+  CrownIcon,
+  Activity,
+  ChartBarIncreasing,
 } from "lucide-vue-next";
 
 // Sample customers data
