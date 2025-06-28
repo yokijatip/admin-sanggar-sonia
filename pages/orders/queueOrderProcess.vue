@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto overflow-hidden min-w-full">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6 px-4">
+    <div class="flex items-center justify-between px-4">
       <HeadersContent
         title="Queue Order Management"
         description="Manage order priorities using Greedy Algorithm"
@@ -20,53 +20,67 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 px-4">
+      <!-- Total Antrian -->
       <Card>
-        <CardContent class="p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">
-                Total Queue
-              </p>
-              <p class="text-2xl font-bold">{{ queueOrders.length }}</p>
-            </div>
-            <Clock class="h-8 w-8 text-blue-500" />
-          </div>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Total Antrian </CardTitle>
+          <Clock class="text-blue-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ queueOrders.length }}</div>
+          <p class="text-xs text-muted-foreground">Queue Orders</p>
         </CardContent>
       </Card>
 
+      <!-- High Priority Count atau prioritas Utama -->
       <Card>
-        <CardContent class="p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">
-                High Priority
-              </p>
-              <p class="text-2xl font-bold text-red-600">
-                {{ highPriorityCount }}
-              </p>
-            </div>
-            <AlertTriangle class="h-8 w-8 text-red-500" />
-          </div>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium"> Prioritas Utama </CardTitle>
+          <AlertTriangle class="text-red-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ highPriorityCount }}</div>
+          <p class="text-xs text-muted-foreground">High Priority</p>
         </CardContent>
       </Card>
 
+      <!-- Today's Capacity atau total kapasistas -->
       <Card>
-        <CardContent class="p-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">
-                Today's Capacity
-              </p>
-              <p class="text-2xl font-bold">
-                {{ todayCapacity.current }}/{{ todayCapacity.max }}
-              </p>
-            </div>
-            <TrendingUp class="h-8 w-8 text-green-500" />
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium">Kapasitas Hari Ini</CardTitle>
+          <TrendingUp class="h-8 w-8 text-green-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">
+            {{ todayCapacity.current }}/{{ todayCapacity.max }}
           </div>
+          <p class="text-xs text-muted-foreground">Today's Capacity</p>
         </CardContent>
       </Card>
 
+      <!-- Average Processing Time atau rata rata waktu proses -->
       <Card>
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
+          <CardTitle class="text-sm font-medium">
+            Rata-rata Waktu Proses
+          </CardTitle>
+          <Timer class="text-purple-500" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-xl font-bold">{{ averageProcessingTime }} jam</div>
+          <p class="text-xs text-muted-foreground">Average Processing Time</p>
+        </CardContent>
+      </Card>
+
+      <!-- <Card>
         <CardContent class="p-4">
           <div class="flex items-center justify-between">
             <div>
@@ -78,7 +92,7 @@
             <Timer class="h-8 w-8 text-purple-500" />
           </div>
         </CardContent>
-      </Card>
+      </Card> -->
     </div>
 
     <!-- Priority Algorithm Info -->
