@@ -278,16 +278,25 @@ const categories = ref([]);
 // Fetch categories from Firestore on mount
 const fetchCategories = async () => {
   try {
-    const querySnapshot = await getDocs(collection($firebase.db, "categories"));
-    categories.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const { $firebase } = useNuxtApp() // ✅ ambil dari plugin inject
+
+    const querySnapshot = await getDocs(collection($firebase.firestore, 'categories'))
+
+    categories.value = querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        firestoreId: doc.id,
+        id: data.id,
+        name: data.name
+      }
+    })
+
+    console.log('Fetched categories:', categories.value)
   } catch (error) {
-    console.error("Error fetching categories:", error);
-    showMessage("Failed to load categories", "error");
+    console.error('Error fetching categories:', error)
+    showMessage('Failed to load categories', 'error')
   }
-};
+}
 
 // Fetch categories when component is mounted
 onMounted(() => {
