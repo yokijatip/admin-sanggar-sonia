@@ -7,24 +7,6 @@
         <p class="text-muted-foreground">Fill in the product details below</p>
       </div>
 
-      <!-- Alert with Transition -->
-      <Transition name="fade">
-        <Alert
-          v-show="message"
-          :class="
-            messageType === 'success'
-              ? 'border-green-200 bg-green-50'
-              : 'border-red-200 bg-red-50'
-          "
-          class="mb-4"
-        >
-          <AlertTitle>{{
-            messageType === "success" ? "Success" : "Error"
-          }}</AlertTitle>
-          <AlertDescription>{{ message }}</AlertDescription>
-        </Alert>
-      </Transition>
-
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <Card class="p-6">
@@ -192,21 +174,23 @@
         </div>
       </form>
 
-      <!-- Alert -->
-      <Alert
-        v-if="message"
-        :class="
-          messageType === 'success'
-            ? 'border-green-200 bg-green-50'
-            : 'border-red-200 bg-red-50'
-        "
-        class="mt-4 mb-4"
-      >
-        <AlertTitle>{{
-          messageType === "success" ? "Success" : "Error"
-        }}</AlertTitle>
-        <AlertDescription>{{ message }}</AlertDescription>
-      </Alert>
+      <!-- Alert with Transition -->
+      <Transition name="fade">
+        <Alert
+          v-show="message"
+          :class="
+            messageType === 'success'
+              ? 'border-green-200 bg-green-50'
+              : 'border-red-200 bg-red-50'
+          "
+          class="mb-4"
+        >
+          <AlertTitle>{{
+            messageType === "success" ? "Success" : "Error"
+          }}</AlertTitle>
+          <AlertDescription>{{ message }}</AlertDescription>
+        </Alert>
+      </Transition>
 
       <!-- Preview -->
       <Card v-if="showPreview" class="mt-8 p-6">
@@ -245,7 +229,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { collection, getDocs } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 import {
   Select,
   SelectContent,
@@ -262,7 +251,7 @@ const form = reactive({
   kategori: "",
   deskripsi: "",
   harga: null,
-  imageFile: null,
+  imageFile: "",
 });
 
 // Reactive variables
@@ -278,25 +267,30 @@ const categories = ref([]);
 // Fetch categories from Firestore on mount
 const fetchCategories = async () => {
   try {
-    const { $firebase } = useNuxtApp() // ✅ ambil dari plugin inject
+    // Get Firebase instance from Nuxt app masih bingung
+    // karena ini pake plugin inject, jadi kita ambil dari useNuxtApp()
+    const { $firebase } = useNuxtApp(); // ✅ ambil dari plugin inject
 
-    const querySnapshot = await getDocs(collection($firebase.firestore, 'categories'))
+    // Get categories from Firestore pake snapshot
+    const querySnapshot = await getDocs(
+      collection($firebase.firestore, "categories")
+    );
 
-    categories.value = querySnapshot.docs.map(doc => {
-      const data = doc.data()
+    categories.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
       return {
         firestoreId: doc.id,
         id: data.id,
-        name: data.name
-      }
-    })
+        name: data.name,
+      };
+    });
 
-    console.log('Fetched categories:', categories.value)
+    console.log("Fetched categories:", categories.value);
   } catch (error) {
-    console.error('Error fetching categories:', error)
-    showMessage('Failed to load categories', 'error')
+    console.error("Error fetching categories:", error);
+    showMessage("Failed to load categories", "error");
   }
-}
+};
 
 // Fetch categories when component is mounted
 onMounted(() => {
@@ -310,8 +304,7 @@ const validateForm = () => {
     !form.title ||
     !form.kategori ||
     !form.deskripsi ||
-    !form.harga ||
-    !form.imageFile
+    !form.harga
   ) {
     showMessage("Please fill in all required fields including image", "error");
     return false;
@@ -368,7 +361,10 @@ const handleSubmit = async () => {
   if (!validateForm()) return;
   isLoading.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulasi delay
+    // await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulasi delay
+    const { $firebase } = useNuxtApp(); // Ambil Firebase dari Nuxt app
+
+    // Data yang akan disimpan
     const productData = {
       id: form.id,
       title: form.title,
@@ -376,14 +372,18 @@ const handleSubmit = async () => {
       deskripsi: form.deskripsi,
       harga: Number(form.harga),
       image: "uploaded_file",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
+
     console.log("Submitted product data:", productData);
+
     console.log("Uploaded file:", form.imageFile);
+    await addDoc(collection($firebase.firestore, "products"), productData);
     showMessage("Product added successfully!", "success");
     showPreview.value = true;
   } catch (error) {
+    console.error("Error adding product:", error);
     showMessage("Failed to add product.", "error");
   } finally {
     isLoading.value = false;
