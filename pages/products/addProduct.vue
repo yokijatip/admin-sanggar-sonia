@@ -27,7 +27,7 @@
           <div class="mb-2">
             <Label class="pb-2" for="category">Category</Label>
             <Select
-              v-model="form.kategori"
+              v-model="form.category"
               @update:model-value="handleCategoryChange"
               required
             >
@@ -62,14 +62,14 @@
             <Label class="pb-2" for="description">Description</Label>
             <Textarea
               id="description"
-              v-model="form.deskripsi"
+              v-model="form.description"
               placeholder="Enter product description"
               rows="4"
               required
             />
           </div>
 
-          <!-- Image Upload Only -->
+          <!-- Image Upload -->
           <div class="mb-2">
             <Label>Product Image</Label>
             <div class="mt-2">
@@ -89,8 +89,9 @@
                       size="sm"
                       @click="removeImage"
                       class="mt-2"
-                      >Remove Image</Button
                     >
+                      Remove Image
+                    </Button>
                   </div>
                   <div v-else>
                     <svg
@@ -135,7 +136,7 @@
             <Label class="pb-2" for="price">Price (Rp)</Label>
             <Input
               id="price"
-              v-model="form.harga"
+              v-model="form.price"
               type="number"
               min="0"
               step="1000"
@@ -147,9 +148,14 @@
 
         <!-- Action Buttons -->
         <div class="flex justify-end space-x-4 pb-4">
-          <Button type="button" variant="outline" @click="handleCancel"
-            >Cancel</Button
+          <Button
+            type="button"
+            variant="outline"
+            @click="handleCancel"
+            :disabled="isLoading"
           >
+            Cancel
+          </Button>
           <Button type="submit" :disabled="isLoading">
             <span v-if="isLoading" class="flex items-center">
               <svg
@@ -172,7 +178,7 @@
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              Adding Product...
+              {{ uploadingStatus }}
             </span>
             <span v-else>Add Product</span>
           </Button>
@@ -198,7 +204,7 @@
       </Transition>
 
       <!-- Preview -->
-      <Card v-if="showPreview" class="mt-8 p-6">
+      <Card v-if="showPreview" class="mt-8 p-6 mb-4">
         <CardHeader>
           <CardTitle>Product Preview</CardTitle>
         </CardHeader>
@@ -209,18 +215,18 @@
             <div><strong>Category:</strong> {{ form.kategori }}</div>
             <div><strong>Description:</strong> {{ form.deskripsi }}</div>
             <div><strong>Price:</strong> Rp {{ formatPrice(form.harga) }}</div>
-            <div v-if="imagePreview">
+            <div v-if="form.imageUrl || imagePreview">
               <strong>Image:</strong>
               <img
-                :src="imagePreview"
+                :src="form.imageUrl || imagePreview"
                 alt="Product"
                 class="mt-2 h-20 w-20 object-cover rounded-md border"
               />
             </div>
           </div>
-          <Button variant="ghost" @click="showPreview = false" class="mt-4"
-            >Hide Preview</Button
-          >
+          <Button variant="ghost" @click="showPreview = false" class="mt-4">
+            Hide Preview
+          </Button>
         </CardContent>
       </Card>
     </div>
@@ -253,23 +259,83 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Tambahkan ini di bagian script setup
+const config = useRuntimeConfig();
+
 // State
 const form = reactive({
   id: "",
   title: "",
-  kategori: "",
-  deskripsi: "",
-  harga: null,
-  imageFile: "",
+  category: "",
+  description: "",
+  price: null,
+  imageFile: null,
+  imageUrl: "",
 });
 
 // Reactive variables
 const isLoading = ref(false);
+const uploadingStatus = ref("");
 const message = ref("");
 const messageType = ref("");
 const showPreview = ref(false);
 const imagePreview = ref("");
 const categories = ref([]);
+
+// Function to upload image to Cloudinary (Updated)
+const uploadToCloudinary = async (file) => {
+  try {
+    uploadingStatus.value = "Uploading image to Cloudinary...";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", config.public.cloudinaryUploadPreset);
+    formData.append("folder", "TokoKueDlillah/products");
+
+    // Generate unique filename with timestamp
+    const timestamp = new Date().getTime();
+    const filename = `product_${timestamp}_${file.name.replace(
+      /[^a-zA-Z0-9.]/g,
+      "_"
+    )}`;
+    formData.append("public_id", `TokoKueDlillah/products/${filename}`);
+
+    console.log("Uploading to Cloudinary with config:", {
+      cloudName: config.public.cloudinaryCloudName,
+      uploadPreset: config.public.cloudinaryUploadPreset,
+      folder: "TokoKueDlillah/products",
+    });
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${config.public.cloudinaryCloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    console.log("Cloudinary response status:", response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Cloudinary error response:", errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Cloudinary upload success:", data);
+
+    if (data.error) {
+      console.error("Cloudinary API error:", data.error);
+      throw new Error(data.error.message);
+    }
+
+    return data.secure_url;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+};
 
 // Function to generate prefix from category name
 const generateCategoryPrefix = (categoryName) => {
@@ -437,9 +503,9 @@ const validateForm = () => {
   if (
     !form.id ||
     !form.title ||
-    !form.kategori ||
-    !form.deskripsi ||
-    !form.harga
+    !form.category ||
+    !form.description ||
+    !form.price
   ) {
     showMessage("Please fill in all required fields", "error");
     return false;
@@ -451,10 +517,12 @@ const validateForm = () => {
   return true;
 };
 
-// Handle file upload
+// Handle file upload - only preview, no upload yet
 const handleImageUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
+
+  // Validate file
   if (file.size > 5 * 1024 * 1024) {
     showMessage("Image size must be less than 5MB", "error");
     return;
@@ -463,7 +531,11 @@ const handleImageUpload = (event) => {
     showMessage("Please select a valid image file", "error");
     return;
   }
+
+  // Store file for later upload during submit
   form.imageFile = file;
+
+  // Show preview immediately
   const reader = new FileReader();
   reader.onload = (e) => {
     imagePreview.value = e.target.result;
@@ -473,6 +545,7 @@ const handleImageUpload = (event) => {
 
 const removeImage = () => {
   form.imageFile = null;
+  form.imageUrl = "";
   imagePreview.value = "";
   const fileInput = document.getElementById("file-upload");
   if (fileInput) fileInput.value = "";
@@ -496,10 +569,27 @@ const handleSubmit = async () => {
   if (!validateForm()) return;
 
   isLoading.value = true;
+
   try {
     const { $firebase } = useNuxtApp();
 
-    // Double-check if the generated ID is still unique
+    // Step 1: Upload image to Cloudinary if exists
+    let imageUrl = "";
+
+    if (form.imageFile) {
+      try {
+        imageUrl = await uploadToCloudinary(form.imageFile);
+        form.imageUrl = imageUrl;
+        console.log("Image uploaded successfully:", imageUrl);
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        showMessage(`Failed to upload image: ${error.message}`, "error");
+        return;
+      }
+    }
+
+    // Step 2: Check for unique ID
+    uploadingStatus.value = "Checking product ID...";
     const existingProductQuery = query(
       collection($firebase.firestore, "products"),
       where("id", "==", form.id),
@@ -510,19 +600,20 @@ const handleSubmit = async () => {
 
     if (!existingProductSnapshot.empty) {
       // If ID already exists, regenerate
-      const newId = await generateProductId(form.kategori);
+      const newId = await generateProductId(form.category);
       form.id = newId;
-      showMessage("Product ID was regenerated to ensure uniqueness", "success");
+      console.log("Product ID regenerated:", newId);
     }
 
-    // Data yang akan disimpan
+    // Step 3: Save to Firestore
+    uploadingStatus.value = "Saving product...";
     const productData = {
       id: form.id,
       title: form.title,
-      kategori: form.kategori,
-      deskripsi: form.deskripsi,
-      harga: Number(form.harga),
-      image: "uploaded_file",
+      category: form.category,
+      description: form.description,
+      price: Number(form.price),
+      imageUrl: imageUrl || "", // Use Cloudinary URL
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -530,21 +621,28 @@ const handleSubmit = async () => {
     console.log("Submitted product data:", productData);
 
     await addDoc(collection($firebase.firestore, "products"), productData);
+
+    // Success
     showMessage("Product added successfully!", "success");
     showPreview.value = true;
   } catch (error) {
     console.error("Error adding product:", error);
-    showMessage("Failed to add product.", "error");
+    showMessage("Failed to add product. Please try again.", "error");
   } finally {
     isLoading.value = false;
+    uploadingStatus.value = "";
   }
 };
 
 const handleCancel = () => {
   if (confirm("Are you sure you want to cancel?")) {
-    Object.keys(form).forEach(
-      (key) => (form[key] = key === "harga" ? null : "")
-    );
+    Object.keys(form).forEach((key) => {
+      if (key === "harga") {
+        form[key] = null;
+      } else {
+        form[key] = "";
+      }
+    });
     imagePreview.value = "";
     showPreview.value = false;
     const fileInput = document.getElementById("file-upload");

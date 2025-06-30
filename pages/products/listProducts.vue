@@ -47,8 +47,15 @@
       </Select>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex justify-center items-center py-8">
+      <div
+        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
+      ></div>
+    </div>
+
     <!-- Data Table -->
-    <div class="border">
+    <div v-else class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -103,7 +110,7 @@
             </TableCell>
             <!-- Product Price -->
             <TableCell class="text-left font-medium">
-              ${{ product.price.toLocaleString() }}
+              Rp {{ Number(product.price).toLocaleString() }}
             </TableCell>
             <!-- Product Stock -->
             <TableCell class="text-left">
@@ -125,7 +132,7 @@
                 :variant="getStatusVariant(product.status)"
                 class="capitalize"
               >
-                {{ product.status.replace("_", " ") }}
+                {{ product.status?.replace("_", " ") }}
               </Badge>
             </TableCell>
             <!-- Actions -->
@@ -148,15 +155,28 @@
                 <Button
                   variant="ghost"
                   size="sm"
-                  @click="deleteProduct(product.id)"
+                  @click="confirmDeleteProduct(product.id, product.title)"
+                  :disabled="deletingProducts.includes(product.id)"
                 >
-                  <Trash2 class="h-4 w-4 text-destructive" />
+                  <Loader2
+                    v-if="deletingProducts.includes(product.id)"
+                    class="h-4 w-4 animate-spin"
+                  />
+                  <Trash2 v-else class="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </TableCell>
           </TableRow>
         </TableBody>
       </Table>
+
+      <!-- Empty State -->
+      <div
+        v-if="!loading && filteredProducts.length === 0"
+        class="text-center py-8"
+      >
+        <p class="text-muted-foreground">No products found</p>
+      </div>
     </div>
 
     <!-- Pagination -->
@@ -229,8 +249,14 @@
           >{{ selectedProducts.length }} selected</span
         >
         <div class="flex gap-2">
-          <Button variant="secondary" size="sm" @click="bulkDelete">
-            <Trash2 class="h-4 w-4 mr-1" />
+          <Button
+            variant="secondary"
+            size="sm"
+            @click="confirmBulkDelete"
+            :disabled="bulkDeleting"
+          >
+            <Loader2 v-if="bulkDeleting" class="h-4 w-4 mr-1 animate-spin" />
+            <Trash2 v-else class="h-4 w-4 mr-1" />
             Delete
           </Button>
           <Button variant="secondary" size="sm" @click="bulkStatusUpdate">
@@ -243,11 +269,67 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="deleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete
+            <span class="font-medium">{{ productToDelete?.title }}</span>
+            and remove it from our servers.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelDelete">Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            @click="deleteProduct"
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            :disabled="deletingProducts.length > 0"
+          >
+            <Loader2
+              v-if="deletingProducts.length > 0"
+              class="h-4 w-4 mr-2 animate-spin"
+            />
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Bulk Delete Confirmation Dialog -->
+    <AlertDialog v-model:open="bulkDeleteDialogOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Multiple Products</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete
+            {{ selectedProducts.length }} selected products? This action cannot
+            be undone and will permanently remove these products from the
+            database.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelBulkDelete"
+            >Cancel</AlertDialogCancel
+          >
+          <AlertDialogAction
+            @click="bulkDelete"
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            :disabled="bulkDeleting"
+          >
+            <Loader2 v-if="bulkDeleting" class="h-4 w-4 mr-2 animate-spin" />
+            Delete All
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
 <script setup>
-import HeadersContent from "~/components/ui/HeadersContent.vue";
+import HeadersContent from "@/components/ui/HeadersContent.vue";
 import { ref, computed, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -269,6 +351,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Search,
   Eye,
@@ -280,96 +372,39 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Loader2,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
+import { Toaster } from "@/components/ui/sonner";
 
-// Sample data - replace with Firebase data later
-const allProducts = ref([
-  {
-    id: "PRD-001",
-    title: "iPhone 15 Pro Max",
-    category: "electronics",
-    description:
-      "Latest iPhone with titanium design and advanced camera system",
-    price: 1199,
-    stock: 25,
-    status: "active",
-  },
-  {
-    id: "PRD-002",
-    title: "Nike Air Max 270",
-    category: "clothing",
-    description: "Comfortable running shoes with air cushioning technology",
-    price: 150,
-    stock: 5,
-    status: "active",
-  },
-  {
-    id: "PRD-003",
-    title: "MacBook Pro M3",
-    category: "electronics",
-    description: "Powerful laptop for professional work with M3 chip",
-    price: 2399,
-    stock: 0,
-    status: "out_of_stock",
-  },
-  {
-    id: "PRD-004",
-    title: "The Psychology of Money",
-    category: "books",
-    description:
-      "Timeless lessons on wealth, greed, and happiness by Morgan Housel",
-    price: 15,
-    stock: 100,
-    status: "active",
-  },
-  {
-    id: "PRD-005",
-    title: "Smart Garden Kit",
-    category: "home",
-    description:
-      "Automated indoor garden system for growing herbs and vegetables",
-    price: 299,
-    stock: 12,
-    status: "inactive",
-  },
-  {
-    id: "PRD-006",
-    title: "Wireless Headphones",
-    category: "electronics",
-    description:
-      "Premium noise-cancelling wireless headphones with 30h battery",
-    price: 249,
-    stock: 45,
-    status: "active",
-  },
-  {
-    id: "PRD-007",
-    title: "Designer T-Shirt",
-    category: "clothing",
-    description: "Premium cotton t-shirt with minimalist design",
-    price: 89,
-    stock: 8,
-    status: "active",
-  },
-  {
-    id: "PRD-008",
-    title: "Coffee Maker Pro",
-    category: "home",
-    description: "Professional espresso machine with built-in grinder",
-    price: 599,
-    stock: 3,
-    status: "active",
-  },
-]);
+// Firebase
+const { $firebase } = useNuxtApp();
+const { toast } = Toaster;
 
 // Reactive data
+const allProducts = ref([]);
 const searchQuery = ref("");
 const selectedCategory = ref("all");
 const selectedStatus = ref("all");
-const filteredProducts = ref([...allProducts.value]);
+const filteredProducts = ref([]);
 const selectedProducts = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
+const loading = ref(true);
+
+// Delete states
+const deleteDialogOpen = ref(false);
+const productToDelete = ref(null);
+const deletingProducts = ref([]);
+const bulkDeleteDialogOpen = ref(false);
+const bulkDeleting = ref(false);
 
 // Computed properties
 const selectAll = computed(() => {
@@ -393,19 +428,53 @@ const paginatedProducts = computed(() => {
   return filteredProducts.value.slice(start, end);
 });
 
-// Methods
+// Fetch products from Firestore
+const fetchProducts = async () => {
+  try {
+    loading.value = true;
+    const productsRef = collection($firebase.firestore, "products");
+    const q = query(productsRef, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    const products = [];
+    querySnapshot.forEach((doc) => {
+      products.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    allProducts.value = products;
+    filterProducts();
+
+    toast({
+      title: "Success",
+      description: `Loaded ${products.length} products`,
+    });
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load products",
+      variant: "destructive",
+    });
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Filter products
 const filterProducts = () => {
   let filtered = allProducts.value;
 
   // Filter by search query
   if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
       (product) =>
-        product.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        product.description
-          .toLowerCase()
-          .includes(searchQuery.value.toLowerCase()) ||
-        product.id.toLowerCase().includes(searchQuery.value.toLowerCase())
+        product.title?.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.id?.toLowerCase().includes(query)
     );
   }
 
@@ -467,42 +536,125 @@ const clearSelection = () => {
   selectedProducts.value = [];
 };
 
-// Navigation methods (to be implemented with your router)
+// Delete functions
+const confirmDeleteProduct = (id, title) => {
+  const product = allProducts.value.find((p) => p.id === id);
+  productToDelete.value = { id, title: product?.title };
+  deleteDialogOpen.value = true;
+};
+
+const cancelDelete = () => {
+  deleteDialogOpen.value = false;
+  productToDelete.value = null;
+};
+
+const deleteProduct = async () => {
+  if (!productToDelete.value) return;
+
+  try {
+    deletingProducts.value.push(productToDelete.value.id);
+
+    // Delete from Firestore
+    await deleteDoc(
+      doc($firebase.firestore, "products", productToDelete.value.id)
+    );
+
+    // Remove from local state
+    allProducts.value = allProducts.value.filter(
+      (p) => p.id !== productToDelete.value.id
+    );
+    filterProducts();
+
+    toast({
+      title: "Success",
+      description: `Product "${productToDelete.value.title}" deleted successfully`,
+    });
+
+    deleteDialogOpen.value = false;
+    productToDelete.value = null;
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    toast({
+      title: "Error",
+      description: "Failed to delete product",
+      variant: "destructive",
+    });
+  } finally {
+    deletingProducts.value = deletingProducts.value.filter(
+      (id) => id !== productToDelete.value?.id
+    );
+  }
+};
+
+const confirmBulkDelete = () => {
+  if (selectedProducts.value.length === 0) return;
+  bulkDeleteDialogOpen.value = true;
+};
+
+const cancelBulkDelete = () => {
+  bulkDeleteDialogOpen.value = false;
+};
+
+const bulkDelete = async () => {
+  if (selectedProducts.value.length === 0) return;
+
+  try {
+    bulkDeleting.value = true;
+
+    // Delete all selected products from Firestore
+    const deletePromises = selectedProducts.value.map(async (productId) => {
+      return await deleteDoc(doc($firebase.firestore, "products", productId));
+    });
+
+    await Promise.all(deletePromises);
+
+    // Remove from local state
+    allProducts.value = allProducts.value.filter(
+      (p) => !selectedProducts.value.includes(p.id)
+    );
+    filterProducts();
+
+    toast({
+      title: "Success",
+      description: `${selectedProducts.value.length} products deleted successfully`,
+    });
+
+    selectedProducts.value = [];
+    bulkDeleteDialogOpen.value = false;
+  } catch (error) {
+    console.error("Error bulk deleting products:", error);
+    toast({
+      title: "Error",
+      description: "Failed to delete some products",
+      variant: "destructive",
+    });
+  } finally {
+    bulkDeleting.value = false;
+  }
+};
+
+// Navigation methods
 const navigateToAddProduct = () => {
-  // navigateTo('/admin/products/add')
-  console.log("Navigate to add product");
-  // This should redirect to the add product page
   navigateTo("/products/addProduct");
 };
 
 const viewProduct = (id) => {
-  // navigateTo(`/admin/products/${id}`)
   console.log("View product:", id);
+  // navigateTo(`/products/${id}`)
 };
 
 const editProduct = (id) => {
-  // navigateTo(`/admin/products/${id}/edit`)
   console.log("Edit product:", id);
-};
-
-const deleteProduct = (id) => {
-  // Show confirmation dialog and delete
-  console.log("Delete product:", id);
-};
-
-const bulkDelete = () => {
-  // Show confirmation dialog and delete selected products
-  console.log("Bulk delete:", selectedProducts.value);
+  // navigateTo(`/products/${id}/edit`)
 };
 
 const bulkStatusUpdate = () => {
-  // Show status update dialog
   console.log("Bulk status update:", selectedProducts.value);
 };
 
 // Initialize
 onMounted(() => {
-  filterProducts();
+  fetchProducts();
 });
 </script>
 
