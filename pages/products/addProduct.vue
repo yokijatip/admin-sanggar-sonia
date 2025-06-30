@@ -17,27 +17,20 @@
               id="productId"
               v-model="form.id"
               type="text"
-              placeholder="Enter product ID"
+              placeholder="Product ID akan otomatis terisi setelah memilih kategori"
               required
-            />
-          </div>
-
-          <!-- Product Title -->
-          <div class="mb-2">
-            <Label class="pb-2" for="productTitle">Product Title</Label>
-            <Input
-              id="productTitle"
-              v-model="form.title"
-              type="text"
-              placeholder="Enter product title"
-              required
+              disabled
             />
           </div>
 
           <!-- Category -->
           <div class="mb-2">
             <Label class="pb-2" for="category">Category</Label>
-            <Select v-model="form.kategori" required>
+            <Select
+              v-model="form.kategori"
+              @update:model-value="handleCategoryChange"
+              required
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -50,6 +43,18 @@
                 >
               </SelectContent>
             </Select>
+          </div>
+
+          <!-- Product Title -->
+          <div class="mb-2">
+            <Label class="pb-2" for="productTitle">Product Title</Label>
+            <Input
+              id="productTitle"
+              v-model="form.title"
+              type="text"
+              placeholder="Enter product title"
+              required
+            />
           </div>
 
           <!-- Description -->
@@ -234,6 +239,10 @@ import {
   getDocs,
   addDoc,
   serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import {
   Select,
@@ -260,18 +269,46 @@ const message = ref("");
 const messageType = ref("");
 const showPreview = ref(false);
 const imagePreview = ref("");
-
-// State
 const categories = ref([]);
+
+// Function to generate prefix from category name
+const generateCategoryPrefix = (categoryName) => {
+  if (!categoryName) {
+    console.log("No category name provided, using default PRD");
+    return "PRD";
+  }
+
+  console.log(`Generating prefix for category: "${categoryName}"`);
+
+  // Remove spaces and special characters, convert to uppercase
+  const cleanName = categoryName.replace(/[^a-zA-Z]/g, "").toUpperCase();
+  console.log(`Cleaned category name: "${cleanName}"`);
+
+  let prefix;
+
+  // Generate 3-letter prefix
+  if (cleanName.length >= 3) {
+    // Take first 3 characters
+    prefix = cleanName.substring(0, 3);
+  } else if (cleanName.length === 2) {
+    // If only 2 characters, add 'X'
+    prefix = cleanName + "X";
+  } else if (cleanName.length === 1) {
+    // If only 1 character, add 'XX'
+    prefix = cleanName + "XX";
+  } else {
+    // Fallback
+    prefix = "PRD";
+  }
+
+  console.log(`Final prefix: "${prefix}"`);
+  return prefix;
+};
 
 // Fetch categories from Firestore on mount
 const fetchCategories = async () => {
   try {
-    // Get Firebase instance from Nuxt app masih bingung
-    // karena ini pake plugin inject, jadi kita ambil dari useNuxtApp()
-    const { $firebase } = useNuxtApp(); // ✅ ambil dari plugin inject
-
-    // Get categories from Firestore pake snapshot
+    const { $firebase } = useNuxtApp();
     const querySnapshot = await getDocs(
       collection($firebase.firestore, "categories")
     );
@@ -292,6 +329,104 @@ const fetchCategories = async () => {
   }
 };
 
+// Generate next product ID based on category
+const generateProductId = async (categoryId) => {
+  try {
+    const { $firebase } = useNuxtApp();
+
+    // Find the category name from categories array
+    const selectedCategory = categories.value.find(
+      (cat) => cat.id === categoryId
+    );
+
+    if (!selectedCategory) {
+      console.error(`Category not found for ID: ${categoryId}`);
+      console.log("Available categories:", categories.value);
+      return `PRD-001`; // Fallback with proper format
+    }
+
+    const categoryName = selectedCategory.name;
+    console.log(`Processing category: ${categoryName} (ID: ${categoryId})`);
+
+    // Generate prefix from category name
+    const prefix = generateCategoryPrefix(categoryName);
+    console.log(`Generated prefix: ${prefix} for category: ${categoryName}`);
+
+    // Query products with the same category to get the highest number
+    const productsQuery = query(
+      collection($firebase.firestore, "products"),
+      where("kategori", "==", categoryId)
+    );
+
+    const querySnapshot = await getDocs(productsQuery);
+
+    let maxNumber = 0;
+
+    // Find the highest number for this category
+    querySnapshot.forEach((doc) => {
+      const productData = doc.data();
+      const productId = productData.id;
+
+      // Check if the product ID starts with our prefix
+      if (productId && productId.startsWith(prefix + "-")) {
+        const numberPart = productId.split("-")[1];
+        const currentNumber = parseInt(numberPart) || 0;
+        if (currentNumber > maxNumber) {
+          maxNumber = currentNumber;
+        }
+      }
+    });
+
+    const nextNumber = maxNumber + 1;
+
+    // Format number with leading zeros (e.g., 001, 002, 003)
+    const formattedNumber = nextNumber.toString().padStart(3, "0");
+
+    const finalId = `${prefix}-${formattedNumber}`;
+    console.log(`Final Product ID: ${finalId}`);
+
+    return finalId;
+  } catch (error) {
+    console.error("Error generating product ID:", error);
+    // Fallback to sequential ID if there's an error
+    const timestamp = Date.now().toString().slice(-3);
+    return `PRD-${timestamp}`;
+  }
+};
+
+// Handle category change
+const handleCategoryChange = async (selectedCategoryId) => {
+  if (selectedCategoryId) {
+    try {
+      // Show loading state
+      form.id = "Generating ID...";
+
+      // Add small delay to ensure categories are loaded
+      if (categories.value.length === 0) {
+        await fetchCategories();
+      }
+
+      // Generate new product ID
+      const newProductId = await generateProductId(selectedCategoryId);
+      form.id = newProductId;
+
+      console.log(
+        `Generated Product ID: ${newProductId} for category: ${selectedCategoryId}`
+      );
+      console.log(
+        `Category data:`,
+        categories.value.find((cat) => cat.id === selectedCategoryId)
+      );
+    } catch (error) {
+      console.error("Error handling category change:", error);
+      showMessage("Failed to generate product ID", "error");
+      form.id = "";
+    }
+  } else {
+    form.id = "";
+  }
+};
+
 // Fetch categories when component is mounted
 onMounted(() => {
   fetchCategories();
@@ -306,7 +441,7 @@ const validateForm = () => {
     !form.deskripsi ||
     !form.harga
   ) {
-    showMessage("Please fill in all required fields including image", "error");
+    showMessage("Please fill in all required fields", "error");
     return false;
   }
   if (form.harga <= 0) {
@@ -359,10 +494,26 @@ const formatPrice = (price) => {
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
+
   isLoading.value = true;
   try {
-    // await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulasi delay
-    const { $firebase } = useNuxtApp(); // Ambil Firebase dari Nuxt app
+    const { $firebase } = useNuxtApp();
+
+    // Double-check if the generated ID is still unique
+    const existingProductQuery = query(
+      collection($firebase.firestore, "products"),
+      where("id", "==", form.id),
+      limit(1)
+    );
+
+    const existingProductSnapshot = await getDocs(existingProductQuery);
+
+    if (!existingProductSnapshot.empty) {
+      // If ID already exists, regenerate
+      const newId = await generateProductId(form.kategori);
+      form.id = newId;
+      showMessage("Product ID was regenerated to ensure uniqueness", "success");
+    }
 
     // Data yang akan disimpan
     const productData = {
@@ -378,7 +529,6 @@ const handleSubmit = async () => {
 
     console.log("Submitted product data:", productData);
 
-    console.log("Uploaded file:", form.imageFile);
     await addDoc(collection($firebase.firestore, "products"), productData);
     showMessage("Product added successfully!", "success");
     showPreview.value = true;
