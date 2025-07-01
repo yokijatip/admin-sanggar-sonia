@@ -408,6 +408,55 @@
         </CardContent>
       </Card>
     </div>
+
+    <!-- Success Modal -->
+    <Dialog v-model:open="showSuccessModal">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle class="flex items-center text-green-600">
+            <CheckCircle class="mr-2 h-5 w-5" />
+            Order Created Successfully!
+          </DialogTitle>
+        </DialogHeader>
+        <div class="space-y-4">
+          <p>
+            Order <strong>{{ form.orderId }}</strong> for customer
+            <strong>{{ customerInput }}</strong> has been created successfully.
+          </p>
+          <div class="bg-gray-50 p-3 rounded-md">
+            <p class="text-sm text-gray-600">
+              Order ID: <strong>{{ form.orderId }}</strong>
+            </p>
+            <p class="text-sm text-gray-600">
+              Total Amount:
+              <strong>Rp {{ formatPrice(calculateGrandTotal()) }}</strong>
+            </p>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <Button variant="outline" @click="createAnother">
+              Create Another Order
+            </Button>
+            <Button @click="viewOrder"> View Order </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Error Toast -->
+    <div
+      v-if="errorMessage"
+      class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+    >
+      <div class="flex items-center">
+        <span>{{ errorMessage }}</span>
+        <button
+          @click="errorMessage = ''"
+          class="ml-2 text-white hover:text-gray-200"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -426,8 +475,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PlusIcon, TrashIcon, PackageIcon } from "lucide-vue-next";
+import { PlusIcon, TrashIcon, PackageIcon, CheckCircle } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
 // Firebase imports
@@ -466,6 +521,10 @@ const isLoading = ref(false);
 const message = ref("");
 const messageType = ref("");
 const showPreview = ref(false);
+
+// Modal state
+const showSuccessModal = ref(false);
+const errorMessage = ref("");
 
 // Product data for reference
 const productData = {
@@ -669,20 +728,28 @@ const validateForm = () => {
     !form.status ||
     !form.shippingAddress
   ) {
-    showMessage("Please fill in all required fields", "error");
+    errorMessage.value = "Please fill in all required fields";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
     return false;
   }
   if (form.products.length === 0) {
-    showMessage("Please add at least one product to the order", "error");
+    errorMessage.value = "Please add at least one product to the order";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
     return false;
   }
   for (let i = 0; i < form.products.length; i++) {
     const product = form.products[i];
     if (!product.productId || !product.quantity || product.quantity <= 0) {
-      showMessage(
-        `Please complete product information for item ${i + 1}`,
-        "error"
-      );
+      errorMessage.value = `Please complete product information for item ${
+        i + 1
+      }`;
+      setTimeout(() => {
+        errorMessage.value = "";
+      }, 3000);
       return false;
     }
   }
@@ -724,16 +791,15 @@ const handleSubmit = async () => {
     );
     console.log("Order saved with ID: ", docRef.id);
 
-    showMessage("Order created successfully!", "success");
-    showPreview.value = true;
-
-    // Reset form for next order
-    setTimeout(() => {
-      handleCancel();
-    }, 3000);
+    // Show success modal instead of message
+    showSuccessModal.value = true;
+    showPreview.value = false;
   } catch (error) {
     console.error("Error creating order:", error);
-    showMessage("Failed to create order. Please try again.", "error");
+    errorMessage.value = "Failed to create order. Please try again.";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
   } finally {
     isLoading.value = false;
   }
@@ -759,6 +825,32 @@ const handleCancel = () => {
     // Generate new order ID
     generateOrderId();
   }
+};
+
+// Modal action methods
+const createAnother = () => {
+  showSuccessModal.value = false;
+  // Reset form for new order
+  Object.assign(form, {
+    orderId: "",
+    customerName: "",
+    customerEmail: "",
+    orderDate: new Date().toISOString().split("T")[0],
+    status: "pending",
+    products: [],
+    shippingAddress: "",
+    notes: "",
+    shippingCost: 0,
+  });
+  customerInput.value = "";
+  showPreview.value = false;
+  generateOrderId();
+};
+
+const viewOrder = () => {
+  showSuccessModal.value = false;
+  // Navigate to order detail page
+  navigateTo(`/orders/${form.orderId}`);
 };
 
 // Initialize component
