@@ -16,43 +16,56 @@
           </CardHeader>
           <CardContent class="px-0 pb-0">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Order ID -->
+              <!-- Order ID - Auto Generated -->
               <div>
                 <Label class="pb-2" for="orderId">Order ID</Label>
                 <Input
                   id="orderId"
                   v-model="form.orderId"
                   type="text"
-                  placeholder="ORD-001"
-                  required
+                  readonly
+                  class="bg-gray-100"
+                  placeholder="Auto-generated"
                 />
+                <p class="text-xs text-gray-500 mt-1">
+                  Auto-generated based on date
+                </p>
               </div>
 
-              <!-- Customer Selection -->
+              <!-- Customer Selection with Combobox -->
               <div>
                 <Label class="pb-2" for="customer">Customer</Label>
-                <Select v-model="form.customerId" required>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select customer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cust-001"
-                      >Olivia Martin (olivia.martin@email.com)</SelectItem
+                <div class="relative">
+                  <Input
+                    id="customer"
+                    v-model="customerInput"
+                    type="text"
+                    placeholder="Type customer name or select from list"
+                    @input="handleCustomerInput"
+                    @focus="showCustomerDropdown = true"
+                    @blur="handleCustomerBlur"
+                    required
+                    class="w-full"
+                  />
+                  <!-- Dropdown List -->
+                  <div
+                    v-if="showCustomerDropdown && filteredCustomers.length > 0"
+                    class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+                  >
+                    <div
+                      v-for="customer in filteredCustomers"
+                      :key="customer.id"
+                      @mousedown="selectCustomer(customer)"
+                      class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                     >
-                    <SelectItem value="cust-002"
-                      >Jackson Lee (jackson.lee@email.com)</SelectItem
-                    >
-                    <SelectItem value="cust-003"
-                      >Isabella Nguyen (isabella.nguyen@email.com)</SelectItem
-                    >
-                    <SelectItem value="cust-004"
-                      >William Kim (will@email.com)</SelectItem
-                    >
-                    <SelectItem value="cust-005"
-                      >Sofia Davis (sofia.davis@email.com)</SelectItem
-                    >
-                  </SelectContent>
-                </Select>
+                      {{ customer.name }} ({{ customer.email }})
+                    </div>
+                  </div>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">
+                  Start typing to search existing customers or enter new
+                  customer name
+                </p>
               </div>
 
               <!-- Order Date -->
@@ -62,6 +75,7 @@
                   id="orderDate"
                   v-model="form.orderDate"
                   type="date"
+                  @change="generateOrderId"
                   required
                 />
               </div>
@@ -334,7 +348,7 @@
             ? 'border-green-200 bg-green-50'
             : 'border-red-200 bg-red-50'
         "
-        class="mt-4"
+        class="mt-4 mb-4"
       >
         <AlertTitle>{{
           messageType === "success" ? "Success" : "Error"
@@ -353,7 +367,7 @@
               <div><strong>Order ID:</strong> {{ form.orderId }}</div>
               <div>
                 <strong>Customer:</strong>
-                {{ getCustomerName(form.customerId) }}
+                {{ customerInput }}
               </div>
               <div><strong>Order Date:</strong> {{ form.orderDate }}</div>
               <div><strong>Status:</strong> {{ form.status }}</div>
@@ -394,11 +408,60 @@
         </CardContent>
       </Card>
     </div>
+
+    <!-- Success Modal -->
+    <Dialog v-model:open="showSuccessModal">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle class="flex items-center text-green-600">
+            <CheckCircle class="mr-2 h-5 w-5" />
+            Order Created Successfully!
+          </DialogTitle>
+        </DialogHeader>
+        <div class="space-y-4">
+          <p>
+            Order <strong>{{ form.orderId }}</strong> for customer
+            <strong>{{ customerInput }}</strong> has been created successfully.
+          </p>
+          <div class="bg-gray-50 p-3 rounded-md">
+            <p class="text-sm text-gray-600">
+              Order ID: <strong>{{ form.orderId }}</strong>
+            </p>
+            <p class="text-sm text-gray-600">
+              Total Amount:
+              <strong>Rp {{ formatPrice(calculateGrandTotal()) }}</strong>
+            </p>
+          </div>
+          <div class="flex justify-end space-x-2">
+            <Button variant="outline" @click="createAnother">
+              Create Another Order
+            </Button>
+            <Button @click="viewOrder"> View Order </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Error Toast -->
+    <div
+      v-if="errorMessage"
+      class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+    >
+      <div class="flex items-center">
+        <span>{{ errorMessage }}</span>
+        <button
+          @click="errorMessage = ''"
+          class="ml-2 text-white hover:text-gray-200"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
+import { ref, reactive, onMounted, computed } from "vue";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -412,14 +475,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PlusIcon, TrashIcon, PackageIcon } from "lucide-vue-next";
+import { PlusIcon, TrashIcon, PackageIcon, CheckCircle } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+
+// Firebase imports
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  limit,
+  serverTimestamp,
+} from "firebase/firestore";
+
+const { $firebase } = useNuxtApp();
 
 // State
 const form = reactive({
   orderId: "",
-  customerId: "",
+  customerName: "",
+  customerEmail: "",
   orderDate: new Date().toISOString().split("T")[0],
   status: "pending",
   products: [],
@@ -428,10 +512,19 @@ const form = reactive({
   shippingCost: 0,
 });
 
+// Customer dropdown state
+const customerInput = ref("");
+const showCustomerDropdown = ref(false);
+const customers = ref([]);
+
 const isLoading = ref(false);
 const message = ref("");
 const messageType = ref("");
 const showPreview = ref(false);
+
+// Modal state
+const showSuccessModal = ref(false);
+const errorMessage = ref("");
 
 // Product data for reference
 const productData = {
@@ -448,15 +541,126 @@ const productData = {
   "PRD-008": { name: "Coffee Maker Pro", price: 599 },
 };
 
-const customerData = {
-  "cust-001": "Olivia Martin",
-  "cust-002": "Jackson Lee",
-  "cust-003": "Isabella Nguyen",
-  "cust-004": "William Kim",
-  "cust-005": "Sofia Davis",
-};
+// Computed properties
+const filteredCustomers = computed(() => {
+  if (!customerInput.value) return customers.value;
+
+  return customers.value.filter(
+    (customer) =>
+      customer.name.toLowerCase().includes(customerInput.value.toLowerCase()) ||
+      customer.email.toLowerCase().includes(customerInput.value.toLowerCase())
+  );
+});
 
 // Methods
+const loadCustomers = async () => {
+  try {
+    const customersRef = collection($firebase.firestore, "customers");
+    const querySnapshot = await getDocs(customersRef);
+
+    customers.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      name: doc.data().fullName,
+      email: doc.data().email,
+    }));
+
+    // Add default customers if none exist
+    if (customers.value.length === 0) {
+      customers.value = [
+        {
+          id: "cust-001",
+          name: "Olivia Martin",
+          email: "olivia.martin@email.com",
+        },
+        { id: "cust-002", name: "Jackson Lee", email: "jackson.lee@email.com" },
+        {
+          id: "cust-003",
+          name: "Isabella Nguyen",
+          email: "isabella.nguyen@email.com",
+        },
+        { id: "cust-004", name: "William Kim", email: "will@email.com" },
+        { id: "cust-005", name: "Sofia Davis", email: "sofia.davis@email.com" },
+      ];
+    }
+  } catch (error) {
+    console.error("Error loading customers:", error);
+    // Fallback to default customers
+    customers.value = [
+      {
+        id: "cust-001",
+        name: "Olivia Martin",
+        email: "olivia.martin@email.com",
+      },
+      { id: "cust-002", name: "Jackson Lee", email: "jackson.lee@email.com" },
+      {
+        id: "cust-003",
+        name: "Isabella Nguyen",
+        email: "isabella.nguyen@email.com",
+      },
+      { id: "cust-004", name: "William Kim", email: "will@email.com" },
+      { id: "cust-005", name: "Sofia Davis", email: "sofia.davis@email.com" },
+    ];
+  }
+};
+
+const generateOrderId = async () => {
+  try {
+    const orderDate = new Date(form.orderDate);
+    const dateStr = orderDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+
+    // Query orders for the same date - menggunakan query yang lebih sederhana
+    const ordersRef = collection($firebase.firestore, "orders");
+    const q = query(ordersRef, where("orderDate", "==", dateStr));
+
+    const querySnapshot = await getDocs(q);
+
+    // Hitung jumlah order hari ini dan tambah 1
+    let orderCount = querySnapshot.size + 1;
+
+    // Jika ada order, cek apakah ada duplikasi ID
+    if (querySnapshot.size > 0) {
+      const existingOrderIds = querySnapshot.docs.map(
+        (doc) => doc.data().orderId
+      );
+
+      // Loop sampai dapat ID yang unique
+      while (
+        existingOrderIds.includes(
+          `ORD-${orderCount.toString().padStart(3, "0")}`
+        )
+      ) {
+        orderCount++;
+      }
+    }
+
+    // Format: ORD-001, ORD-002, etc.
+    form.orderId = `ORD-${orderCount.toString().padStart(3, "0")}`;
+  } catch (error) {
+    console.error("Error generating order ID:", error);
+    // Fallback yang lebih baik - gunakan timestamp tapi tetap format yang benar
+    const fallbackId = Math.floor(Math.random() * 999) + 1;
+    form.orderId = `ORD-${fallbackId.toString().padStart(3, "0")}`;
+  }
+};
+
+const handleCustomerInput = () => {
+  showCustomerDropdown.value = true;
+};
+
+const handleCustomerBlur = () => {
+  // Delay hiding dropdown to allow click on items
+  setTimeout(() => {
+    showCustomerDropdown.value = false;
+  }, 200);
+};
+
+const selectCustomer = (customer) => {
+  customerInput.value = customer.name;
+  form.customerName = customer.name;
+  form.customerEmail = customer.email;
+  showCustomerDropdown.value = false;
+};
+
 const addProduct = () => {
   form.products.push({
     productId: "",
@@ -502,10 +706,6 @@ const getProductName = (productId) => {
   return productData[productId]?.name || "Unknown Product";
 };
 
-const getCustomerName = (customerId) => {
-  return customerData[customerId] || "Unknown Customer";
-};
-
 const formatPrice = (price) => {
   if (!price) return "0";
   return new Intl.NumberFormat("id-ID").format(price);
@@ -523,25 +723,33 @@ const showMessage = (msg, type) => {
 const validateForm = () => {
   if (
     !form.orderId ||
-    !form.customerId ||
+    !customerInput.value ||
     !form.orderDate ||
     !form.status ||
     !form.shippingAddress
   ) {
-    showMessage("Please fill in all required fields", "error");
+    errorMessage.value = "Please fill in all required fields";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
     return false;
   }
   if (form.products.length === 0) {
-    showMessage("Please add at least one product to the order", "error");
+    errorMessage.value = "Please add at least one product to the order";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
     return false;
   }
   for (let i = 0; i < form.products.length; i++) {
     const product = form.products[i];
     if (!product.productId || !product.quantity || product.quantity <= 0) {
-      showMessage(
-        `Please complete product information for item ${i + 1}`,
-        "error"
-      );
+      errorMessage.value = `Please complete product information for item ${
+        i + 1
+      }`;
+      setTimeout(() => {
+        errorMessage.value = "";
+      }, 3000);
       return false;
     }
   }
@@ -553,28 +761,45 @@ const handleSubmit = async () => {
 
   isLoading.value = true;
   try {
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
+    // Prepare order data
     const orderData = {
       orderId: form.orderId,
-      customerId: form.customerId,
+      customerName: customerInput.value,
+      customerEmail: form.customerEmail || "",
       orderDate: form.orderDate,
       status: form.status,
-      products: form.products,
+      products: form.products.map((product) => ({
+        productId: product.productId,
+        productName: getProductName(product.productId),
+        quantity: Number(product.quantity),
+        unitPrice: Number(product.unitPrice),
+        subtotal: Number(product.subtotal),
+      })),
       shippingAddress: form.shippingAddress,
       notes: form.notes,
       shippingCost: Number(form.shippingCost),
       subtotal: calculateTotal(),
       tax: calculateTax(),
       grandTotal: calculateGrandTotal(),
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
     };
 
-    console.log("Submitted order data:", orderData);
-    showMessage("Order created successfully!", "success");
-    showPreview.value = true;
+    // Save to Firestore
+    const docRef = await addDoc(
+      collection($firebase.firestore, "orders"),
+      orderData
+    );
+    console.log("Order saved with ID: ", docRef.id);
+
+    // Show success modal instead of message
+    showSuccessModal.value = true;
+    showPreview.value = false;
   } catch (error) {
-    showMessage("Failed to create order.", "error");
+    console.error("Error creating order:", error);
+    errorMessage.value = "Failed to create order. Please try again.";
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
   } finally {
     isLoading.value = false;
   }
@@ -585,7 +810,8 @@ const handleCancel = () => {
     // Reset form
     Object.assign(form, {
       orderId: "",
-      customerId: "",
+      customerName: "",
+      customerEmail: "",
       orderDate: new Date().toISOString().split("T")[0],
       status: "pending",
       products: [],
@@ -593,9 +819,45 @@ const handleCancel = () => {
       notes: "",
       shippingCost: 0,
     });
+    customerInput.value = "";
     showPreview.value = false;
+
+    // Generate new order ID
+    generateOrderId();
   }
 };
+
+// Modal action methods
+const createAnother = () => {
+  showSuccessModal.value = false;
+  // Reset form for new order
+  Object.assign(form, {
+    orderId: "",
+    customerName: "",
+    customerEmail: "",
+    orderDate: new Date().toISOString().split("T")[0],
+    status: "pending",
+    products: [],
+    shippingAddress: "",
+    notes: "",
+    shippingCost: 0,
+  });
+  customerInput.value = "";
+  showPreview.value = false;
+  generateOrderId();
+};
+
+const viewOrder = () => {
+  showSuccessModal.value = false;
+  // Navigate to order detail page
+  navigateTo(`/orders/${form.orderId}`);
+};
+
+// Initialize component
+onMounted(async () => {
+  await loadCustomers();
+  await generateOrderId();
+});
 </script>
 
 <style scoped>
