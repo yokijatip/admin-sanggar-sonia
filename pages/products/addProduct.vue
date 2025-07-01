@@ -612,6 +612,7 @@ const handleSubmit = async () => {
 
     await addDoc(collection($firebase.firestore, "products"), productData);
 
+
     // Success
     showMessage("Product added successfully!", "success");
     showPreview.value = true;
