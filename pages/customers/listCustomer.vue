@@ -67,67 +67,62 @@
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 px-4">
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0"
+          class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Total Customers</CardTitle>
-          <Users />
+          <Users class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">{{ filteredStats.total }}</div>
+          <div class="text-2xl font-bold">{{ filteredStats.total }}</div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0"
+          class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">VIP Customers</CardTitle>
-          <CrownIcon />
+          <CrownIcon class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">{{ filteredStats.vip }}</div>
+          <div class="text-2xl font-bold">{{ filteredStats.vip }}</div>
         </CardContent>
       </Card>
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0"
+          class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Active Customers</CardTitle>
-          <Activity />
+          <Activity class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">{{ filteredStats.active }}</div>
+          <div class="text-2xl font-bold">{{ filteredStats.active }}</div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0"
+          class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium"
             >Total Customer Value</CardTitle
           >
-          <ChartBarIncreasing />
+          <ChartBarIncreasing class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">
+          <div class="text-2xl font-bold">
             Rp {{ formatPrice(filteredStats.totalValue) }}
           </div>
         </CardContent>
       </Card>
-      <!-- <Card>
-        <CardContent class="p-4">
-          <div class="text-center">
-            <p class="text-2xl font-bold">
-              Rp {{ formatPrice(filteredStats.totalValue) }}
-            </p>
-            <p class="text-sm text-muted-foreground">Total Customer Value</p>
-          </div>
-        </CardContent>
-      </Card> -->
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="flex justify-center items-center py-8">
+      <div class="text-lg">Loading customers...</div>
     </div>
 
     <!-- Customer Table -->
-    <div class="border">
+    <div v-else class="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
@@ -143,7 +138,6 @@
             <TableHead>Location</TableHead>
             <TableHead>Orders</TableHead>
             <TableHead>Total Spent</TableHead>
-            <TableHead>Last Order</TableHead>
             <TableHead>Status</TableHead>
             <TableHead class="text-center">Actions</TableHead>
           </TableRow>
@@ -169,11 +163,11 @@
                   class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center"
                 >
                   <span class="text-sm font-medium text-gray-600">
-                    {{ customer.name.charAt(0).toUpperCase() }}
+                    {{ getCustomerInitial(customer) }}
                   </span>
                 </div>
                 <div>
-                  <div class="font-medium">{{ customer.name }}</div>
+                  <div class="font-medium">{{ getCustomerName(customer) }}</div>
                   <div class="text-sm text-muted-foreground">
                     ID: {{ customer.id }}
                   </div>
@@ -184,62 +178,56 @@
             <!-- Contact -->
             <TableCell>
               <div class="text-sm">
-                <div>{{ customer.email }}</div>
-                <div class="text-muted-foreground">{{ customer.phone }}</div>
+                <div>{{ customer.email || "No email" }}</div>
+                <div class="text-muted-foreground">
+                  {{ customer.phone || customer.phoneNumber || "No phone" }}
+                </div>
               </div>
             </TableCell>
 
             <!-- Type -->
             <TableCell>
               <Badge
-                :variant="getTypeVariant(customer.type)"
+                :variant="getTypeVariant(getCustomerType(customer))"
                 class="capitalize"
               >
-                <Crown v-if="customer.type === 'vip'" class="mr-1 h-3 w-3" />
-                <Building
-                  v-if="customer.type === 'corporate'"
+                <Crown
+                  v-if="getCustomerType(customer) === 'vip'"
                   class="mr-1 h-3 w-3"
                 />
-                {{ customer.type }}
+                <Building
+                  v-if="getCustomerType(customer) === 'corporate'"
+                  class="mr-1 h-3 w-3"
+                />
+                {{ getCustomerType(customer) }}
               </Badge>
             </TableCell>
 
             <!-- Location -->
             <TableCell>
               <div class="text-sm">
-                <div>{{ customer.address.city }}</div>
+                <div>{{ getCustomerCity(customer) }}</div>
                 <div class="text-muted-foreground">
-                  {{ customer.address.province }}
+                  {{ getCustomerProvince(customer) }}
                 </div>
               </div>
             </TableCell>
 
             <!-- Orders -->
             <TableCell class="text-center">
-              <div class="font-medium">{{ customer.orderCount }}</div>
+              <div class="font-medium">{{ customer.totalOrders || 0 }}</div>
               <div class="text-xs text-muted-foreground">orders</div>
             </TableCell>
 
             <!-- Total Spent -->
             <TableCell class="font-medium">
-              Rp {{ formatPrice(customer.totalSpent) }}
-            </TableCell>
-
-            <!-- Last Order -->
-            <TableCell>
-              <div class="text-sm">
-                {{
-                  customer.lastOrderDate
-                    ? formatDate(customer.lastOrderDate)
-                    : "Never"
-                }}
-              </div>
+              Rp {{ formatPrice(customer.totalSpent || 0) }}
             </TableCell>
 
             <!-- Status -->
             <TableCell>
-              <Badge :variant="getStatusVariant(customer.activityStatus)">
-                {{ getStatusLabel(customer.activityStatus) }}
+              <Badge :variant="getStatusVariant(getCustomerStatus(customer))">
+                {{ getStatusLabel(getCustomerStatus(customer)) }}
               </Badge>
             </TableCell>
 
@@ -273,8 +261,14 @@
                 <Button
                   variant="ghost"
                   size="sm"
-                  @click="deleteCustomer(customer.id)"
+                  @click="
+                    confirmDeleteCustomer(
+                      customer.id,
+                      getCustomerName(customer)
+                    )
+                  "
                   title="Delete Customer"
+                  :disabled="deleting"
                 >
                   <Trash2 class="h-4 w-4 text-destructive" />
                 </Button>
@@ -285,8 +279,22 @@
       </Table>
     </div>
 
+    <!-- Empty State -->
+    <div
+      v-if="!loading && filteredCustomers.length === 0"
+      class="text-center py-8"
+    >
+      <p class="text-lg text-muted-foreground">No customers found</p>
+      <p class="text-sm text-muted-foreground">
+        Try adjusting your search or filters
+      </p>
+    </div>
+
     <!-- Pagination -->
-    <div class="flex items-center justify-between space-x-2 p-4 mx-4">
+    <div
+      v-if="filteredCustomers.length > 0"
+      class="flex items-center justify-between space-x-2 p-4 mx-4"
+    >
       <div class="flex items-center space-x-2">
         <p class="text-sm font-medium">Rows per page</p>
         <Select v-model="itemsPerPage" @update:modelValue="changePage(1)">
@@ -363,7 +371,12 @@
             <Download class="h-4 w-4 mr-1" />
             Export
           </Button>
-          <Button variant="secondary" size="sm" @click="bulkDelete">
+          <Button
+            variant="secondary"
+            size="sm"
+            @click="confirmBulkDelete"
+            :disabled="deleting"
+          >
             <Trash2 class="h-4 w-4 mr-1" />
             Delete
           </Button>
@@ -381,7 +394,7 @@ import HeadersContent from "~/components/ui/HeadersContent.vue";
 import { ref, computed, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -419,115 +432,66 @@ import {
   Activity,
   ChartBarIncreasing,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
 
-// Sample customers data
-const allCustomers = ref([
-  {
-    id: "CUST-001",
-    name: "Siti Aminah",
-    email: "siti.aminah@email.com",
-    phone: "+62 812-3456-7890",
-    type: "vip",
-    address: {
-      city: "Jakarta Selatan",
-      province: "DKI Jakarta",
-    },
-    orderCount: 15,
-    totalSpent: 12500000,
-    lastOrderDate: "2024-01-15T10:30:00Z",
-    activityStatus: "active",
-    joinDate: "2023-03-15T08:00:00Z",
-  },
-  {
-    id: "CUST-002",
-    name: "Budi Santoso",
-    email: "budi.santoso@email.com",
-    phone: "+62 813-4567-8901",
-    type: "regular",
-    address: {
-      city: "Bandung",
-      province: "West Java",
-    },
-    orderCount: 8,
-    totalSpent: 3200000,
-    lastOrderDate: "2024-01-10T14:20:00Z",
-    activityStatus: "active",
-    joinDate: "2023-06-20T10:15:00Z",
-  },
-  {
-    id: "CUST-003",
-    name: "Maya Sari",
-    email: "maya.sari@email.com",
-    phone: "+62 814-5678-9012",
-    type: "vip",
-    address: {
-      city: "Surabaya",
-      province: "East Java",
-    },
-    orderCount: 22,
-    totalSpent: 18750000,
-    lastOrderDate: "2024-01-12T16:45:00Z",
-    activityStatus: "active",
-    joinDate: "2022-11-10T12:30:00Z",
-  },
-  {
-    id: "CUST-004",
-    name: "Ahmad Rizki",
-    email: "ahmad.rizki@email.com",
-    phone: "+62 815-6789-0123",
-    type: "regular",
-    address: {
-      city: "Yogyakarta",
-      province: "Yogyakarta",
-    },
-    orderCount: 5,
-    totalSpent: 1850000,
-    lastOrderDate: "2023-11-25T09:15:00Z",
-    activityStatus: "inactive",
-    joinDate: "2023-08-05T14:20:00Z",
-  },
-  {
-    id: "CUST-005",
-    name: "Dewi Lestari",
-    email: "dewi.lestari@email.com",
-    phone: "+62 816-7890-1234",
-    type: "corporate",
-    address: {
-      city: "Tangerang",
-      province: "Banten",
-    },
-    orderCount: 12,
-    totalSpent: 8900000,
-    lastOrderDate: "2024-01-08T11:30:00Z",
-    activityStatus: "active",
-    joinDate: "2023-01-15T09:45:00Z",
-  },
-  {
-    id: "CUST-006",
-    name: "Rina Wijaya",
-    email: "rina.wijaya@email.com",
-    phone: "+62 817-8901-2345",
-    type: "regular",
-    address: {
-      city: "Semarang",
-      province: "Central Java",
-    },
-    orderCount: 3,
-    totalSpent: 950000,
-    lastOrderDate: "2023-09-20T15:45:00Z",
-    activityStatus: "at_risk",
-    joinDate: "2023-07-12T16:30:00Z",
-  },
-]);
+// Firebase
+const { $firebase } = useNuxtApp();
 
 // Reactive data
+const allCustomers = ref([]);
+const loading = ref(false);
+const deleting = ref(false);
 const searchQuery = ref("");
 const selectedType = ref("all");
 const selectedStatus = ref("all");
 const selectedLocation = ref("all");
 const selectedCustomers = ref([]);
 const currentPage = ref(1);
-const itemsPerPage = ref(10);
+const itemsPerPage = ref("10");
+
+// Helper functions to handle different data structures
+const getCustomerName = (customer) => {
+  return (
+    customer.fullName ||
+    customer.name ||
+    customer.firstName + " " + (customer.lastName || "") ||
+    "Unknown"
+  );
+};
+
+const getCustomerInitial = (customer) => {
+  const name = getCustomerName(customer);
+  return name.charAt(0).toUpperCase();
+};
+
+const getCustomerType = (customer) => {
+  return customer.customerType || customer.type || "regular";
+};
+
+const getCustomerStatus = (customer) => {
+  return customer.activityStatus || customer.status || "active";
+};
+
+const getCustomerCity = (customer) => {
+  if (customer.address && customer.address.city) {
+    return customer.address.city;
+  }
+  return customer.city || "Unknown";
+};
+
+const getCustomerProvince = (customer) => {
+  if (customer.address && customer.address.province) {
+    return customer.address.province;
+  }
+  return customer.province || "Unknown";
+};
 
 // Computed properties
 const filteredCustomers = computed(() => {
@@ -538,9 +502,10 @@ const filteredCustomers = computed(() => {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
       (customer) =>
-        customer.name.toLowerCase().includes(query) ||
-        customer.email.toLowerCase().includes(query) ||
-        customer.phone.includes(query) ||
+        getCustomerName(customer).toLowerCase().includes(query) ||
+        (customer.email && customer.email.toLowerCase().includes(query)) ||
+        (customer.phone && customer.phone.includes(query)) ||
+        (customer.phoneNumber && customer.phoneNumber.includes(query)) ||
         customer.id.toLowerCase().includes(query)
     );
   }
@@ -548,24 +513,35 @@ const filteredCustomers = computed(() => {
   // Type filter
   if (selectedType.value !== "all") {
     filtered = filtered.filter(
-      (customer) => customer.type === selectedType.value
+      (customer) => getCustomerType(customer) === selectedType.value
     );
   }
 
   // Status filter
   if (selectedStatus.value !== "all") {
     filtered = filtered.filter(
-      (customer) => customer.activityStatus === selectedStatus.value
+      (customer) => getCustomerStatus(customer) === selectedStatus.value
     );
   }
 
   // Location filter
   if (selectedLocation.value !== "all") {
-    filtered = filtered.filter((customer) =>
-      customer.address.province
-        .toLowerCase()
-        .includes(selectedLocation.value.replace("_", " "))
-    );
+    const locationMap = {
+      jakarta: "jakarta",
+      west_java: "west java",
+      central_java: "central java",
+      east_java: "east java",
+      banten: "banten",
+    };
+
+    const searchLocation = locationMap[selectedLocation.value];
+    filtered = filtered.filter((customer) => {
+      const province = getCustomerProvince(customer).toLowerCase();
+      return (
+        province.includes(searchLocation) ||
+        province.includes(selectedLocation.value.replace("_", " "))
+      );
+    });
   }
 
   return filtered;
@@ -575,9 +551,9 @@ const filteredStats = computed(() => {
   const customers = filteredCustomers.value;
   return {
     total: customers.length,
-    vip: customers.filter((c) => c.type === "vip").length,
-    active: customers.filter((c) => c.activityStatus === "active").length,
-    totalValue: customers.reduce((sum, c) => sum + c.totalSpent, 0),
+    vip: customers.filter((c) => getCustomerType(c) === "vip").length,
+    active: customers.filter((c) => getCustomerStatus(c) === "active").length,
+    totalValue: customers.reduce((sum, c) => sum + (c.totalSpent || 0), 0),
   };
 });
 
@@ -604,15 +580,7 @@ const paginatedCustomers = computed(() => {
 
 // Methods
 const formatPrice = (price) => {
-  return new Intl.NumberFormat("id-ID").format(price);
-};
-
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return new Intl.NumberFormat("id-ID").format(price || 0);
 };
 
 const getTypeVariant = (type) => {
@@ -688,6 +656,7 @@ const clearSelection = () => {
 // Navigation methods
 const navigateToAddCustomer = () => {
   console.log("Navigate to add customer");
+  navigateTo("/customers/addCustomer");
 };
 
 const viewCustomer = (id) => {
@@ -702,11 +671,97 @@ const sendEmail = (id) => {
   console.log("Send email to customer:", id);
 };
 
-const deleteCustomer = (id) => {
-  console.log("Delete customer:", id);
+// Delete functions
+const confirmDeleteCustomer = (id, name) => {
+  if (
+    confirm(
+      `Are you sure you want to delete customer "${name}"? This action cannot be undone.`
+    )
+  ) {
+    deleteCustomer(id);
+  }
 };
 
-// Bulk actions
+const deleteCustomer = async (id) => {
+  try {
+    deleting.value = true;
+
+    // Delete from Firestore
+    await deleteDoc(doc($firebase.firestore, "customers", id));
+
+    // Remove from local array
+    const index = allCustomers.value.findIndex(
+      (customer) => customer.id === id
+    );
+    if (index > -1) {
+      allCustomers.value.splice(index, 1);
+    }
+
+    // Remove from selection if selected
+    const selectionIndex = selectedCustomers.value.indexOf(id);
+    if (selectionIndex > -1) {
+      selectedCustomers.value.splice(selectionIndex, 1);
+    }
+
+    console.log("Customer deleted successfully");
+
+    // If current page is empty after deletion, go to previous page
+    if (paginatedCustomers.value.length === 0 && currentPage.value > 1) {
+      currentPage.value--;
+    }
+  } catch (error) {
+    console.error("Error deleting customer:", error);
+    alert("Failed to delete customer. Please try again.");
+  } finally {
+    deleting.value = false;
+  }
+};
+
+const confirmBulkDelete = () => {
+  const count = selectedCustomers.value.length;
+  if (
+    confirm(
+      `Are you sure you want to delete ${count} customer(s)? This action cannot be undone.`
+    )
+  ) {
+    bulkDelete();
+  }
+};
+
+const bulkDelete = async () => {
+  try {
+    deleting.value = true;
+
+    // Delete all selected customers
+    const deletePromises = selectedCustomers.value.map((id) =>
+      deleteDoc(doc($firebase.firestore, "customers", id))
+    );
+
+    await Promise.all(deletePromises);
+
+    // Remove from local array
+    allCustomers.value = allCustomers.value.filter(
+      (customer) => !selectedCustomers.value.includes(customer.id)
+    );
+
+    // Clear selection
+    selectedCustomers.value = [];
+
+    console.log("Customers deleted successfully");
+
+    // If current page is empty after deletion, go to previous page
+    if (paginatedCustomers.value.length === 0 && currentPage.value > 1) {
+      currentPage.value--;
+    }
+  } catch (error) {
+    console.error("Error deleting customers:", error);
+    alert("Failed to delete some customers. Please try again.");
+  } finally {
+    deleting.value = false;
+  }
+};
+
+// Other bulk actions
 const bulkEmail = () => {
   console.log("Send bulk email to:", selectedCustomers.value);
 };
@@ -715,13 +770,35 @@ const bulkExport = () => {
   console.log("Export customers:", selectedCustomers.value);
 };
 
-const bulkDelete = () => {
-  console.log("Bulk delete customers:", selectedCustomers.value);
+// Fetch customers from Firebase
+const fetchCustomers = async () => {
+  try {
+    loading.value = true;
+    const customersCollection = collection($firebase.firestore, "customers");
+    const q = query(customersCollection, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    const customers = [];
+    querySnapshot.forEach((doc) => {
+      customers.push({
+        id: doc.id,
+        ...doc.data(),
+      });
+    });
+
+    allCustomers.value = customers;
+    console.log("Customers loaded successfully:", allCustomers.value.length);
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    alert("Failed to load customers. Please refresh the page.");
+  } finally {
+    loading.value = false;
+  }
 };
 
 // Initialize
 onMounted(() => {
-  // Load customers data
+  fetchCustomers();
 });
 </script>
 
