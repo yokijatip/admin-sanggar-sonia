@@ -370,12 +370,15 @@ import {
   CheckCircle,
 } from "lucide-vue-next";
 
+// Mendapatkan variabel dari runtime config environment
+const runtimeConfig = useRuntimeConfig();
+
 // State
 const isSubmitting = ref(false);
 const showSuccessModal = ref(false);
 const sendWelcomeEmail = ref(true);
 
-// Form data
+// Form data state customer
 const customerData = reactive({
   fullName: "",
   email: "",
@@ -450,6 +453,7 @@ const validateForm = () => {
   return Object.keys(errors.value).length === 0;
 };
 
+// Simulate form submission
 const handleSubmit = async () => {
   if (!validateForm()) {
     return;
