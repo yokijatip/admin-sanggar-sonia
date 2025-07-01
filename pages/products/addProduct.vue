@@ -400,63 +400,53 @@ const generateProductId = async (categoryId) => {
   try {
     const { $firebase } = useNuxtApp();
 
-    // Find the category name from categories array
     const selectedCategory = categories.value.find(
       (cat) => cat.id === categoryId
     );
 
     if (!selectedCategory) {
       console.error(`Category not found for ID: ${categoryId}`);
-      console.log("Available categories:", categories.value);
-      return `PRD-001`; // Fallback with proper format
+      return "PRD-001";
     }
 
     const categoryName = selectedCategory.name;
-    console.log(`Processing category: ${categoryName} (ID: ${categoryId})`);
-
-    // Generate prefix from category name
     const prefix = generateCategoryPrefix(categoryName);
-    console.log(`Generated prefix: ${prefix} for category: ${categoryName}`);
 
-    // Query products with the same category to get the highest number
+    // Get today's date in YYYYMMDD
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0].replace(/-/g, "");
+
+    const fullPrefix = `${prefix}-${dateStr}`; // Example: COO-20250701
+
     const productsQuery = query(
       collection($firebase.firestore, "products"),
-      where("kategori", "==", categoryId)
+      where("category", "==", categoryId)
     );
 
     const querySnapshot = await getDocs(productsQuery);
 
     let maxNumber = 0;
 
-    // Find the highest number for this category
     querySnapshot.forEach((doc) => {
-      const productData = doc.data();
-      const productId = productData.id;
-
-      // Check if the product ID starts with our prefix
-      if (productId && productId.startsWith(prefix + "-")) {
-        const numberPart = productId.split("-")[1];
-        const currentNumber = parseInt(numberPart) || 0;
-        if (currentNumber > maxNumber) {
-          maxNumber = currentNumber;
+      const productId = doc.data().id;
+      if (productId && productId.startsWith(fullPrefix)) {
+        const parts = productId.split("-");
+        const number = parseInt(parts[2]) || 0;
+        if (number > maxNumber) {
+          maxNumber = number;
         }
       }
     });
 
     const nextNumber = maxNumber + 1;
+    const formatted = nextNumber.toString().padStart(3, "0");
 
-    // Format number with leading zeros (e.g., 001, 002, 003)
-    const formattedNumber = nextNumber.toString().padStart(3, "0");
-
-    const finalId = `${prefix}-${formattedNumber}`;
-    console.log(`Final Product ID: ${finalId}`);
+    const finalId = `${fullPrefix}-${formatted}`; // Ex: COO-20250701-002
 
     return finalId;
-  } catch (error) {
-    console.error("Error generating product ID:", error);
-    // Fallback to sequential ID if there's an error
-    const timestamp = Date.now().toString().slice(-3);
-    return `PRD-${timestamp}`;
+  } catch (err) {
+    console.error("Error generating product ID:", err);
+    return `PRD-${Date.now().toString().slice(-6)}`;
   }
 };
 
@@ -614,11 +604,6 @@ const handleSubmit = async () => {
       description: form.description,
       price: Number(form.price),
       imageUrl: imageUrl || "", // Use Cloudinary URL
-      stock: 0,
-      available: 0,
-      minLevel: 0,
-      location: "Unknown",
-      reserverd: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
