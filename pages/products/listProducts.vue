@@ -129,10 +129,10 @@
             <!-- Product Status -->
             <TableCell class="text-left">
               <Badge
-                :variant="getStatusVariant(product.status)"
+                :variant="getStatusVariant(getProductStatus(product))"
                 class="capitalize"
               >
-                {{ product.status?.replace("_", " ") }}
+                {{ getProductStatus(product).replace("_", " ") }}
               </Badge>
             </TableCell>
             <!-- Actions -->
@@ -285,7 +285,7 @@
           <AlertDialogCancel @click="cancelDelete">Cancel</AlertDialogCancel>
           <AlertDialogAction
             @click="deleteProduct"
-            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            class="bg-destructive hover:bg-destructive/90"
             :disabled="deletingProducts.length > 0"
           >
             <Loader2
@@ -461,6 +461,11 @@ const fetchProducts = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// Get product status
+const getProductStatus = (product) => {
+  return product.stock === 0 ? "out_of_stock" : product.status;
 };
 
 // Filter products

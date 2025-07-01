@@ -614,6 +614,11 @@ const handleSubmit = async () => {
       description: form.description,
       price: Number(form.price),
       imageUrl: imageUrl || "", // Use Cloudinary URL
+      stock: 0,
+      available: 0,
+      minLevel: 0,
+      location: "Unknown",
+      reserverd: 0,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
