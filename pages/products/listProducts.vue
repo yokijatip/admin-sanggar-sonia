@@ -132,7 +132,7 @@
                 :variant="getStatusVariant(getProductStatus(product))"
                 class="capitalize"
               >
-                {{ getProductStatus(product).replace("_", " ") }}
+                {{ getProductStatus(product) || "unknown" }}
               </Badge>
             </TableCell>
             <!-- Actions -->
@@ -386,7 +386,6 @@ import { Toaster } from "@/components/ui/sonner";
 
 // Firebase
 const { $firebase } = useNuxtApp();
-const { toast } = Toaster;
 
 // Reactive data
 const allProducts = ref([]);
@@ -453,11 +452,6 @@ const fetchProducts = async () => {
     });
   } catch (error) {
     console.error("Error fetching products:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load products",
-      variant: "destructive",
-    });
   } finally {
     loading.value = false;
   }
