@@ -51,15 +51,14 @@
                 </p>
               </div>
 
-              <!-- Phone Number -->
+              <!-- Phone Number (Optional) -->
               <div>
-                <Label for="phone" class="required mb-2">Phone Number</Label>
+                <Label for="phone" class="mb-2">Phone Number (Optional)</Label>
                 <Input
                   id="phone"
                   v-model="customerData.phone"
                   placeholder="+62 812-3456-7890"
                   :class="{ 'border-red-500': errors.phone }"
-                  required
                 />
                 <p v-if="errors.phone" class="text-sm text-red-500 mt-1">
                   {{ errors.phone }}
@@ -137,6 +136,62 @@
               <p v-if="errors.address" class="text-sm text-red-500 mt-1">
                 {{ errors.address }}
               </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <!-- City -->
+              <div>
+                <Label for="city" class="required mb-2">City</Label>
+                <Input
+                  id="city"
+                  v-model="customerData.address.city"
+                  placeholder="Enter city"
+                  :class="{ 'border-red-500': errors.city }"
+                  required
+                />
+                <p v-if="errors.city" class="text-sm text-red-500 mt-1">
+                  {{ errors.city }}
+                </p>
+              </div>
+
+              <!-- Province -->
+              <div>
+                <Label for="province" class="required mb-2">Province</Label>
+                <Select v-model="customerData.address.province">
+                  <SelectTrigger :class="{ 'border-red-500': errors.province }">
+                    <SelectValue placeholder="Select province" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="jakarta">DKI Jakarta</SelectItem>
+                    <SelectItem value="west_java">West Java</SelectItem>
+                    <SelectItem value="central_java">Central Java</SelectItem>
+                    <SelectItem value="east_java">East Java</SelectItem>
+                    <SelectItem value="banten">Banten</SelectItem>
+                    <SelectItem value="yogyakarta">DI Yogyakarta</SelectItem>
+                    <!-- Add more provinces as needed -->
+                  </SelectContent>
+                </Select>
+                <p v-if="errors.province" class="text-sm text-red-500 mt-1">
+                  {{ errors.province }}
+                </p>
+              </div>
+
+              <!-- Postal Code -->
+              <div>
+                <Label for="postalCode" class="required mb-2"
+                  >Postal Code</Label
+                >
+                <Input
+                  id="postalCode"
+                  v-model="customerData.address.postalCode"
+                  placeholder="12345"
+                  :class="{ 'border-red-500': errors.postalCode }"
+                  required
+                />
+                <p v-if="errors.postalCode" class="text-sm text-red-500 mt-1">
+                  {{ errors.postalCode }}
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -273,7 +328,7 @@
                   placeholder="+62 812-3456-7890"
                 />
               </div>
-              <div>
+              <div class="md:col-span-2">
                 <Label for="emergencyRelation" class="mb-2">Relationship</Label>
                 <Input
                   id="emergencyRelation"
@@ -298,9 +353,14 @@
             <Button type="button" variant="outline" @click="resetForm">
               Reset Form
             </Button>
-            <Button type="button" variant="outline" @click="saveAsDraft">
+            <Button
+              type="button"
+              variant="outline"
+              @click="saveAsDraft"
+              :disabled="isSubmitting"
+            >
               <Save class="mr-2 h-4 w-4" />
-              Save as Draft
+              {{ isSubmitting ? "Saving..." : "Save as Draft" }}
             </Button>
             <Button type="submit" :disabled="isSubmitting">
               <UserPlus class="mr-2 h-4 w-4" />
@@ -325,6 +385,11 @@
             Customer <strong>{{ customerData.fullName }}</strong> has been
             created successfully.
           </p>
+          <div class="bg-gray-50 p-3 rounded-md">
+            <p class="text-sm text-gray-600">
+              Customer ID: <strong>{{ createdCustomerId }}</strong>
+            </p>
+          </div>
           <div class="flex justify-end space-x-2">
             <Button variant="outline" @click="createAnother">
               Create Another
@@ -334,6 +399,22 @@
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- Error Toast -->
+    <div
+      v-if="errorMessage"
+      class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-md shadow-lg z-50"
+    >
+      <div class="flex items-center">
+        <span>{{ errorMessage }}</span>
+        <button
+          @click="errorMessage = ''"
+          class="ml-2 text-white hover:text-gray-200"
+        >
+          ×
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -369,6 +450,16 @@ import {
   UserPlus,
   CheckCircle,
 } from "lucide-vue-next";
+import {
+  collection,
+  addDoc,
+  doc,
+  setDoc,
+  serverTimestamp,
+  query,
+  where,
+  getDocs,
+} from "firebase/firestore";
 
 // Mendapatkan variabel dari runtime config environment
 const runtimeConfig = useRuntimeConfig();
@@ -377,6 +468,8 @@ const runtimeConfig = useRuntimeConfig();
 const isSubmitting = ref(false);
 const showSuccessModal = ref(false);
 const sendWelcomeEmail = ref(true);
+const createdCustomerId = ref("");
+const errorMessage = ref("");
 
 // Form data state customer
 const customerData = reactive({
@@ -430,8 +523,14 @@ const validateForm = () => {
     errors.value.email = "Please enter a valid email address";
   }
 
-  if (!customerData.phone.trim()) {
-    errors.value.phone = "Phone number is required";
+  // Phone number is now optional, but validate format if provided
+  if (
+    customerData.phone.trim() &&
+    !/^[\+]?[1-9][\d]{0,15}$/.test(
+      customerData.phone.replace(/[\s\-\(\)]/g, "")
+    )
+  ) {
+    errors.value.phone = "Please enter a valid phone number";
   }
 
   if (!customerData.address.street.trim()) {
@@ -448,30 +547,163 @@ const validateForm = () => {
 
   if (!customerData.address.postalCode.trim()) {
     errors.value.postalCode = "Postal code is required";
+  } else if (!/^\d{5}$/.test(customerData.address.postalCode)) {
+    errors.value.postalCode = "Postal code must be 5 digits";
   }
 
   return Object.keys(errors.value).length === 0;
 };
 
-// Simulate form submission
+// Check if email already exists
+const checkEmailExists = async (email) => {
+  try {
+    const { $firebase } = useNuxtApp();
+    const db = $firebase.firestore;
+
+    const q = query(collection(db, "customers"), where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error("Error checking email:", error);
+    return false;
+  }
+};
+
+// Create customer in Firestore
+const createCustomer = async (customerData) => {
+  const { $firebase } = useNuxtApp();
+  const db = $firebase.firestore;
+
+  // Prepare data for Firestore
+  const customerDoc = {
+    ...customerData,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    status: "active",
+    totalOrders: 0,
+    totalSpent: 0,
+    lastOrderDate: null,
+    // Clean up empty phone if not provided
+    phone: customerData.phone.trim() || null,
+    // Clean up empty emergency contact fields
+    emergencyContact: {
+      name: customerData.emergencyContact.name.trim() || null,
+      phone: customerData.emergencyContact.phone.trim() || null,
+      relationship: customerData.emergencyContact.relationship.trim() || null,
+    },
+  };
+
+  // Add customer to Firestore
+  const docRef = await addDoc(collection(db, "customers"), customerDoc);
+  return docRef.id;
+};
+
+// Send welcome email (placeholder function)
+const sendWelcomeEmailToCustomer = async (customerData) => {
+  // This is a placeholder for email sending functionality
+  // You can integrate with services like SendGrid, Mailgun, etc.
+  console.log("Sending welcome email to:", customerData.email);
+
+  // Example implementation:
+  // const emailData = {
+  //   to: customerData.email,
+  //   subject: "Welcome to Our Store!",
+  //   template: "welcome",
+  //   data: {
+  //     name: customerData.fullName,
+  //     // other template variables
+  //   }
+  // };
+
+  // await $fetch('/api/send-email', {
+  //   method: 'POST',
+  //   body: emailData
+  // });
+};
+
+// Save customer as draft
+const saveCustomerAsDraft = async (customerData) => {
+  const { $firebase } = useNuxtApp();
+  const db = $firebase.firestore;
+
+  const draftDoc = {
+    ...customerData,
+    isDraft: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
+
+  const docRef = await addDoc(collection(db, "customer_drafts"), draftDoc);
+  return docRef.id;
+};
+
+// Main form submission handler
 const handleSubmit = async () => {
   if (!validateForm()) {
     return;
   }
 
   isSubmitting.value = true;
+  errorMessage.value = "";
 
   try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Check if email already exists
+    const emailExists = await checkEmailExists(customerData.email);
+    if (emailExists) {
+      errors.value.email = "A customer with this email already exists";
+      return;
+    }
 
-    console.log("Creating customer:", customerData);
+    // Create customer in Firestore
+    const customerId = await createCustomer(customerData);
+    createdCustomerId.value = customerId;
+
+    // Send welcome email if requested
+    if (sendWelcomeEmail.value) {
+      try {
+        await sendWelcomeEmailToCustomer(customerData);
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't fail the entire process if email fails
+      }
+    }
+
+    console.log("Customer created successfully with ID:", customerId);
 
     // Show success modal
     showSuccessModal.value = true;
   } catch (error) {
     console.error("Error creating customer:", error);
-    // Handle error (show toast, etc.)
+    errorMessage.value = "Failed to create customer. Please try again.";
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+// Save as draft handler
+const saveAsDraft = async () => {
+  if (!customerData.fullName.trim() || !customerData.email.trim()) {
+    errorMessage.value =
+      "Please fill in at least the name and email to save as draft";
+    return;
+  }
+
+  isSubmitting.value = true;
+  errorMessage.value = "";
+
+  try {
+    const draftId = await saveCustomerAsDraft(customerData);
+    console.log("Customer saved as draft with ID:", draftId);
+    errorMessage.value = "Customer saved as draft successfully!";
+
+    // Change error message color to green for success
+    setTimeout(() => {
+      errorMessage.value = "";
+    }, 3000);
+  } catch (error) {
+    console.error("Error saving draft:", error);
+    errorMessage.value = "Failed to save draft. Please try again.";
   } finally {
     isSubmitting.value = false;
   }
@@ -514,15 +746,12 @@ const resetForm = () => {
 
   errors.value = {};
   sendWelcomeEmail.value = true;
-};
-
-const saveAsDraft = () => {
-  console.log("Saving customer as draft:", customerData);
-  // Implement draft saving logic
+  errorMessage.value = "";
 };
 
 const navigateBack = () => {
-  console.log("Navigate back to customer list");
+  // Use Nuxt's navigation
+  navigateTo("/customers");
 };
 
 const createAnother = () => {
@@ -532,7 +761,8 @@ const createAnother = () => {
 
 const viewCustomer = () => {
   showSuccessModal.value = false;
-  console.log("Navigate to customer details");
+  // Navigate to customer detail page
+  navigateTo(`/customers/${createdCustomerId.value}`);
 };
 </script>
 
