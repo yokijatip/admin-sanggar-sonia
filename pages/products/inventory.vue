@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto px-4 space-y-6">
+  <div class="container mx-auto px-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <HeadersContent
@@ -21,9 +21,7 @@
     <!-- Stock Overview Cards -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
-        >
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Total Items</CardTitle>
           <Package class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
@@ -34,46 +32,34 @@
       </Card>
 
       <Card>
-        <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
-        >
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Low Stock Items</CardTitle>
           <AlertTriangle class="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-orange-600">
-            {{ lowStockCount }}
-          </div>
+          <div class="text-2xl font-bold text-orange-600">{{ lowStockCount }}</div>
           <p class="text-xs text-muted-foreground">Need reorder</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
-        >
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Out of Stock</CardTitle>
           <XCircle class="h-4 w-4 text-red-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-red-600">
-            {{ outOfStockCount }}
-          </div>
+          <div class="text-2xl font-bold text-red-600">{{ outOfStockCount }}</div>
           <p class="text-xs text-muted-foreground">Items unavailable</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
-        >
+        <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Total Value</CardTitle>
           <DollarSign class="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">
-            ${{ totalInventoryValue.toLocaleString() }}
-          </div>
+          <div class="text-2xl font-bold">${{ totalInventoryValue.toLocaleString() }}</div>
           <p class="text-xs text-muted-foreground">Current inventory value</p>
         </CardContent>
       </Card>
@@ -99,7 +85,7 @@
           @input="filterInventory"
         />
       </div>
-
+      
       <Select v-model="selectedStatus" @update:modelValue="filterInventory">
         <SelectTrigger class="w-48">
           <SelectValue placeholder="Stock Status" />
@@ -150,7 +136,7 @@
             'whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm',
             activeTab === tab.id
               ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300',
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
           ]"
         >
           {{ tab.name }}
@@ -164,8 +150,8 @@
         <TableHeader>
           <TableRow>
             <TableHead class="w-12">
-              <Checkbox
-                :checked="selectAll"
+              <Checkbox 
+                :checked="selectAll" 
                 @update:checked="toggleSelectAll"
               />
             </TableHead>
@@ -182,13 +168,13 @@
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow
-            v-for="item in paginatedInventory"
+          <TableRow 
+            v-for="item in paginatedInventory" 
             :key="item.id"
             class="hover:bg-muted/50"
           >
             <TableCell>
-              <Checkbox
+              <Checkbox 
                 :checked="selectedItems.includes(item.id)"
                 @update:checked="toggleItemSelection(item.id)"
               />
@@ -196,29 +182,21 @@
             <TableCell>
               <div class="flex flex-col">
                 <span class="font-medium">{{ item.productName }}</span>
-                <span class="text-sm text-muted-foreground">{{
-                  item.category
-                }}</span>
+                <span class="text-sm text-muted-foreground">{{ item.category }}</span>
               </div>
             </TableCell>
             <TableCell class="font-mono text-sm">{{ item.sku }}</TableCell>
             <TableCell class="text-center">
-              <Badge
-                :variant="
-                  getStockBadgeVariant(item.currentStock, item.minLevel)
-                "
-              >
+              <Badge :variant="getStockBadgeVariant(item.currentStock, item.minLevel)">
                 {{ item.currentStock }}
               </Badge>
             </TableCell>
             <TableCell class="text-center">{{ item.reservedStock }}</TableCell>
-            <TableCell class="text-center font-medium">{{
-              item.availableStock
-            }}</TableCell>
+            <TableCell class="text-center font-medium">{{ item.availableStock }}</TableCell>
             <TableCell class="text-center">{{ item.minLevel }}</TableCell>
             <TableCell class="text-center">
               <Badge :variant="getStatusVariant(item.status)">
-                {{ item.status.replace("_", " ") }}
+                {{ item.status.replace('_', ' ') }}
               </Badge>
             </TableCell>
             <TableCell>{{ item.location }}</TableCell>
@@ -258,9 +236,7 @@
         </TableHeader>
         <TableBody>
           <TableRow v-for="movement in stockMovements" :key="movement.id">
-            <TableCell class="text-sm">{{
-              formatDateTime(movement.date)
-            }}</TableCell>
+            <TableCell class="text-sm">{{ formatDateTime(movement.date) }}</TableCell>
             <TableCell>{{ movement.productName }}</TableCell>
             <TableCell>
               <Badge :variant="getMovementTypeVariant(movement.type)">
@@ -268,23 +244,15 @@
               </Badge>
             </TableCell>
             <TableCell class="text-center">
-              <span
-                :class="
-                  movement.quantity > 0 ? 'text-green-600' : 'text-red-600'
-                "
-              >
-                {{ movement.quantity > 0 ? "+" : "" }}{{ movement.quantity }}
+              <span :class="movement.quantity > 0 ? 'text-green-600' : 'text-red-600'">
+                {{ movement.quantity > 0 ? '+' : '' }}{{ movement.quantity }}
               </span>
             </TableCell>
-            <TableCell class="text-center">{{
-              movement.stockBefore
-            }}</TableCell>
+            <TableCell class="text-center">{{ movement.stockBefore }}</TableCell>
             <TableCell class="text-center">{{ movement.stockAfter }}</TableCell>
             <TableCell class="text-sm">{{ movement.reference }}</TableCell>
             <TableCell class="text-sm">{{ movement.user }}</TableCell>
-            <TableCell class="text-sm text-muted-foreground">{{
-              movement.notes
-            }}</TableCell>
+            <TableCell class="text-sm text-muted-foreground">{{ movement.notes }}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -292,11 +260,7 @@
 
     <!-- Low Stock Alerts -->
     <div v-if="activeTab === 'alerts'" class="space-y-4">
-      <div
-        v-for="alert in lowStockItems"
-        :key="alert.id"
-        class="border rounded-lg p-4"
-      >
+      <div v-for="alert in lowStockItems" :key="alert.id" class="border rounded-lg p-4">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
             <AlertTriangle class="h-5 w-5 text-orange-500" />
@@ -307,12 +271,8 @@
           </div>
           <div class="flex items-center gap-4">
             <div class="text-right">
-              <p class="text-sm font-medium">
-                Current: {{ alert.currentStock }}
-              </p>
-              <p class="text-sm text-muted-foreground">
-                Min: {{ alert.minLevel }}
-              </p>
+              <p class="text-sm font-medium">Current: {{ alert.currentStock }}</p>
+              <p class="text-sm text-muted-foreground">Min: {{ alert.minLevel }}</p>
             </div>
             <Button size="sm" @click="reorderProduct(alert.id)">
               <ShoppingCart class="h-4 w-4 mr-1" />
@@ -331,11 +291,7 @@
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <div
-              v-for="item in topMovingItems"
-              :key="item.id"
-              class="flex justify-between items-center"
-            >
+            <div v-for="item in topMovingItems" :key="item.id" class="flex justify-between items-center">
               <span class="text-sm">{{ item.name }}</span>
               <Badge variant="outline">{{ item.turnoverRate }}x</Badge>
             </div>
@@ -349,15 +305,9 @@
         </CardHeader>
         <CardContent>
           <div class="space-y-4">
-            <div
-              v-for="item in deadStockItems"
-              :key="item.id"
-              class="flex justify-between items-center"
-            >
+            <div v-for="item in deadStockItems" :key="item.id" class="flex justify-between items-center">
               <span class="text-sm">{{ item.name }}</span>
-              <span class="text-sm text-muted-foreground"
-                >{{ item.daysStagnant }} days</span
-              >
+              <span class="text-sm text-muted-foreground">{{ item.daysStagnant }} days</span>
             </div>
           </div>
         </CardContent>
@@ -380,7 +330,7 @@
           </SelectContent>
         </Select>
       </div>
-
+      
       <div class="flex items-center space-x-6 lg:space-x-8">
         <div class="flex w-32 items-center justify-center text-sm font-medium">
           Page {{ currentPage }} of {{ totalPages }}
@@ -407,33 +357,39 @@
     </div>
 
     <!-- Stock Adjustment Modal -->
-    <div
-      v-if="showAdjustmentModal"
-      class="fixed inset-0 flex items-center justify-center z-50"
-    >
+    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-slate-900/70 bg-opacity-50 flex items-center justify-center z-50">
       <Card class="w-full max-w-md">
         <CardHeader>
           <CardTitle>Stock Adjustment</CardTitle>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div>
-            <Label>Product</Label>
-            <Select v-model="adjustmentForm.productId">
-              <SelectTrigger>
-                <SelectValue placeholder="Select product" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="item in allInventory"
-                  :key="item.id"
-                  :value="item.id"
-                >
-                  {{ item.productName }} ({{ item.sku }})
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <div class="relative">
+  <Label class="pb-1">Product</Label>
+  <Input
+    v-model="adjustmentSearchInput"
+    type="text"
+    placeholder="Search product name"
+    @input="showAdjustmentDropdown = true"
+    @focus="showAdjustmentDropdown = true"
+    @blur="hideAdjustmentDropdown"
+  />
 
+  <!-- Dropdown List -->
+  <div
+    v-if="showAdjustmentDropdown && filteredAdjustmentProducts.length > 0"
+    class="absolute z-20 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+  >
+    <div
+      v-for="item in filteredAdjustmentProducts"
+      :key="item.id"
+      @mousedown.prevent="selectAdjustmentProduct(item)"
+      class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+    >
+      {{ item.productName }} ({{ item.sku }})
+    </div>
+  </div>
+</div>
+          
           <div>
             <Label>Adjustment Type</Label>
             <Select v-model="adjustmentForm.type">
@@ -447,16 +403,12 @@
               </SelectContent>
             </Select>
           </div>
-
+          
           <div>
             <Label>Quantity</Label>
-            <Input
-              v-model="adjustmentForm.quantity"
-              type="number"
-              placeholder="Enter quantity"
-            />
+            <Input v-model="adjustmentForm.quantity" type="number" placeholder="Enter quantity" />
           </div>
-
+          
           <div>
             <Label>Reason</Label>
             <Select v-model="adjustmentForm.reason">
@@ -473,20 +425,15 @@
               </SelectContent>
             </Select>
           </div>
-
+          
           <div>
             <Label>Notes</Label>
-            <Textarea
-              v-model="adjustmentForm.notes"
-              placeholder="Additional notes..."
-            />
+            <Textarea v-model="adjustmentForm.notes" placeholder="Additional notes..." />
           </div>
         </CardContent>
         <CardHeader>
           <div class="flex justify-end gap-2">
-            <Button variant="outline" @click="closeAdjustmentModal"
-              >Cancel</Button
-            >
+            <Button variant="outline" @click="closeAdjustmentModal">Cancel</Button>
             <Button @click="submitAdjustment">Submit</Button>
           </div>
         </CardHeader>
@@ -496,31 +443,33 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
+import { ref, computed, onMounted } from 'vue'
+import { 
+  Button 
+} from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { 
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
+  TableRow 
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
+  SelectValue 
+} from '@/components/ui/select'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { 
   Package,
   AlertTriangle,
   XCircle,
@@ -531,362 +480,341 @@ import {
   History,
   ShoppingCart,
   ChevronLeft,
-  ChevronRight,
-} from "lucide-vue-next";
+  ChevronRight
+} from 'lucide-vue-next'
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
 // Sample inventory data
 const allInventory = ref([
   {
-    id: "INV-001",
-    productName: "iPhone 15 Pro Max",
-    sku: "IPH-15PM-256",
-    category: "electronics",
+    id: 'INV-001',
+    productName: 'iPhone 15 Pro Max',
+    sku: 'IPH-15PM-256',
+    category: 'electronics',
     currentStock: 25,
     reservedStock: 5,
     availableStock: 20,
     minLevel: 10,
     maxLevel: 100,
     reorderPoint: 15,
-    location: "warehouse-a",
-    lastUpdated: new Date("2024-06-20"),
-    status: "normal",
+    location: 'warehouse-a',
+    lastUpdated: new Date('2024-06-20'),
+    status: 'normal',
     unitCost: 900,
-    unitPrice: 1199,
+    unitPrice: 1199
   },
   {
-    id: "INV-002",
-    productName: "Nike Air Max 270",
-    sku: "NK-AM270-42",
-    category: "clothing",
+    id: 'INV-002',
+    productName: 'Nike Air Max 270',
+    sku: 'NK-AM270-42',
+    category: 'clothing',
     currentStock: 3,
     reservedStock: 1,
     availableStock: 2,
     minLevel: 5,
     maxLevel: 50,
     reorderPoint: 8,
-    location: "store-front",
-    lastUpdated: new Date("2024-06-25"),
-    status: "low",
+    location: 'store-front',
+    lastUpdated: new Date('2024-06-25'),
+    status: 'low',
     unitCost: 80,
-    unitPrice: 150,
+    unitPrice: 150
   },
   {
-    id: "INV-003",
-    productName: "MacBook Pro M3",
-    sku: "MBP-M3-512",
-    category: "electronics",
+    id: 'INV-003',
+    productName: 'MacBook Pro M3',
+    sku: 'MBP-M3-512',
+    category: 'electronics',
     currentStock: 0,
     reservedStock: 0,
     availableStock: 0,
     minLevel: 3,
     maxLevel: 20,
     reorderPoint: 5,
-    location: "warehouse-a",
-    lastUpdated: new Date("2024-06-18"),
-    status: "out",
+    location: 'warehouse-a',
+    lastUpdated: new Date('2024-06-18'),
+    status: 'out',
     unitCost: 1800,
-    unitPrice: 2399,
+    unitPrice: 2399
   },
   {
-    id: "INV-004",
-    productName: "Smart Garden Kit",
-    sku: "SGK-001",
-    category: "home",
+    id: 'INV-004',
+    productName: 'Smart Garden Kit',
+    sku: 'SGK-001',
+    category: 'home',
     currentStock: 45,
     reservedStock: 2,
     availableStock: 43,
     minLevel: 5,
     maxLevel: 30,
     reorderPoint: 8,
-    location: "warehouse-b",
-    lastUpdated: new Date("2024-06-24"),
-    status: "overstocked",
+    location: 'warehouse-b',
+    lastUpdated: new Date('2024-06-24'),
+    status: 'overstocked',
     unitCost: 200,
-    unitPrice: 299,
-  },
-]);
+    unitPrice: 299
+  }
+])
 
-// Stock movements data
+const adjustmentSearchInput = ref('')
+const showAdjustmentDropdown = ref(false)
+const filteredAdjustmentProducts = computed(() => {
+  const keyword = adjustmentSearchInput.value.toLowerCase()
+  return allInventory.value.filter(item =>
+    item.productName.toLowerCase().includes(keyword)
+  )
+})
+const selectAdjustmentProduct = (item) => {
+  adjustmentForm.value.productId = item.id
+  adjustmentSearchInput.value = `${item.productName} (${item.sku})`
+  showAdjustmentDropdown.value = false
+}
+const hideAdjustmentDropdown = () => {
+  setTimeout(() => {
+    showAdjustmentDropdown.value = false
+  }, 150)
+}
+
 const stockMovements = ref([
   {
-    id: "MOV-001",
-    productName: "iPhone 15 Pro Max",
-    type: "Purchase",
+    id: 'MOV-001',
+    productName: 'iPhone 15 Pro Max',
+    type: 'Purchase',
     quantity: 20,
     stockBefore: 5,
     stockAfter: 25,
-    reference: "PO-2024-001",
-    user: "Admin",
-    date: new Date("2024-06-20T10:30:00"),
-    notes: "Weekly stock replenishment",
+    reference: 'PO-2024-001',
+    user: 'Admin',
+    date: new Date('2024-06-20T10:30:00'),
+    notes: 'Weekly stock replenishment'
   },
   {
-    id: "MOV-002",
-    productName: "Nike Air Max 270",
-    type: "Sale",
+    id: 'MOV-002',
+    productName: 'Nike Air Max 270',
+    type: 'Sale',
     quantity: -2,
     stockBefore: 5,
     stockAfter: 3,
-    reference: "ORD-2024-156",
-    user: "System",
-    date: new Date("2024-06-25T14:15:00"),
-    notes: "Online order fulfillment",
-  },
-]);
+    reference: 'ORD-2024-156',
+    user: 'System',
+    date: new Date('2024-06-25T14:15:00'),
+    notes: 'Online order fulfillment'
+  }
+])
 
-// Reactive state
-const searchQuery = ref("");
-const selectedStatus = ref("all");
-const selectedCategory = ref("all");
-const selectedLocation = ref("all");
-const filteredInventory = ref([...allInventory.value]);
-const selectedItems = ref([]);
-const currentPage = ref(1);
-const itemsPerPage = ref(10);
-const activeTab = ref("stock");
-const showAdjustmentModal = ref(false);
+const searchQuery = ref('')
+const selectedStatus = ref('all')
+const selectedCategory = ref('all')
+const selectedLocation = ref('all')
+const filteredInventory = ref([...allInventory.value])
+const selectedItems = ref([])
+const currentPage = ref(1)
+const itemsPerPage = ref(10)
+const activeTab = ref('stock')
+const showAdjustmentModal = ref(false)
 
-// Tabs configuration
 const tabs = [
-  { id: "stock", name: "Stock Management" },
-  { id: "history", name: "Movement History" },
-  { id: "alerts", name: "Low Stock Alerts" },
-  { id: "analytics", name: "Analytics" },
-];
+  { id: 'stock', name: 'Stock Management' },
+  { id: 'history', name: 'Movement History' },
+  { id: 'alerts', name: 'Low Stock Alerts' },
+  { id: 'analytics', name: 'Analytics' }
+]
 
-// Adjustment form
 const adjustmentForm = ref({
-  productId: "",
-  type: "",
+  productId: '',
+  type: '',
   quantity: 0,
-  reason: "",
-  notes: "",
-});
+  reason: '',
+  notes: ''
+})
 
-// Sample alerts
 const alerts = ref([
   {
     id: 1,
-    type: "destructive",
-    title: "Critical Stock Alert",
-    description: "3 products are out of stock and need immediate attention.",
+    type: 'destructive',
+    title: 'Critical Stock Alert',
+    description: '3 products are out of stock and need immediate attention.'
   },
   {
     id: 2,
-    type: "default",
-    title: "Low Stock Warning",
-    description: "2 products are below minimum stock level.",
-  },
-]);
+    type: 'default',
+    title: 'Low Stock Warning',
+    description: '2 products are below minimum stock level.'
+  }
+])
 
-// Sample analytics data
 const topMovingItems = ref([
-  { id: 1, name: "iPhone 15 Pro Max", turnoverRate: 4.2 },
-  { id: 2, name: "Nike Air Max 270", turnoverRate: 3.8 },
-  { id: 3, name: "Wireless Headphones", turnoverRate: 3.1 },
-]);
+  { id: 1, name: 'iPhone 15 Pro Max', turnoverRate: 4.2 },
+  { id: 2, name: 'Nike Air Max 270', turnoverRate: 3.8 },
+  { id: 3, name: 'Wireless Headphones', turnoverRate: 3.1 }
+])
 
 const deadStockItems = ref([
-  { id: 1, name: "Old Model Phone", daysStagnant: 120 },
-  { id: 2, name: "Seasonal Item", daysStagnant: 90 },
-]);
+  { id: 1, name: 'Old Model Phone', daysStagnant: 120 },
+  { id: 2, name: 'Seasonal Item', daysStagnant: 90 }
+])
 
-// Computed properties
-const totalItems = computed(() => allInventory.value.length);
-const lowStockCount = computed(
-  () => allInventory.value.filter((item) => item.status === "low").length
-);
-const outOfStockCount = computed(
-  () => allInventory.value.filter((item) => item.status === "out").length
-);
-const totalInventoryValue = computed(() =>
-  allInventory.value.reduce(
-    (total, item) => total + item.currentStock * item.unitCost,
-    0
-  )
-);
+const totalItems = computed(() => allInventory.value.length)
+const lowStockCount = computed(() => allInventory.value.filter(item => item.status === 'low').length)
+const outOfStockCount = computed(() => allInventory.value.filter(item => item.status === 'out').length)
+const totalInventoryValue = computed(() => 
+  allInventory.value.reduce((total, item) => total + (item.currentStock * item.unitCost), 0)
+)
 
-const lowStockItems = computed(() =>
-  allInventory.value.filter(
-    (item) => item.status === "low" || item.status === "out"
-  )
-);
+const lowStockItems = computed(() => 
+  allInventory.value.filter(item => item.status === 'low' || item.status === 'out')
+)
 
 const selectAll = computed(() => {
-  return (
-    paginatedInventory.value.length > 0 &&
-    paginatedInventory.value.every((item) =>
-      selectedItems.value.includes(item.id)
-    )
-  );
-});
+  return paginatedInventory.value.length > 0 && 
+         paginatedInventory.value.every(item => selectedItems.value.includes(item.id))
+})
 
 const totalPages = computed(() => {
-  return Math.ceil(
-    filteredInventory.value.length / parseInt(itemsPerPage.value)
-  );
-});
+  return Math.ceil(filteredInventory.value.length / parseInt(itemsPerPage.value))
+})
 
 const paginatedInventory = computed(() => {
-  const start = (currentPage.value - 1) * parseInt(itemsPerPage.value);
-  const end = start + parseInt(itemsPerPage.value);
-  return filteredInventory.value.slice(start, end);
-});
+  const start = (currentPage.value - 1) * parseInt(itemsPerPage.value)
+  const end = start + parseInt(itemsPerPage.value)
+  return filteredInventory.value.slice(start, end)
+})
 
-// Methods
 const filterInventory = () => {
-  let filtered = allInventory.value;
+  let filtered = allInventory.value
 
   if (searchQuery.value) {
-    filtered = filtered.filter(
-      (item) =>
-        item.productName
-          .toLowerCase()
-          .includes(searchQuery.value.toLowerCase()) ||
-        item.sku.toLowerCase().includes(searchQuery.value.toLowerCase())
-    );
+    filtered = filtered.filter(item => 
+      item.productName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.value.toLowerCase())
+    )
   }
 
-  if (selectedStatus.value && selectedStatus.value !== "all") {
-    filtered = filtered.filter((item) => item.status === selectedStatus.value);
+  if (selectedStatus.value && selectedStatus.value !== 'all') {
+    filtered = filtered.filter(item => item.status === selectedStatus.value)
   }
 
-  if (selectedCategory.value && selectedCategory.value !== "all") {
-    filtered = filtered.filter(
-      (item) => item.category === selectedCategory.value
-    );
+  if (selectedCategory.value && selectedCategory.value !== 'all') {
+    filtered = filtered.filter(item => item.category === selectedCategory.value)
   }
 
-  if (selectedLocation.value && selectedLocation.value !== "all") {
-    filtered = filtered.filter(
-      (item) => item.location === selectedLocation.value
-    );
+  if (selectedLocation.value && selectedLocation.value !== 'all') {
+    filtered = filtered.filter(item => item.location === selectedLocation.value)
   }
 
-  filteredInventory.value = filtered;
-  currentPage.value = 1;
-  selectedItems.value = [];
-};
+  filteredInventory.value = filtered
+  currentPage.value = 1
+  selectedItems.value = []
+}
 
 const getStockBadgeVariant = (currentStock, minLevel) => {
-  if (currentStock === 0) return "destructive";
-  if (currentStock <= minLevel) return "secondary";
-  return "default";
-};
+  if (currentStock === 0) return 'destructive'
+  if (currentStock <= minLevel) return 'secondary'
+  return 'default'
+}
 
 const getStatusVariant = (status) => {
   switch (status) {
-    case "normal":
-      return "default";
-    case "low":
-      return "secondary";
-    case "out":
-      return "destructive";
-    case "overstocked":
-      return "outline";
-    default:
-      return "outline";
+    case 'normal': return 'default'
+    case 'low': return 'secondary'
+    case 'out': return 'destructive'
+    case 'overstocked': return 'outline'
+    default: return 'outline'
   }
-};
+}
 
 const getMovementTypeVariant = (type) => {
   switch (type.toLowerCase()) {
-    case "purchase":
-      return "default";
-    case "sale":
-      return "secondary";
-    case "return":
-      return "outline";
-    case "adjustment":
-      return "destructive";
-    default:
-      return "outline";
+    case 'purchase': return 'default'
+    case 'sale': return 'secondary'
+    case 'return': return 'outline'
+    case 'adjustment': return 'destructive'
+    default: return 'outline'
   }
-};
+}
 
 const toggleSelectAll = (checked) => {
   if (checked) {
-    selectedItems.value = [...paginatedInventory.value.map((item) => item.id)];
+    selectedItems.value = [...paginatedInventory.value.map(item => item.id)]
   } else {
-    selectedItems.value = [];
+    selectedItems.value = []
   }
-};
+}
 
 const toggleItemSelection = (itemId) => {
-  const index = selectedItems.value.indexOf(itemId);
+  const index = selectedItems.value.indexOf(itemId)
   if (index > -1) {
-    selectedItems.value.splice(index, 1);
+    selectedItems.value.splice(index, 1)
   } else {
-    selectedItems.value.push(itemId);
+    selectedItems.value.push(itemId)
   }
-};
+}
 
 const changePage = (page) => {
-  currentPage.value = page;
-  selectedItems.value = [];
-};
+  currentPage.value = page
+  selectedItems.value = []
+}
 
 const formatDate = (date) => {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-};
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  }).format(date)
+}
 
 const formatDateTime = (date) => {
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-};
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
+}
 
-// Action methods
 const openStockAdjustment = () => {
-  showAdjustmentModal.value = true;
-};
+  showAdjustmentModal.value = true
+}
 
 const closeAdjustmentModal = () => {
-  showAdjustmentModal.value = false;
+  showAdjustmentModal.value = false
   adjustmentForm.value = {
-    productId: "",
-    type: "",
+    productId: '',
+    type: '',
     quantity: 0,
-    reason: "",
-    notes: "",
-  };
-};
+    reason: '',
+    notes: ''
+  }
+  adjustmentSearchInput.value = ''
+}
 
 const submitAdjustment = () => {
-  // Handle stock adjustment logic here
-  console.log("Stock adjustment:", adjustmentForm.value);
-  closeAdjustmentModal();
-};
+  console.log('Stock adjustment:', adjustmentForm.value)
+  closeAdjustmentModal()
+}
 
 const adjustStock = (itemId) => {
-  console.log("Adjust stock for item:", itemId);
-};
+  console.log('Adjust stock for item:', itemId)
+}
 
 const viewHistory = (itemId) => {
-  console.log("View history for item:", itemId);
-};
+  console.log('View history for item:', itemId)
+}
 
 const reorderProduct = (itemId) => {
-  console.log("Reorder product:", itemId);
-};
+  console.log('Reorder product:', itemId)
+}
 
 const exportInventory = () => {
-  console.log("Export inventory data");
-};
+  console.log('Export inventory data')
+}
 
-// Initialize
 onMounted(() => {
-  filterInventory();
-});
+  filterInventory()
+})
 </script>
 
-<style></style>
+<style>
+
+</style>

@@ -558,6 +558,7 @@ const deleteProduct = async () => {
     await deleteDoc(
       doc($firebase.firestore, "products", productToDelete.value.id)
     );
+    
 
     // Remove from local state
     allProducts.value = allProducts.value.filter(
