@@ -136,45 +136,40 @@
               >
                 <div class="grid grid-cols-12 gap-4 items-end">
                   <!-- Product Selection - lebih lebar -->
+                  <!-- Product Selection -->
                   <div class="col-span-12 md:col-span-5">
                     <Label class="pb-2">Product</Label>
-                    <div class="text-sm text-gray-600 mb-4 truncate">
-                      {{ getProductName(product.productId) }}
+                    <div class="relative">
+                      <Input
+                        v-model="productInputs[index]"
+                        type="text"
+                        placeholder="Type product name"
+                        @input="showProductDropdown[index] = true"
+                        @focus="showProductDropdown[index] = true"
+                        @blur="hideProductDropdown(index)"
+                        required
+                        class="w-full"
+                      />
+
+                      <!-- Dropdown List -->
+                      <div
+                        v-if="
+                          showProductDropdown[index] &&
+                          filteredProducts.length > 0
+                        "
+                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+                      >
+                        <div
+                          v-for="product in filteredProducts(index)"
+                          :key="product.id"
+                          @mousedown="selectProduct(index, product)"
+                          class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        >
+                          {{ product.name }} - Rp
+                          {{ formatPrice(product.price) }}
+                        </div>
+                      </div>
                     </div>
-                    <Select
-                      v-model="product.productId"
-                      @update:model-value="updateProductPrice(index)"
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="PRD-001"
-                          >iPhone 15 Pro Max - Rp 1,199</SelectItem
-                        >
-                        <SelectItem value="PRD-002"
-                          >Nike Air Max 270 - Rp 150</SelectItem
-                        >
-                        <SelectItem value="PRD-003"
-                          >MacBook Pro M3 - Rp 2,399</SelectItem
-                        >
-                        <SelectItem value="PRD-004"
-                          >The Psychology of Money - Rp 15</SelectItem
-                        >
-                        <SelectItem value="PRD-005"
-                          >Smart Garden Kit - Rp 299</SelectItem
-                        >
-                        <SelectItem value="PRD-006"
-                          >Wireless Headphones - Rp 249</SelectItem
-                        >
-                        <SelectItem value="PRD-007"
-                          >Designer T-Shirt - Rp 89</SelectItem
-                        >
-                        <SelectItem value="PRD-008"
-                          >Coffee Maker Pro - Rp 599</SelectItem
-                        >
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <!-- Quantity - lebih kecil -->
@@ -514,8 +509,11 @@ const form = reactive({
 
 // Customer dropdown state
 const customerInput = ref("");
+const productInputs = ref([]);
 const showCustomerDropdown = ref(false);
+const showProductDropdown = ref([]);
 const customers = ref([]);
+const products = ref({});
 
 const isLoading = ref(false);
 const message = ref("");
@@ -527,18 +525,44 @@ const showSuccessModal = ref(false);
 const errorMessage = ref("");
 
 // Product data for reference
-const productData = {
-  "PRD-001": { name: "iPhone 15 Pro Max", price: 1199 },
-  "PRD-002": { name: "Nike Air Max 270", price: 150 },
-  "PRD-003": { name: "MacBook Pro M3", price: 2399 },
-  "PRD-004": {
-    name: "The Psychology of Money The Lorem Ipsum Dolor sit amet wkwk panjang ya",
-    price: 15,
-  },
-  "PRD-005": { name: "Smart Garden Kit", price: 299 },
-  "PRD-006": { name: "Wireless Headphones", price: 249 },
-  "PRD-007": { name: "Designer T-Shirt", price: 89 },
-  "PRD-008": { name: "Coffee Maker Pro", price: 599 },
+const loadProducts = async () => {
+  try {
+    const productsRef = collection($firebase.firestore, "products");
+    const querySnapshot = await getDocs(productsRef);
+
+    products.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      name: doc.data().title,
+      price: doc.data().price,
+    }));
+
+    console.log("Products loaded:", products.value);
+
+    // If no products found, use default products
+    if (Object.keys(products.value).length === 0) {
+      products.value = {
+        "PRD-000": { name: "No Product", price: 0 },
+      };
+    }
+  } catch (error) {
+    console.error("Error loading products:", error);
+    // Fallback to default products if needed
+  }
+};
+
+const hideProductDropdown = (index) => {
+  setTimeout(() => {
+    showProductDropdown.value[index] = false;
+  }, 200);
+};
+
+const selectProduct = (index, product) => {
+  form.products[index].productId = product.id;
+  form.products[index].unitPrice = product.price;
+  form.products[index].subtotal = form.products[index].quantity * product.price;
+
+  productInputs.value[index] = product.name;
+  showProductDropdown.value[index] = false;
 };
 
 // Computed properties
@@ -668,6 +692,18 @@ const addProduct = () => {
     unitPrice: 0,
     subtotal: 0,
   });
+  productInputs.value.push(""); // input pencarian produk per item
+  showProductDropdown.value.push(false); // kontrol dropdown per item
+};
+
+const filteredProducts = (index) => {
+  if (!productInputs.value[index]) return products.value;
+
+  return products.value.filter((product) =>
+    product.name
+      .toLowerCase()
+      .includes(productInputs.value[index].toLowerCase())
+  );
 };
 
 const removeProduct = (index) => {
@@ -703,7 +739,7 @@ const calculateGrandTotal = () => {
 };
 
 const getProductName = (productId) => {
-  return productData[productId]?.name || "Unknown Product";
+  return products.value[productId]?.title || "Unknown Product";
 };
 
 const formatPrice = (price) => {
@@ -856,6 +892,7 @@ const viewOrder = () => {
 // Initialize component
 onMounted(async () => {
   await loadCustomers();
+  await loadProducts();
   await generateOrderId();
 });
 </script>
