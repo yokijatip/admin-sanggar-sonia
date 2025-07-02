@@ -1,7 +1,7 @@
 <template>
-  <div class="container mx-auto px-6 space-y-6">
+  <div class="container mx-auto px-4 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between px-4">
       <HeadersContent
         title="Inventory Management"
         description="Monitor and manage your stock levels"
@@ -19,7 +19,7 @@
     </div>
 
     <!-- Stock Overview Cards -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-4">
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Total Items</CardTitle>
@@ -66,7 +66,7 @@
     </div>
 
     <!-- Quick Alerts -->
-    <div v-if="alerts.length > 0" class="space-y-2">
+    <div v-if="alerts.length > 0" class="space-y-2 px-4">
       <Alert v-for="alert in alerts" :key="alert.id" :variant="alert.type">
         <AlertTriangle class="h-4 w-4" />
         <AlertTitle>{{ alert.title }}</AlertTitle>
@@ -75,7 +75,7 @@
     </div>
 
     <!-- Filters and Search -->
-    <div class="flex flex-wrap items-center gap-4">
+    <div class="flex flex-wrap items-center gap-4 px-4">
       <div class="relative flex-1 max-w-sm">
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
@@ -126,7 +126,7 @@
     </div>
 
     <!-- Tabs for different views -->
-    <div class="border-b">
+    <div class="border-b px-4">
       <nav class="-mb-px flex space-x-8">
         <button
           v-for="tab in tabs"
@@ -145,7 +145,7 @@
     </div>
 
     <!-- Stock Management Table -->
-    <div v-if="activeTab === 'stock'" class="rounded-md border">
+    <div v-if="activeTab === 'stock'" class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -158,8 +158,6 @@
             <TableHead>Product</TableHead>
             <TableHead>SKU</TableHead>
             <TableHead class="text-center">Current Stock</TableHead>
-            <TableHead class="text-center">Reserved</TableHead>
-            <TableHead class="text-center">Available</TableHead>
             <TableHead class="text-center">Min Level</TableHead>
             <TableHead class="text-center">Status</TableHead>
             <TableHead>Location</TableHead>
@@ -192,7 +190,9 @@
               </Badge>
             </TableCell>
             <TableCell class="text-center">{{ item.reservedStock }}</TableCell>
-            <TableCell class="text-center font-medium">{{ item.availableStock }}</TableCell>
+            <TableCell class="text-center font-medium">{{
+              item.availableStock
+            }}</TableCell>
             <TableCell class="text-center">{{ item.minLevel }}</TableCell>
             <TableCell class="text-center">
               <Badge :variant="getStatusVariant(item.status)">
@@ -219,7 +219,7 @@
     </div>
 
     <!-- Stock Movement History -->
-    <div v-if="activeTab === 'history'" class="rounded-md border">
+    <div v-if="activeTab === 'history'" class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -260,7 +260,11 @@
 
     <!-- Low Stock Alerts -->
     <div v-if="activeTab === 'alerts'" class="space-y-4">
-      <div v-for="alert in lowStockItems" :key="alert.id" class="border rounded-lg p-4">
+      <div
+        v-for="alert in lowStockItems"
+        :key="alert.id"
+        class="border rounded-lg p-4"
+      >
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
             <AlertTriangle class="h-5 w-5 text-orange-500" />
@@ -284,7 +288,10 @@
     </div>
 
     <!-- Analytics -->
-    <div v-if="activeTab === 'analytics'" class="grid gap-6 md:grid-cols-2">
+    <div
+      v-if="activeTab === 'analytics'"
+      class="grid gap-6 md:grid-cols-2 px-4"
+    >
       <Card>
         <CardHeader>
           <CardTitle>Stock Turnover</CardTitle>
@@ -315,7 +322,7 @@
     </div>
 
     <!-- Pagination -->
-    <div class="flex items-center justify-between space-x-2 py-4">
+    <div class="flex items-center justify-between space-x-2 py-4 px-4">
       <div class="flex items-center space-x-2">
         <p class="text-sm font-medium">Rows per page</p>
         <Select v-model="itemsPerPage" @update:modelValue="changePage(1)">
