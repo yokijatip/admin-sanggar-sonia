@@ -45,6 +45,33 @@
             </Select>
           </div>
 
+          <!-- Complexity -->
+          <div class="mb-6">
+            <Label class="pb-2" for="complexity">Complexity</Label>
+            <div class="pt-3 pb-2">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm text-gray-600"
+                  >Level: {{ form.complexity }}</span
+                >
+                <span class="text-sm text-gray-500">
+                  {{ getComplexityLabel(form.complexity) }}
+                </span>
+              </div>
+              <Slider
+                v-model="form.complexity"
+                :min="1"
+                :max="10"
+                :step="1"
+                class="w-full"
+              />
+              <div class="flex justify-between text-xs text-gray-400 mt-1">
+                <span>1 - Very Easy</span>
+                <span>5 - Medium</span>
+                <span>10 - Very Hard</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Product Title -->
           <div class="mb-2">
             <Label class="pb-2" for="productTitle">Product Title</Label>
@@ -212,9 +239,13 @@
           <div class="space-y-3">
             <div><strong>ID:</strong> {{ form.id }}</div>
             <div><strong>Title:</strong> {{ form.title }}</div>
-            <div><strong>Category:</strong> {{ form.kategori }}</div>
-            <div><strong>Description:</strong> {{ form.deskripsi }}</div>
-            <div><strong>Price:</strong> Rp {{ formatPrice(form.harga) }}</div>
+            <div><strong>Category:</strong> {{ form.category }}</div>
+            <div>
+              <strong>Complexity:</strong> {{ form.complexity }} -
+              {{ getComplexityLabel(form.complexity) }}
+            </div>
+            <div><strong>Description:</strong> {{ form.description }}</div>
+            <div><strong>Price:</strong> Rp {{ formatPrice(form.price) }}</div>
             <div v-if="form.imageUrl || imagePreview">
               <strong>Image:</strong>
               <img
@@ -240,6 +271,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
 import {
   collection,
   getDocs,
@@ -267,6 +299,7 @@ const form = reactive({
   id: "",
   title: "",
   category: "",
+  complexity: [5], // Default complexity level 5, using array for Slider component
   description: "",
   price: null,
   imageFile: null,
@@ -281,6 +314,26 @@ const messageType = ref("");
 const showPreview = ref(false);
 const imagePreview = ref("");
 const categories = ref([]);
+
+// Function to get complexity label
+const getComplexityLabel = (level) => {
+  const levelValue = Array.isArray(level) ? level[0] : level;
+
+  const labels = {
+    1: "Very Easy",
+    2: "Easy",
+    3: "Quite Easy",
+    4: "Below Average",
+    5: "Medium",
+    6: "Above Average",
+    7: "Quite Hard",
+    8: "Hard",
+    9: "Very Hard",
+    10: "Extremely Hard",
+  };
+
+  return labels[levelValue] || "Medium";
+};
 
 // Function to upload image to Cloudinary (Updated)
 const uploadToCloudinary = async (file) => {
@@ -495,12 +548,13 @@ const validateForm = () => {
     !form.title ||
     !form.category ||
     !form.description ||
-    !form.price
+    !form.price ||
+    !form.complexity
   ) {
     showMessage("Please fill in all required fields", "error");
     return false;
   }
-  if (form.harga <= 0) {
+  if (form.price <= 0) {
     showMessage("Price must be greater than 0", "error");
     return false;
   }
@@ -601,8 +655,17 @@ const handleSubmit = async () => {
       id: form.id,
       title: form.title,
       category: form.category,
+      complexity: Array.isArray(form.complexity)
+        ? form.complexity[0]
+        : form.complexity,
       description: form.description,
       price: Number(form.price),
+      stock: 0, // Default stock,
+      minLevel: 1, // Default minimum level
+      maxLevel: 10, // Default maximum level
+      statusProduct: "active", // Default status
+      statusInventory: "normal", // Default inventory status
+      warehouseLocation: "warehouse-a", // Default warehouse location
       imageUrl: imageUrl || "", // Use Cloudinary URL
       stock: 0,
       available: 0,
@@ -633,8 +696,10 @@ const handleSubmit = async () => {
 const handleCancel = () => {
   if (confirm("Are you sure you want to cancel?")) {
     Object.keys(form).forEach((key) => {
-      if (key === "harga") {
+      if (key === "price") {
         form[key] = null;
+      } else if (key === "complexity") {
+        form[key] = [5]; // Reset to default complexity
       } else {
         form[key] = "";
       }

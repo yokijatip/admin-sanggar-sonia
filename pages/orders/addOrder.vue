@@ -70,13 +70,14 @@
 
               <!-- Order Date -->
               <div>
-                <Label class="pb-2" for="orderDate">Order Date</Label>
+                <Label class="pb-2" for="deadline">Deadline</Label>
                 <Input
-                  id="orderDate"
-                  v-model="form.orderDate"
+                  id="deadline"
+                  v-model="form.deadline"
                   type="date"
                   @change="generateOrderId"
                   required
+                  disabled
                 />
               </div>
 
@@ -89,6 +90,7 @@
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="queue">Queue</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
@@ -490,6 +492,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 
 const { $firebase } = useNuxtApp();
@@ -499,8 +502,15 @@ const form = reactive({
   orderId: "",
   customerName: "",
   customerEmail: "",
-  orderDate: new Date().toISOString().split("T")[0],
+  orderDate: Timestamp.fromDate(new Date())
+    .toDate()
+    .toISOString()
+    .split("T")[0], // Format to YYYY-MM-DD
   status: "pending",
+  // Timestamp for deadline
+  deadline: Timestamp.fromDate(new Date()),
+  // orderTime
+  orderTime: Timestamp.fromDate(new Date()),
   products: [],
   shippingAddress: "",
   notes: "",
@@ -514,7 +524,7 @@ const showCustomerDropdown = ref(false);
 const showProductDropdown = ref([]);
 const customers = ref([]);
 const products = ref({});
-
+const date = ref({ Timestamp: new Date() });
 const isLoading = ref(false);
 const message = ref("");
 const messageType = ref("");
@@ -689,6 +699,8 @@ const addProduct = () => {
   form.products.push({
     productId: "",
     quantity: 1,
+    // Add Complexity with scale 1-10
+    complexity: 0,
     unitPrice: 0,
     subtotal: 0,
   });
@@ -802,7 +814,9 @@ const handleSubmit = async () => {
       orderId: form.orderId,
       customerName: customerInput.value,
       customerEmail: form.customerEmail || "",
-      orderDate: form.orderDate,
+      orderDate: Timestamp.fromDate(new Date(form.orderDate)), // Convert to Firestore Timestamp
+      deadline: form.deadline,
+      orderTime: form.orderTime,
       status: form.status,
       products: form.products.map((product) => ({
         productId: product.productId,
