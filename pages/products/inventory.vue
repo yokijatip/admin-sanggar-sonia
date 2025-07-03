@@ -189,10 +189,6 @@
                 {{ item.currentStock }}
               </Badge>
             </TableCell>
-            <TableCell class="text-center">{{ item.reservedStock }}</TableCell>
-            <TableCell class="text-center font-medium">{{
-              item.availableStock
-            }}</TableCell>
             <TableCell class="text-center">{{ item.minLevel }}</TableCell>
             <TableCell class="text-center">
               <Badge :variant="getStatusVariant(item.status)">
@@ -392,7 +388,7 @@
       @mousedown.prevent="selectAdjustmentProduct(item)"
       class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
     >
-      {{ item.productName }} ({{ item.sku }})
+      {{ item.productName }}
     </div>
   </div>
 </div>
@@ -491,77 +487,45 @@ import {
 } from 'lucide-vue-next'
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
+  updateDoc,
+  doc,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+
+// Firebase
+const { $firebase } = useNuxtApp();
+
 // Sample inventory data
-const allInventory = ref([
-  {
-    id: 'INV-001',
-    productName: 'iPhone 15 Pro Max',
-    sku: 'IPH-15PM-256',
-    category: 'electronics',
-    currentStock: 25,
-    reservedStock: 5,
-    availableStock: 20,
-    minLevel: 10,
-    maxLevel: 100,
-    reorderPoint: 15,
-    location: 'warehouse-a',
-    lastUpdated: new Date('2024-06-20'),
-    status: 'normal',
-    unitCost: 900,
-    unitPrice: 1199
-  },
-  {
-    id: 'INV-002',
-    productName: 'Nike Air Max 270',
-    sku: 'NK-AM270-42',
-    category: 'clothing',
-    currentStock: 3,
-    reservedStock: 1,
-    availableStock: 2,
-    minLevel: 5,
-    maxLevel: 50,
-    reorderPoint: 8,
-    location: 'store-front',
-    lastUpdated: new Date('2024-06-25'),
-    status: 'low',
-    unitCost: 80,
-    unitPrice: 150
-  },
-  {
-    id: 'INV-003',
-    productName: 'MacBook Pro M3',
-    sku: 'MBP-M3-512',
-    category: 'electronics',
-    currentStock: 0,
-    reservedStock: 0,
-    availableStock: 0,
-    minLevel: 3,
-    maxLevel: 20,
-    reorderPoint: 5,
-    location: 'warehouse-a',
-    lastUpdated: new Date('2024-06-18'),
-    status: 'out',
-    unitCost: 1800,
-    unitPrice: 2399
-  },
-  {
-    id: 'INV-004',
-    productName: 'Smart Garden Kit',
-    sku: 'SGK-001',
-    category: 'home',
-    currentStock: 45,
-    reservedStock: 2,
-    availableStock: 43,
-    minLevel: 5,
-    maxLevel: 30,
-    reorderPoint: 8,
-    location: 'warehouse-b',
-    lastUpdated: new Date('2024-06-24'),
-    status: 'overstocked',
-    unitCost: 200,
-    unitPrice: 299
-  }
-])
+const allInventory = ref([])
+
+const fetchInventory = () => {
+  const q = query(collection($firebase.firestore, "products"), orderBy("title"))
+  onSnapshot(q, (snapshot) => {
+    allInventory.value = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        productId: data.id, // Simpan field "id" sebagai productId untuk referensi
+        ...data,
+        productName: data.title, // mapping title ke productName
+        currentStock: data.stock,
+        minLevel: data.minLevel,
+        status: data.stock === 0 ? "out" : data.stock <= data.minLevel ? "low" : "normal",
+        unitCost: data.price,
+        lastUpdated: data.createdAt?.toDate?.() || new Date(),
+        sku: data.id || `SKU-${doc.id.slice(-6).toUpperCase()}`
+      }
+    })
+    filterInventory()
+  })
+}
 
 const adjustmentSearchInput = ref('')
 const showAdjustmentDropdown = ref(false)
@@ -573,7 +537,7 @@ const filteredAdjustmentProducts = computed(() => {
 })
 const selectAdjustmentProduct = (item) => {
   adjustmentForm.value.productId = item.id
-  adjustmentSearchInput.value = `${item.productName} (${item.sku})`
+  adjustmentSearchInput.value = `${item.productName}`
   showAdjustmentDropdown.value = false
 }
 const hideAdjustmentDropdown = () => {
@@ -582,38 +546,13 @@ const hideAdjustmentDropdown = () => {
   }, 150)
 }
 
-const stockMovements = ref([
-  {
-    id: 'MOV-001',
-    productName: 'iPhone 15 Pro Max',
-    type: 'Purchase',
-    quantity: 20,
-    stockBefore: 5,
-    stockAfter: 25,
-    reference: 'PO-2024-001',
-    user: 'Admin',
-    date: new Date('2024-06-20T10:30:00'),
-    notes: 'Weekly stock replenishment'
-  },
-  {
-    id: 'MOV-002',
-    productName: 'Nike Air Max 270',
-    type: 'Sale',
-    quantity: -2,
-    stockBefore: 5,
-    stockAfter: 3,
-    reference: 'ORD-2024-156',
-    user: 'System',
-    date: new Date('2024-06-25T14:15:00'),
-    notes: 'Online order fulfillment'
-  }
-])
+const stockMovements = ref([])
 
 const searchQuery = ref('')
 const selectedStatus = ref('all')
 const selectedCategory = ref('all')
 const selectedLocation = ref('all')
-const filteredInventory = ref([...allInventory.value])
+const filteredInventory = ref([])
 const selectedItems = ref([])
 const currentPage = ref(1)
 const itemsPerPage = ref(10)
@@ -635,31 +574,9 @@ const adjustmentForm = ref({
   notes: ''
 })
 
-const alerts = ref([
-  {
-    id: 1,
-    type: 'destructive',
-    title: 'Critical Stock Alert',
-    description: '3 products are out of stock and need immediate attention.'
-  },
-  {
-    id: 2,
-    type: 'default',
-    title: 'Low Stock Warning',
-    description: '2 products are below minimum stock level.'
-  }
-])
-
-const topMovingItems = ref([
-  { id: 1, name: 'iPhone 15 Pro Max', turnoverRate: 4.2 },
-  { id: 2, name: 'Nike Air Max 270', turnoverRate: 3.8 },
-  { id: 3, name: 'Wireless Headphones', turnoverRate: 3.1 }
-])
-
-const deadStockItems = ref([
-  { id: 1, name: 'Old Model Phone', daysStagnant: 120 },
-  { id: 2, name: 'Seasonal Item', daysStagnant: 90 }
-])
+const alerts = ref([])
+const topMovingItems = ref([])
+const deadStockItems = ref([])
 
 const totalItems = computed(() => allInventory.value.length)
 const lowStockCount = computed(() => allInventory.value.filter(item => item.status === 'low').length)
@@ -667,20 +584,16 @@ const outOfStockCount = computed(() => allInventory.value.filter(item => item.st
 const totalInventoryValue = computed(() => 
   allInventory.value.reduce((total, item) => total + (item.currentStock * item.unitCost), 0)
 )
-
 const lowStockItems = computed(() => 
   allInventory.value.filter(item => item.status === 'low' || item.status === 'out')
 )
-
 const selectAll = computed(() => {
   return paginatedInventory.value.length > 0 && 
          paginatedInventory.value.every(item => selectedItems.value.includes(item.id))
 })
-
 const totalPages = computed(() => {
   return Math.ceil(filteredInventory.value.length / parseInt(itemsPerPage.value))
 })
-
 const paginatedInventory = computed(() => {
   const start = (currentPage.value - 1) * parseInt(itemsPerPage.value)
   const end = start + parseInt(itemsPerPage.value)
@@ -696,19 +609,15 @@ const filterInventory = () => {
       item.sku.toLowerCase().includes(searchQuery.value.toLowerCase())
     )
   }
-
-  if (selectedStatus.value && selectedStatus.value !== 'all') {
+  if (selectedStatus.value !== 'all') {
     filtered = filtered.filter(item => item.status === selectedStatus.value)
   }
-
-  if (selectedCategory.value && selectedCategory.value !== 'all') {
+  if (selectedCategory.value !== 'all') {
     filtered = filtered.filter(item => item.category === selectedCategory.value)
   }
-
-  if (selectedLocation.value && selectedLocation.value !== 'all') {
+  if (selectedLocation.value !== 'all') {
     filtered = filtered.filter(item => item.location === selectedLocation.value)
   }
-
   filteredInventory.value = filtered
   currentPage.value = 1
   selectedItems.value = []
@@ -719,7 +628,6 @@ const getStockBadgeVariant = (currentStock, minLevel) => {
   if (currentStock <= minLevel) return 'secondary'
   return 'default'
 }
-
 const getStatusVariant = (status) => {
   switch (status) {
     case 'normal': return 'default'
@@ -729,7 +637,6 @@ const getStatusVariant = (status) => {
     default: return 'outline'
   }
 }
-
 const getMovementTypeVariant = (type) => {
   switch (type.toLowerCase()) {
     case 'purchase': return 'default'
@@ -739,7 +646,6 @@ const getMovementTypeVariant = (type) => {
     default: return 'outline'
   }
 }
-
 const toggleSelectAll = (checked) => {
   if (checked) {
     selectedItems.value = [...paginatedInventory.value.map(item => item.id)]
@@ -747,7 +653,6 @@ const toggleSelectAll = (checked) => {
     selectedItems.value = []
   }
 }
-
 const toggleItemSelection = (itemId) => {
   const index = selectedItems.value.indexOf(itemId)
   if (index > -1) {
@@ -756,12 +661,10 @@ const toggleItemSelection = (itemId) => {
     selectedItems.value.push(itemId)
   }
 }
-
 const changePage = (page) => {
   currentPage.value = page
   selectedItems.value = []
 }
-
 const formatDate = (date) => {
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -769,7 +672,6 @@ const formatDate = (date) => {
     day: 'numeric'
   }).format(date)
 }
-
 const formatDateTime = (date) => {
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
@@ -779,11 +681,9 @@ const formatDateTime = (date) => {
     minute: '2-digit'
   }).format(date)
 }
-
 const openStockAdjustment = () => {
   showAdjustmentModal.value = true
 }
-
 const closeAdjustmentModal = () => {
   showAdjustmentModal.value = false
   adjustmentForm.value = {
@@ -796,29 +696,98 @@ const closeAdjustmentModal = () => {
   adjustmentSearchInput.value = ''
 }
 
-const submitAdjustment = () => {
-  console.log('Stock adjustment:', adjustmentForm.value)
-  closeAdjustmentModal()
+const submitAdjustment = async () => {
+  try {
+    const { productId, type, quantity, reason, notes } = adjustmentForm.value
+
+    // Validate form data
+    if (!productId || !type || !quantity) {
+      alert('Please fill in all required fields!')
+      return
+    }
+    
+    // Find the current product
+    const currentProduct = allInventory.value.find(item => item.id === productId)
+    if (!currentProduct) {
+      alert('Product not found!')
+      return
+    }
+
+    // Calculate new stock based on adjustment type
+    let newStock = currentProduct.currentStock
+    if (type === 'increase') {
+      newStock += quantity
+    } else if (type === 'decrease') {
+      newStock = Math.max(0, newStock - quantity) // Prevent negative stock
+    }
+
+    console.log('Stock calculation:', {
+      current: currentProduct.currentStock,
+      adjustment: quantity,
+      type: type,
+      newStock: newStock
+    })
+
+    // Update product stock in Firestore
+    const productRef = doc($firebase.firestore, 'products', productId)
+    await updateDoc(productRef, {
+      stock: newStock,
+      updatedAt: serverTimestamp()
+    })
+
+
+    
+
+    // Create stock movement record for history
+    await addDoc(collection($firebase.firestore, 'stock_movements'), {
+      productId: productId,
+      productName: currentProduct.productName,
+      type: 'adjustment',
+      adjustmentType: type,
+      quantity: quantity,
+      previousStock: currentProduct.currentStock,
+      newStock: newStock,
+      reason: reason,
+      notes: notes,
+      createdAt: serverTimestamp(),
+      createdBy: 'admin' // You can replace this with actual user info
+    })
+
+    console.log('Stock adjustment completed successfully')
+    alert(`Stock ${type}d successfully! New stock: ${newStock}`)
+    closeAdjustmentModal()
+    
+  } catch (error) {
+    console.error('Error updating stock:', error)
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      productId: adjustmentForm.value.productId
+    })
+    alert(`Error updating stock: ${error.message}`)
+  }
 }
 
 const adjustStock = (itemId) => {
-  console.log('Adjust stock for item:', itemId)
+  const product = allInventory.value.find(item => item.id === itemId)
+  if (product) {
+    adjustmentForm.value.productId = itemId
+    adjustmentSearchInput.value = product.productName
+    showAdjustmentModal.value = true
+  }
 }
-
 const viewHistory = (itemId) => {
   console.log('View history for item:', itemId)
 }
-
 const reorderProduct = (itemId) => {
   console.log('Reorder product:', itemId)
 }
-
 const exportInventory = () => {
   console.log('Export inventory data')
 }
 
 onMounted(() => {
-  filterInventory()
+  fetchInventory()
 })
 </script>
 
