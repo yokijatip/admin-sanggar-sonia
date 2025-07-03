@@ -660,6 +660,12 @@ const handleSubmit = async () => {
         : form.complexity,
       description: form.description,
       price: Number(form.price),
+      stock: 0, // Default stock,
+      minLevel: 1, // Default minimum level
+      maxLevel: 10, // Default maximum level
+      statusProduct: "active", // Default status
+      statusInventory: "normal", // Default inventory status
+      warehouseLocation: "warehouse-a", // Default warehouse location
       imageUrl: imageUrl || "", // Use Cloudinary URL
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
