@@ -51,8 +51,15 @@
       </Select>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex justify-center items-center py-8">
+      <div
+        class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
+      ></div>
+    </div>
+
     <!-- Data Table -->
-    <div class="border">
+    <div v-else class="border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -86,7 +93,7 @@
             </TableCell>
             <!-- Order ID -->
             <TableCell class="font-mono text-sm">
-              {{ order.id }}
+              {{ order.orderId || order.id }}
             </TableCell>
             <!-- Customer -->
             <TableCell class="font-medium">
@@ -95,13 +102,15 @@
                   class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center mr-3"
                 >
                   <span class="text-sm font-medium text-gray-600">
-                    {{ order.customer.name.charAt(0).toUpperCase() }}
+                    {{ getCustomerInitial(order) }}
                   </span>
                 </div>
                 <div>
-                  <div class="font-medium">{{ order.customer.name }}</div>
+                  <div class="font-medium">
+                    {{ order.customerName || "N/A" }}
+                  </div>
                   <div class="text-sm text-muted-foreground">
-                    {{ order.customer.email }}
+                    {{ order.customerEmail || "N/A" }}
                   </div>
                 </div>
               </div>
@@ -109,19 +118,19 @@
             <!-- Date -->
             <TableCell>
               <div class="text-sm">
-                <div>{{ formatDate(order.date) }}</div>
+                <div>{{ formatDate(order.orderDate || order.createdAt) }}</div>
                 <div class="text-muted-foreground">
-                  {{ formatTime(order.date) }}
+                  {{ formatTime(order.orderDate || order.createdAt) }}
                 </div>
               </div>
             </TableCell>
             <!-- Items -->
             <TableCell>
-              <Badge variant="outline"> {{ order.itemCount }} items </Badge>
+              <Badge variant="outline"> {{ getItemCount(order) }} items </Badge>
             </TableCell>
             <!-- Total -->
             <TableCell class="text-left font-medium">
-              Rp {{ formatPrice(order.total) }}
+              Rp {{ formatPrice(getOrderTotal(order)) }}
             </TableCell>
             <!-- Status -->
             <TableCell class="text-left">
@@ -129,12 +138,12 @@
                 :variant="getStatusVariant(order.status)"
                 class="capitalize"
               >
-                {{ order.status }}
+                {{ order.status || "pending" }}
               </Badge>
             </TableCell>
             <!-- Actions -->
-            <TableCell class="text-right">
-              <div class="flex items-center justify-end gap-2">
+            <TableCell class="text-center">
+              <div class="flex items-center justify-center gap-2">
                 <Button variant="ghost" size="sm" @click="viewOrder(order.id)">
                   <Eye class="h-4 w-4" />
                 </Button>
@@ -244,45 +253,65 @@
     <Dialog v-model:open="showOrderModal">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Order Details - {{ selectedOrder?.id }}</DialogTitle>
+          <DialogTitle
+            >Order Details -
+            {{ selectedOrder?.orderId || selectedOrder?.id }}</DialogTitle
+          >
         </DialogHeader>
         <div v-if="selectedOrder" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label class="font-medium">Customer</Label>
-              <p>{{ selectedOrder.customer.name }}</p>
+              <p>{{ selectedOrder.customerName || "N/A" }}</p>
               <p class="text-sm text-gray-500">
-                {{ selectedOrder.customer.email }}
+                {{ selectedOrder.customerEmail || "N/A" }}
               </p>
             </div>
             <div>
               <Label class="font-medium">Order Date</Label>
-              <p>{{ formatDate(selectedOrder.date) }}</p>
+              <p>
+                {{
+                  formatDate(selectedOrder.orderDate || selectedOrder.createdAt)
+                }}
+              </p>
             </div>
             <div>
               <Label class="font-medium">Status</Label>
               <Badge :variant="getStatusVariant(selectedOrder.status)">
-                {{ selectedOrder.status }}
+                {{ selectedOrder.status || "pending" }}
               </Badge>
             </div>
             <div>
               <Label class="font-medium">Total</Label>
               <p class="font-medium">
-                Rp {{ formatPrice(selectedOrder.total) }}
+                Rp {{ formatPrice(getOrderTotal(selectedOrder)) }}
               </p>
             </div>
           </div>
 
-          <div>
+          <div
+            v-if="selectedOrder.products && selectedOrder.products.length > 0"
+          >
             <Label class="font-medium">Products</Label>
             <div class="mt-2 space-y-2">
               <div
                 v-for="product in selectedOrder.products"
-                :key="product.id"
+                :key="product.productId || product.id"
                 class="flex justify-between items-center p-2 bg-gray-50 rounded"
               >
-                <span>{{ product.name }} x{{ product.quantity }}</span>
-                <span>Rp {{ formatPrice(product.subtotal) }}</span>
+                <span
+                  >{{ product.productName || product.name }} x{{
+                    product.quantity
+                  }}</span
+                >
+                <span
+                  >Rp
+                  {{
+                    formatPrice(
+                      product.subtotal || product.unitPrice * product.quantity
+                    )
+                  }}</span
+                >
               </div>
             </div>
           </div>
@@ -344,155 +373,75 @@ import {
   ChevronsLeft,
   ChevronsRight,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  doc,
+  deleteDoc,
+  query,
+  orderBy,
+} from "firebase/firestore";
 
-// Sample orders data
-const allOrders = ref([
-  {
-    id: "ORD-001",
-    customer: {
-      name: "Olivia Martin",
-      email: "olivia.martin@email.com",
-    },
-    date: "2024-01-15T10:30:00Z",
-    status: "delivered",
-    total: 1199000,
-    itemCount: 1,
-    products: [
-      {
-        id: "PRD-001",
-        name: "iPhone 15 Pro Max",
-        quantity: 1,
-        subtotal: 1199000,
-      },
-    ],
-    shippingAddress: "Jl. Sudirman No. 123, Jakarta",
-    notes: "Please handle with care",
-  },
-  {
-    id: "ORD-002",
-    customer: {
-      name: "Jackson Lee",
-      email: "jackson.lee@email.com",
-    },
-    date: "2024-01-14T14:20:00Z",
-    status: "processing",
-    total: 449000,
-    itemCount: 2,
-    products: [
-      {
-        id: "PRD-002",
-        name: "Nike Air Max 270",
-        quantity: 1,
-        subtotal: 150000,
-      },
-      {
-        id: "PRD-005",
-        name: "Smart Garden Kit",
-        quantity: 1,
-        subtotal: 299000,
-      },
-    ],
-    shippingAddress: "Jl. Thamrin No. 456, Jakarta",
-    notes: "",
-  },
-  {
-    id: "ORD-003",
-    customer: {
-      name: "Isabella Nguyen",
-      email: "isabella.nguyen@email.com",
-    },
-    date: "2024-01-13T09:15:00Z",
-    status: "shipped",
-    total: 2399000,
-    itemCount: 1,
-    products: [
-      { id: "PRD-003", name: "MacBook Pro M3", quantity: 1, subtotal: 2399000 },
-    ],
-    shippingAddress: "Jl. Gatot Subroto No. 789, Jakarta",
-    notes: "Urgent delivery",
-  },
-  {
-    id: "ORD-004",
-    customer: {
-      name: "William Kim",
-      email: "will@email.com",
-    },
-    date: "2024-01-12T16:45:00Z",
-    status: "pending",
-    total: 338000,
-    itemCount: 2,
-    products: [
-      {
-        id: "PRD-006",
-        name: "Wireless Headphones",
-        quantity: 1,
-        subtotal: 249000,
-      },
-      { id: "PRD-007", name: "Designer T-Shirt", quantity: 1, subtotal: 89000 },
-    ],
-    shippingAddress: "Jl. Kuningan No. 321, Jakarta",
-    notes: "",
-  },
-  {
-    id: "ORD-005",
-    customer: {
-      name: "Sofia Davis",
-      email: "sofia.davis@email.com",
-    },
-    date: "2024-01-11T11:30:00Z",
-    status: "cancelled",
-    total: 599000,
-    itemCount: 1,
-    products: [
-      {
-        id: "PRD-008",
-        name: "Coffee Maker Pro",
-        quantity: 1,
-        subtotal: 599000,
-      },
-    ],
-    shippingAddress: "Jl. Senayan No. 654, Jakarta",
-    notes: "Customer requested cancellation",
-  },
-  {
-    id: "ORD-006",
-    customer: {
-      name: "Ahmad Rizki",
-      email: "ahmad.rizki@email.com",
-    },
-    date: "2024-01-10T08:20:00Z",
-    status: "delivered",
-    total: 164000,
-    itemCount: 2,
-    products: [
-      {
-        id: "PRD-004",
-        name: "The Psychology of Money",
-        quantity: 1,
-        subtotal: 15000,
-      },
-      {
-        id: "PRD-002",
-        name: "Nike Air Max 270",
-        quantity: 1,
-        subtotal: 150000,
-      },
-    ],
-    shippingAddress: "Jl. Kemang No. 987, Jakarta",
-    notes: "",
-  },
-]);
+// Firebase Instance
+const { $firebase } = useNuxtApp();
+
+// Data Orders dari Firebase firestore
+const allOrders = ref([]);
+const loading = ref(true);
 
 // Reactive data
 const searchQuery = ref("");
 const selectedStatus = ref("all");
 const selectedDateRange = ref("all");
-const filteredOrders = ref([...allOrders.value]);
+const filteredOrders = ref([]);
 const selectedOrders = ref([]);
 const currentPage = ref(1);
 const itemsPerPage = ref(10);
 const showOrderModal = ref(false);
 const selectedOrder = ref(null);
+
+// Fetch orders from Firestore
+const fetchOrders = async () => {
+  try {
+    loading.value = true;
+    const ordersCollection = collection($firebase.firestore, "orders");
+    const ordersQuery = query(ordersCollection, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(ordersQuery);
+
+    allOrders.value = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    filteredOrders.value = [...allOrders.value];
+    console.log("Orders fetched successfully:", allOrders.value);
+    filterOrders(); // Initial filter to set up the view
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Helper functions to handle different data structures
+const getCustomerInitial = (order) => {
+  const name = order.customerName || order.customer?.name || "N";
+  return name.charAt(0).toUpperCase();
+};
+
+const getItemCount = (order) => {
+  if (order.products && Array.isArray(order.products)) {
+    return order.products.length;
+  }
+  return order.itemCount || 0;
+};
+
+const getOrderTotal = (order) => {
+  if (order.grandTotal) return order.grandTotal;
+  if (order.total) return order.total;
+  if (order.subtotal) return order.subtotal;
+  return 0;
+};
 
 // Computed properties
 const selectAll = computed(() => {
@@ -520,15 +469,16 @@ const filterOrders = () => {
 
   // Filter by search query
   if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter(
       (order) =>
-        order.id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        order.customer.name
+        (order.orderId || order.id).toLowerCase().includes(query) ||
+        (order.customerName || order.customer?.name || "")
           .toLowerCase()
-          .includes(searchQuery.value.toLowerCase()) ||
-        order.customer.email
+          .includes(query) ||
+        (order.customerEmail || order.customer?.email || "")
           .toLowerCase()
-          .includes(searchQuery.value.toLowerCase())
+          .includes(query)
     );
   }
 
@@ -543,7 +493,9 @@ const filterOrders = () => {
   if (selectedDateRange.value && selectedDateRange.value !== "all") {
     const now = new Date();
     filtered = filtered.filter((order) => {
-      const orderDate = new Date(order.date);
+      const orderDate = new Date(
+        order.orderDate || order.createdAt?.toDate?.() || order.createdAt
+      );
       switch (selectedDateRange.value) {
         case "today":
           return orderDate.toDateString() === now.toDateString();
@@ -568,6 +520,8 @@ const filterOrders = () => {
 
 const getStatusVariant = (status) => {
   switch (status) {
+    case "queue":
+      return "default";
     case "pending":
       return "secondary";
     case "processing":
@@ -584,19 +538,44 @@ const getStatusVariant = (status) => {
 };
 
 const formatPrice = (price) => {
+  if (!price) return "0";
   return new Intl.NumberFormat("id-ID").format(price);
 };
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+const formatDate = (dateInput) => {
+  if (!dateInput) return "N/A";
+
+  let date;
+  if (dateInput.toDate && typeof dateInput.toDate === "function") {
+    // Firestore Timestamp
+    date = dateInput.toDate();
+  } else if (typeof dateInput === "string") {
+    date = new Date(dateInput);
+  } else {
+    date = dateInput;
+  }
+
+  return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 };
 
-const formatTime = (dateString) => {
-  return new Date(dateString).toLocaleTimeString("id-ID", {
+const formatTime = (dateInput) => {
+  if (!dateInput) return "N/A";
+
+  let date;
+  if (dateInput.toDate && typeof dateInput.toDate === "function") {
+    // Firestore Timestamp
+    date = dateInput.toDate();
+  } else if (typeof dateInput === "string") {
+    date = new Date(dateInput);
+  } else {
+    date = dateInput;
+  }
+
+  return date.toLocaleTimeString("id-ID", {
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -631,7 +610,6 @@ const clearSelection = () => {
 // Navigation methods
 const navigateToAddOrder = () => {
   console.log("Navigate to add order");
-  // navigateTo('/admin/orders/add');
   navigateTo("/orders/addOrder");
 };
 
@@ -642,23 +620,49 @@ const viewOrder = (id) => {
 
 const editOrder = (id) => {
   console.log("Edit order:", id);
+  // navigateTo(`/orders/edit/${id}`);
 };
 
-const deleteOrder = (id) => {
-  console.log("Delete order:", id);
+const deleteOrder = async (id) => {
+  if (confirm("Are you sure you want to delete this order?")) {
+    try {
+      await deleteDoc(doc($firebase.firestore, "orders", id));
+      await fetchOrders(); // Refresh the orders list
+      console.log("Order deleted successfully");
+    } catch (error) {
+      console.error("Error deleting order:", error);
+    }
+  }
 };
 
-const bulkDelete = () => {
-  console.log("Bulk delete:", selectedOrders.value);
+const bulkDelete = async () => {
+  if (
+    confirm(
+      `Are you sure you want to delete ${selectedOrders.value.length} orders?`
+    )
+  ) {
+    try {
+      const deletePromises = selectedOrders.value.map((orderId) =>
+        deleteDoc(doc($firebase.firestore, "orders", orderId))
+      );
+      await Promise.all(deletePromises);
+      await fetchOrders(); // Refresh the orders list
+      selectedOrders.value = [];
+      console.log("Orders deleted successfully");
+    } catch (error) {
+      console.error("Error deleting orders:", error);
+    }
+  }
 };
 
 const bulkStatusUpdate = () => {
   console.log("Bulk status update:", selectedOrders.value);
+  // Implement bulk status update logic here
 };
 
 // Initialize
 onMounted(() => {
-  filterOrders();
+  fetchOrders();
 });
 </script>
 

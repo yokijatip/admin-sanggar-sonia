@@ -89,7 +89,7 @@
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="confirmed">Queue</SelectItem>
+                    <SelectItem value="queue">Queue</SelectItem>
                     <SelectItem value="processing">Processing</SelectItem>
                     <SelectItem value="shipped">Shipped</SelectItem>
                     <SelectItem value="delivered">Delivered</SelectItem>
@@ -491,6 +491,7 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  Timestamp,
 } from "firebase/firestore";
 
 const { $firebase } = useNuxtApp();
@@ -502,6 +503,10 @@ const form = reactive({
   customerEmail: "",
   orderDate: new Date().toISOString().split("T")[0],
   status: "pending",
+  // Timestamp for deadline
+  deadline: Timestamp.fromDate(new Date()),
+  // orderTime
+  orderTime: Timestamp.fromDate(new Date()),
   products: [],
   shippingAddress: "",
   notes: "",
@@ -690,6 +695,8 @@ const addProduct = () => {
   form.products.push({
     productId: "",
     quantity: 1,
+    // Add Complexity with scale 1-10
+    complexity: 0,
     unitPrice: 0,
     subtotal: 0,
   });
