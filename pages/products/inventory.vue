@@ -105,10 +105,13 @@
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
-          <SelectItem value="electronics">Electronics</SelectItem>
-          <SelectItem value="clothing">Clothing</SelectItem>
-          <SelectItem value="books">Books</SelectItem>
-          <SelectItem value="home">Home & Garden</SelectItem>
+          <SelectItem 
+            v-for="category in categories" 
+            :key="category.id" 
+            :value="category.id"
+          >
+            {{ category.name }}
+          </SelectItem>
         </SelectContent>
       </Select>
 
@@ -216,6 +219,29 @@
 
     <!-- Stock Movement History -->
     <div v-if="activeTab === 'history'" class="border">
+      <div class="p-4 border-b">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-medium">Stock Movement History</h3>
+          <div class="flex gap-2">
+            <Select v-model="historyFilter" @update:modelValue="filterStockMovements">
+              <SelectTrigger class="w-48">
+                <SelectValue placeholder="Filter Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="adjustment">Adjustment</SelectItem>
+                <SelectItem value="purchase">Purchase</SelectItem>
+                <SelectItem value="sale">Sale</SelectItem>
+                <SelectItem value="return">Return</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button @click="refreshStockMovements" variant="outline" size="sm">
+              <History class="h-4 w-4 mr-1" />
+              Refresh
+            </Button>
+          </div>
+        </div>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -231,7 +257,12 @@
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="movement in stockMovements" :key="movement.id">
+          <TableRow v-if="filteredStockMovements.length === 0">
+            <TableCell colspan="9" class="text-center py-8 text-muted-foreground">
+              No stock movement history found
+            </TableCell>
+          </TableRow>
+          <TableRow v-for="movement in paginatedStockMovements" :key="movement.id">
             <TableCell class="text-sm">{{ formatDateTime(movement.date) }}</TableCell>
             <TableCell>{{ movement.productName }}</TableCell>
             <TableCell>
@@ -252,6 +283,36 @@
           </TableRow>
         </TableBody>
       </Table>
+      
+      <!-- Pagination for Stock Movements -->
+      <div class="flex items-center justify-between space-x-2 py-4 px-4 border-t">
+        <div class="text-sm text-muted-foreground">
+          Showing {{ ((currentMovementPage - 1) * movementsPerPage) + 1 }} - 
+          {{ Math.min(currentMovementPage * movementsPerPage, filteredStockMovements.length) }} 
+          of {{ filteredStockMovements.length }} movements
+        </div>
+        <div class="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            @click="currentMovementPage--"
+            :disabled="currentMovementPage === 1"
+          >
+            <ChevronLeft class="h-4 w-4" />
+          </Button>
+          <span class="text-sm">
+            {{ currentMovementPage }} / {{ totalMovementPages }}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            @click="currentMovementPage++"
+            :disabled="currentMovementPage === totalMovementPages"
+          >
+            <ChevronRight class="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </div>
 
     <!-- Low Stock Alerts -->
@@ -497,10 +558,44 @@ import {
   doc,
   addDoc,
   serverTimestamp,
+  getDoc,
+  where,
+  limit
 } from "firebase/firestore";
 
 // Firebase
 const { $firebase } = useNuxtApp();
+
+//categories
+const categories = ref([])
+
+// Fetch categories from Firebase
+const fetchCategories = () => {
+  const q = query(collection($firebase.firestore, "categories"), orderBy("name"))
+  onSnapshot(q, (snapshot) => {
+    console.log('=== FETCH CATEGORIES DEBUG ===')
+    console.log('Fetched categories count:', snapshot.docs.length)
+    
+    categories.value = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      console.log('Category:', data)
+      return {
+        id: data.id || doc.id,
+        name: data.name,
+        firestoreId: doc.id
+      }
+    })
+    
+    console.log('All categories:', categories.value)
+  })
+}
+
+// Helper function to get category name by id
+const getCategoryName = (categoryId) => {
+  if (!categoryId) return 'Uncategorized'
+  const category = categories.value.find(cat => cat.id === categoryId)
+  return category ? category.name : categoryId
+}
 
 // Sample inventory data
 const allInventory = ref([])
@@ -508,23 +603,115 @@ const allInventory = ref([])
 const fetchInventory = () => {
   const q = query(collection($firebase.firestore, "products"), orderBy("title"))
   onSnapshot(q, (snapshot) => {
+    console.log('=== FETCH INVENTORY DEBUG ===')
+    console.log('Fetched documents count:', snapshot.docs.length)
+    
     allInventory.value = snapshot.docs.map((doc) => {
       const data = doc.data()
-      return {
-        id: doc.id,
-        productId: data.id, // Simpan field "id" sebagai productId untuk referensi
+      console.log('Processing document:')
+      console.log('- Firestore Document ID:', doc.id)
+      console.log('- Document data.id field:', data.id)
+      console.log('- Document title:', data.title)
+      
+      const processedItem = {
+        id: doc.id, // INI HARUS FIRESTORE DOCUMENT ID
+        productId: data.id, // Field "id" dari document
         ...data,
         productName: data.title, // mapping title ke productName
         currentStock: data.stock,
         minLevel: data.minLevel,
-        status: data.stock === 0 ? "out" : data.stock <= data.minLevel ? "low" : "normal",
+        maxLevel: data.maxLevel || null,
+        status: data.statusInventory || (data.stock === 0 ? "out" : data.stock <= data.minLevel ? "low" : "normal"),
         unitCost: data.price,
-        lastUpdated: data.createdAt?.toDate?.() || new Date(),
-        sku: data.id || `SKU-${doc.id.slice(-6).toUpperCase()}`
+        lastUpdated: data.updatedAt?.toDate?.() || data.createdAt?.toDate?.() || new Date(),
+        sku: data.id || `SKU-${doc.id.slice(-6).toUpperCase()}`,
+        location: data.warehouseLocation || data.location || 'Unknown'
       }
+      
+      console.log('- Processed item.id:', processedItem.id)
+      console.log('- Processed item.productId:', processedItem.productId)
+      console.log('================================')
+      
+      return processedItem
     })
+    
+    console.log('All processed inventory items:')
+    allInventory.value.forEach(item => {
+      console.log(`${item.productName}: id=${item.id}, productId=${item.productId}`)
+    })
+    
     filterInventory()
   })
+}
+
+// Stock Movements
+const stockMovements = ref([])
+const filteredStockMovements = ref([])
+const historyFilter = ref('all')
+const currentMovementPage = ref(1)
+const movementsPerPage = ref(20)
+
+// Fetch stock movements from Firebase
+const fetchStockMovements = () => {
+  const q = query(
+    collection($firebase.firestore, "stock_movements"), 
+    orderBy("createdAt", "desc"),
+    limit(100) // Limit untuk performa
+  )
+  
+  onSnapshot(q, (snapshot) => {
+    stockMovements.value = snapshot.docs.map((doc) => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        date: data.createdAt?.toDate?.() || new Date(),
+        productId: data.productId,
+        productName: data.productName,
+        type: data.type || 'adjustment',
+        adjustmentType: data.adjustmentType,
+        quantity: data.quantity,
+        stockBefore: data.previousStock,
+        stockAfter: data.newStock,
+        reference: data.reference || `${data.type?.toUpperCase()}-${doc.id.slice(-6)}`,
+        user: data.createdBy || 'Admin',
+        notes: data.notes || data.reason || '',
+        reason: data.reason
+      }
+    })
+    filterStockMovements()
+  })
+}
+
+// Filter stock movements
+const filterStockMovements = () => {
+  let filtered = stockMovements.value
+  
+  if (historyFilter.value !== 'all') {
+    filtered = filtered.filter(movement => 
+      movement.type === historyFilter.value || 
+      movement.adjustmentType === historyFilter.value ||
+      movement.reason === historyFilter.value
+    )
+  }
+  
+  filteredStockMovements.value = filtered
+  currentMovementPage.value = 1
+}
+
+// Computed for paginated stock movements
+const paginatedStockMovements = computed(() => {
+  const start = (currentMovementPage.value - 1) * movementsPerPage.value
+  const end = start + movementsPerPage.value
+  return filteredStockMovements.value.slice(start, end)
+})
+
+const totalMovementPages = computed(() => {
+  return Math.ceil(filteredStockMovements.value.length / movementsPerPage.value)
+})
+
+// Refresh stock movements
+const refreshStockMovements = () => {
+  fetchStockMovements()
 }
 
 const adjustmentSearchInput = ref('')
@@ -535,18 +722,19 @@ const filteredAdjustmentProducts = computed(() => {
     item.productName.toLowerCase().includes(keyword)
   )
 })
+
 const selectAdjustmentProduct = (item) => {
   adjustmentForm.value.productId = item.id
   adjustmentSearchInput.value = `${item.productName}`
   showAdjustmentDropdown.value = false
 }
+
 const hideAdjustmentDropdown = () => {
   setTimeout(() => {
     showAdjustmentDropdown.value = false
   }, 150)
 }
 
-const stockMovements = ref([])
 
 const searchQuery = ref('')
 const selectedStatus = ref('all')
@@ -699,44 +887,150 @@ const closeAdjustmentModal = () => {
 const submitAdjustment = async () => {
   try {
     const { productId, type, quantity, reason, notes } = adjustmentForm.value
-
+    
+    console.log('=== SUBMIT ADJUSTMENT DEBUG ===')
+    console.log('Form productId:', productId)
+    console.log('typeof productId:', typeof productId)
+    console.log('productId length:', productId?.length)
+    
     // Validate form data
     if (!productId || !type || !quantity) {
       alert('Please fill in all required fields!')
       return
     }
-    
-    // Find the current product
+
+    // Find the current product from local data
     const currentProduct = allInventory.value.find(item => item.id === productId)
     if (!currentProduct) {
-      alert('Product not found!')
+      console.error('Product not found with id:', productId)
+      console.error('Available products:')
+      allInventory.value.forEach(item => {
+        console.error(`- ${item.productName}: id=${item.id}`)
+      })
+      alert('Product not found in local data!')
+      return
+    }
+
+    console.log('Current product found:', currentProduct)
+    console.log('Using Firestore document ID:', productId)
+
+    // TAMBAHAN: Verifikasi document exists di Firestore sebelum update
+    console.log('=== VERIFYING DOCUMENT EXISTS ===')
+    const productRef = doc($firebase.firestore, 'products', productId)
+    
+    try {
+      const docSnap = await getDoc(productRef)
+      if (!docSnap.exists()) {
+        console.error('Document does not exist in Firestore!')
+        console.error('Document ID:', productId)
+        console.error('Document path:', `products/${productId}`)
+        
+        // Coba cari dengan field "id" sebagai gantinya
+        console.log('=== SEARCHING BY FIELD ID ===')
+        const q = query(collection($firebase.firestore, "products"), where("id", "==", currentProduct.productId))
+        const querySnapshot = await getDocs(q)
+        
+        if (!querySnapshot.empty) {
+          const actualDoc = querySnapshot.docs[0]
+          console.log('Found document by field id:', actualDoc.id)
+          console.log('Actual Firestore document ID:', actualDoc.id)
+          console.log('Field id value:', actualDoc.data().id)
+          
+          // Update dengan document ID yang benar
+          const correctProductRef = doc($firebase.firestore, 'products', actualDoc.id)
+          
+          // Calculate new stock
+          let newStock = currentProduct.currentStock
+          if (type === 'increase') {
+            newStock += parseInt(quantity)
+          } else if (type === 'decrease') {
+            newStock = Math.max(0, newStock - parseInt(quantity))
+          } else if (type === 'set') {
+            newStock = parseInt(quantity)
+          }
+
+          // Determine new status
+          let newStatus = 'normal'
+          if (newStock === 0) {
+            newStatus = 'out'
+          } else if (newStock <= currentProduct.minLevel) {
+            newStatus = 'low'
+          }
+
+          await updateDoc(correctProductRef, {
+            stock: newStock,
+            statusInventory: newStatus,
+            updatedAt: serverTimestamp()
+          })
+
+          // Create stock movement record
+          await addDoc(collection($firebase.firestore, 'stock_movements'), {
+            productId: actualDoc.id,
+            productName: currentProduct.productName,
+            type: 'adjustment',
+            adjustmentType: type,
+            quantity: type === 'increase' ? parseInt(quantity) : type === 'decrease' ? -parseInt(quantity) : parseInt(quantity) - currentProduct.currentStock,
+            previousStock: currentProduct.currentStock,
+            newStock: newStock,
+            reason: reason,
+            notes: notes,
+            createdAt: serverTimestamp(),
+            createdBy: 'admin'
+          })
+
+          console.log('Stock adjustment completed successfully with correct document ID')
+          alert(`Stock ${type}d successfully! New stock: ${newStock}`)
+          closeAdjustmentModal()
+          return
+        } else {
+          console.error('Document not found by field id either!')
+          alert('Document not found in Firestore!')
+          return
+        }
+      }
+      
+      console.log('Document exists, proceeding with update...')
+      console.log('Document data:', docSnap.data())
+      
+    } catch (docError) {
+      console.error('Error checking document existence:', docError)
+      alert('Error verifying document existence!')
       return
     }
 
     // Calculate new stock based on adjustment type
     let newStock = currentProduct.currentStock
     if (type === 'increase') {
-      newStock += quantity
+      newStock += parseInt(quantity)
     } else if (type === 'decrease') {
-      newStock = Math.max(0, newStock - quantity) // Prevent negative stock
+      newStock = Math.max(0, newStock - parseInt(quantity))
+    } else if (type === 'set') {
+      newStock = parseInt(quantity)
     }
 
+    // Determine new status based on stock levels
+    let newStatus = 'normal'
+    if (newStock === 0) {
+      newStatus = 'out'
+    } else if (newStock <= currentProduct.minLevel) {
+      newStatus = 'low'
+    }
+
+    console.log('About to update document with ID:', productId)
     console.log('Stock calculation:', {
       current: currentProduct.currentStock,
       adjustment: quantity,
       type: type,
-      newStock: newStock
+      newStock: newStock,
+      newStatus: newStatus
     })
 
     // Update product stock in Firestore
-    const productRef = doc($firebase.firestore, 'products', productId)
     await updateDoc(productRef, {
       stock: newStock,
+      statusInventory: newStatus,
       updatedAt: serverTimestamp()
     })
-
-
-    
 
     // Create stock movement record for history
     await addDoc(collection($firebase.firestore, 'stock_movements'), {
@@ -744,13 +1038,13 @@ const submitAdjustment = async () => {
       productName: currentProduct.productName,
       type: 'adjustment',
       adjustmentType: type,
-      quantity: quantity,
+      quantity: type === 'increase' ? parseInt(quantity) : type === 'decrease' ? -parseInt(quantity) : parseInt(quantity) - currentProduct.currentStock,
       previousStock: currentProduct.currentStock,
       newStock: newStock,
       reason: reason,
       notes: notes,
       createdAt: serverTimestamp(),
-      createdBy: 'admin' // You can replace this with actual user info
+      createdBy: 'admin'
     })
 
     console.log('Stock adjustment completed successfully')
@@ -788,6 +1082,8 @@ const exportInventory = () => {
 
 onMounted(() => {
   fetchInventory()
+  fetchCategories()
+  fetchStockMovements()
 })
 </script>
 
