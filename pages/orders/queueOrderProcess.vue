@@ -28,7 +28,7 @@
           <Clock class="text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">{{ queueOrders.length }}</div>
+          <div class="text-xl font-bold">{{ actualQueueOrders.length }}</div>
           <p class="text-xs text-muted-foreground">Queue Orders</p>
         </CardContent>
       </Card>
@@ -51,13 +51,21 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Kapasitas Hari Ini</CardTitle>
-          <TrendingUp class="h-8 w-8 text-green-500" />
+          <TrendingUp
+            class="h-8 w-8"
+            :class="
+              actualTodayCapacity.current >= actualTodayCapacity.max
+                ? 'text-red-500'
+                : 'text-green-500'
+            "
+          />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold">
-            {{ todayCapacity.current }}/{{ todayCapacity.max }}
+            {{ actualTodayCapacity.current }}/{{ actualTodayCapacity.max }}
           </div>
           <p class="text-xs text-muted-foreground">Today's Capacity</p>
+          <!-- Hapus progress bar ini -->
         </CardContent>
       </Card>
       <!-- Average Processing Time atau rata-rata waktu proses -->
@@ -258,7 +266,10 @@
                     size="sm"
                     @click="startProcessing(order.id)"
                     title="Start Processing"
-                    :disabled="order.status === 'processing'"
+                    :disabled="
+                      order.status === 'processing' ||
+                      actualTodayCapacity.current >= actualTodayCapacity.max
+                    "
                   >
                     <Play class="h-4 w-4" />
                   </Button>
@@ -330,7 +341,9 @@
                   <div class="w-32 bg-gray-200 rounded-full h-2">
                     <div
                       class="bg-red-500 h-2 rounded-full"
-                      :style="{ width: `${(selectedOrder.scores.deadline / 40) * 100}%` }"
+                      :style="{
+                        width: `${(selectedOrder.scores.deadline / 40) * 100}%`,
+                      }"
                     ></div>
                   </div>
                   <span class="font-bold"
@@ -530,6 +543,8 @@ import {
   onSnapshot,
   doc,
   getDoc,
+  updateDoc,
+  serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 import { useNuxtApp } from "#app";
@@ -542,6 +557,7 @@ const showDetailsModal = ref(false);
 const showCapacityModal = ref(false);
 const selectedOrder = ref(null);
 const customersCache = ref(new Map()); // Cache untuk customer data
+const processingOrders = ref([]);
 
 const capacitySettings = ref({
   maxOrdersPerDay: 20,
@@ -555,17 +571,64 @@ const todayCapacity = ref({
 
 // Computed
 const sortedQueueOrders = computed(() => {
-  return [...queueOrders.value].sort(
+  return [...actualQueueOrders.value].sort(
     (a, b) => b.priorityScore - a.priorityScore
   );
 });
 
 const highPriorityCount = computed(() => {
-  return queueOrders.value.filter((order) => order.priorityScore >= 70).length;
+  return actualQueueOrders.value.filter((order) => order.priorityScore >= 70)
+    .length;
 });
 
 const averageProcessingTime = computed(() => {
   return capacitySettings.value.avgProcessingTime;
+});
+
+// Ganti computed todayProcessingCount dengan:
+const todayProcessedCount = computed(() => {
+  const today = new Date();
+  const startOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+  const endOfDay = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+    23,
+    59,
+    59,
+    999
+  );
+
+  return processingOrders.value.filter((order) => {
+    // Gunakan processingStartTime jika ada, atau orderTime sebagai fallback
+    const processDate =
+      order.processingStartTime || order.orderTime || order.createdAt;
+    return processDate >= startOfDay && processDate <= endOfDay;
+  }).length;
+});
+
+const actualTodayCapacity = computed(() => {
+  return {
+    current: todayProcessedCount.value,
+    max: capacitySettings.value.maxOrdersPerDay,
+  };
+});
+
+// Tambahkan computed untuk memisahkan queue dan processing orders
+const actualQueueOrders = computed(() => {
+  return queueOrders.value.filter((order) => order.status === "queue");
+});
+
+const actualProcessingOrders = computed(() => {
+  return queueOrders.value.filter((order) => order.status === "processing");
 });
 
 // Methods
@@ -579,16 +642,16 @@ const getCustomerData = async (customerEmail) => {
     // Query customers collection by email
     const customersRef = collection($firebase.firestore, "customers");
     const q = query(customersRef, where("email", "==", customerEmail));
-    
+
     return new Promise((resolve) => {
       const unsubscribe = onSnapshot(q, (snapshot) => {
         let customerData = { customerType: "regular" }; // default
-        
+
         if (!snapshot.empty) {
           const customerDoc = snapshot.docs[0];
           customerData = customerDoc.data();
         }
-        
+
         // Cache the result
         customersCache.value.set(customerEmail, customerData);
         unsubscribe(); // Stop listening after first result
@@ -611,13 +674,13 @@ const getProductData = async (productId) => {
   try {
     const productRef = doc($firebase.firestore, "products", productId);
     const productSnap = await getDoc(productRef);
-    
+
     let productData = { complexity: 5 }; // default complexity
-    
+
     if (productSnap.exists()) {
       productData = productSnap.data();
     }
-    
+
     // Cache the result
     customersCache.value.set(`product_${productId}`, productData);
     return productData;
@@ -630,28 +693,31 @@ const getProductData = async (productId) => {
 // Update loadQueueOrders function
 const loadQueueOrders = async () => {
   const ordersRef = collection($firebase.firestore, "orders");
-  const q = query(ordersRef, where("status", "==", "queue"));
-  
+  // Ganti query ini:
+  // const q = query(ordersRef, where("status", "==", "queue"));
+  // Dengan query ini:
+  const q = query(ordersRef, where("status", "in", ["queue", "processing"]));
+
   const unsubscribe = onSnapshot(q, async (snapshot) => {
     const orders = [];
-    
+
     for (const docSnapshot of snapshot.docs) {
       const data = docSnapshot.data();
-      
+
       // Get customer data to determine VIP status
       const customerData = await getCustomerData(data.customerEmail);
-      
+
       // Get product complexity data for each product
       const productsWithComplexity = await Promise.all(
         (data.products || []).map(async (product) => {
           const productData = await getProductData(product.productId);
           return {
             ...product,
-            complexity: productData.complexity || 5
+            complexity: productData.complexity || 5,
           };
         })
       );
-      
+
       // Periksa apakah deadline adalah Timestamp
       const deadline =
         data.deadline && typeof data.deadline.toDate === "function"
@@ -674,10 +740,42 @@ const loadQueueOrders = async () => {
       };
       orders.push(order);
     }
-    
+
     queueOrders.value = orders.map(calculatePriorityScore);
   });
-  
+
+  return unsubscribe;
+};
+
+// Tambahkan setelah loadQueueOrders function
+const loadProcessingOrders = async () => {
+  const ordersRef = collection($firebase.firestore, "orders");
+  // Ambil semua order yang pernah diproses (processing, completed, shipped, delivered)
+  const q = query(
+    ordersRef,
+    where("status", "in", ["processing", "completed", "shipped", "delivered"])
+  );
+
+  const unsubscribe = onSnapshot(q, async (snapshot) => {
+    const orders = [];
+
+    for (const docSnapshot of snapshot.docs) {
+      const data = docSnapshot.data();
+
+      const order = {
+        id: docSnapshot.id,
+        orderId: data.orderId,
+        status: data.status,
+        orderTime: data.orderTime?.toDate() || new Date(data.orderTime),
+        createdAt: data.createdAt?.toDate() || new Date(data.createdAt),
+        processingStartTime: data.processingStartTime?.toDate() || null,
+      };
+      orders.push(order);
+    }
+
+    processingOrders.value = orders;
+  });
+
   return unsubscribe;
 };
 
@@ -689,7 +787,8 @@ const calculatePriorityScore = (order) => {
   // 1. Deadline Score (40% weight) - Greedy: Most urgent first
   const hoursUntilDeadline = (deadline - now) / (1000 * 60 * 60);
   let deadlineScore = 0;
-  if (hoursUntilDeadline <= 0) deadlineScore = 40; // Overdue gets highest priority
+  if (hoursUntilDeadline <= 0)
+    deadlineScore = 40; // Overdue gets highest priority
   else if (hoursUntilDeadline <= 24) deadlineScore = 35;
   else if (hoursUntilDeadline <= 48) deadlineScore = 25;
   else if (hoursUntilDeadline <= 72) deadlineScore = 15;
@@ -697,7 +796,10 @@ const calculatePriorityScore = (order) => {
 
   // 2. Value Score (25% weight) - Greedy: Highest value first
   let valueScore = 0;
-  const totalValue = order.products.reduce((sum, p) => sum + (p.subtotal || 0), 0);
+  const totalValue = order.products.reduce(
+    (sum, p) => sum + (p.subtotal || 0),
+    0
+  );
   if (totalValue >= 2000000) valueScore = 25;
   else if (totalValue >= 1000000) valueScore = 20;
   else if (totalValue >= 500000) valueScore = 15;
@@ -718,9 +820,24 @@ const calculatePriorityScore = (order) => {
   // Fixed: Now properly checks customerType from customers collection
   const customerScore = order.customerType === "vip" ? 10 : 5;
 
-  // 5. Time Score (5% weight) - FIFO tie-breaker
+  // 5. Time Score (5% weight) - FIFO tie-breaker - IMPROVED
   const hoursFromOrder = (now - orderTime) / (1000 * 60 * 60);
-  const timeScore = Math.min(5, (hoursFromOrder / 24) * 5);
+  let timeScore = 0;
+
+  // Berikan score yang lebih progresif
+  if (hoursFromOrder >= 24) {
+    timeScore = 5; // Maksimal setelah 24 jam
+  } else if (hoursFromOrder >= 12) {
+    timeScore = 4; // 4 poin setelah 12 jam
+  } else if (hoursFromOrder >= 6) {
+    timeScore = 3; // 3 poin setelah 6 jam
+  } else if (hoursFromOrder >= 3) {
+    timeScore = 2; // 2 poin setelah 3 jam
+  } else if (hoursFromOrder >= 1) {
+    timeScore = 1; // 1 poin setelah 1 jam
+  } else {
+    timeScore = hoursFromOrder; // Gradual dari 0-1 untuk jam pertama
+  }
 
   const totalScore =
     deadlineScore + valueScore + complexityScore + customerScore + timeScore;
@@ -812,15 +929,29 @@ const viewOrderDetails = (order) => {
   showDetailsModal.value = true;
 };
 
-const startProcessing = (orderId) => {
-  const order = queueOrders.value.find((o) => o.id === orderId);
-  if (order) {
-    order.status = "processing";
-    // Update capacity
-    todayCapacity.value.current = Math.min(
-      todayCapacity.value.current + 1,
-      todayCapacity.value.max
+const startProcessing = async (orderId) => {
+  // Cek apakah kapasitas sudah penuh
+  if (actualTodayCapacity.value.current >= actualTodayCapacity.value.max) {
+    alert(
+      `Kapasitas hari ini sudah penuh (${actualTodayCapacity.value.max} order). Tidak bisa memproses order baru.`
     );
+    return;
+  }
+
+  try {
+    const orderRef = doc($firebase.firestore, "orders", orderId);
+    await updateDoc(orderRef, {
+      status: "processing",
+      processingStartTime: serverTimestamp(),
+    });
+
+    // HAPUS bagian ini - biarkan Firebase listener yang update UI
+    // const orderIndex = queueOrders.value.findIndex(o => o.id === orderId);
+    // if (orderIndex !== -1) {
+    //   queueOrders.value.splice(orderIndex, 1);
+    // }
+  } catch (error) {
+    console.error("Error starting processing:", error);
   }
 };
 
@@ -834,27 +965,26 @@ const moveToTop = (orderId) => {
 const saveCapacitySettings = () => {
   todayCapacity.value.max = capacitySettings.value.maxOrdersPerDay;
   showCapacityModal.value = false;
-  
+
   // Optional: Save to localStorage for persistence
-  localStorage.setItem('capacitySettings', JSON.stringify(capacitySettings.value));
-  localStorage.setItem('todayCapacity', JSON.stringify(todayCapacity.value));
+  localStorage.setItem(
+    "capacitySettings",
+    JSON.stringify(capacitySettings.value)
+  );
+  localStorage.setItem("todayCapacity", JSON.stringify(todayCapacity.value));
 };
 
 // Initialize
 onMounted(async () => {
-  // Load saved settings from localStorage
-  const savedCapacitySettings = localStorage.getItem('capacitySettings');
-  const savedTodayCapacity = localStorage.getItem('todayCapacity');
-  
+  const savedCapacitySettings = localStorage.getItem("capacitySettings");
+  const savedTodayCapacity = localStorage.getItem("todayCapacity");
+
   if (savedCapacitySettings) {
     capacitySettings.value = JSON.parse(savedCapacitySettings);
   }
-  
-  if (savedTodayCapacity) {
-    todayCapacity.value = JSON.parse(savedTodayCapacity);
-  }
-  
+
   await loadQueueOrders();
+  await loadProcessingOrders(); // Tambahkan ini
 });
 </script>
 

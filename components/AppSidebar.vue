@@ -69,6 +69,7 @@ const data = {
       title: "Orders",
       url: "/orders/orderDashboard",
       icon: ShoppingBasket,
+      isActive: true,
       items: [
         {
           title: "List Orders",
@@ -92,6 +93,7 @@ const data = {
       title: "Customers",
       url: "/customers/customerDashboard",
       icon: Users,
+      isActive: true,
       items: [
         {
           title: "List Customer",
