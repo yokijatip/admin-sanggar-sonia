@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto space-y-6">
+  <div class="container mx-auto px-4 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent
@@ -493,6 +493,7 @@
           <SelectContent>
             <SelectItem value="increase">Increase Stock</SelectItem>
             <SelectItem value="decrease">Decrease Stock</SelectItem>
+            <SelectItem value="set">Set Stock Level</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -944,11 +945,12 @@ const closeAdjustmentModal = () => {
 const submitAdjustment = async () => {
   try {
     const { productId, type, quantity, minLevel, reason, notes } = adjustmentForm.value
-        
+    
     console.log('=== SUBMIT ADJUSTMENT DEBUG ===')
     console.log('Form productId:', productId)
-    console.log('Form minLevel:', minLevel)
-        
+    console.log('typeof productId:', typeof productId)
+    console.log('productId length:', productId?.length)
+    
     // Validate form data
     if (!productId || !type || !quantity) {
       alert('Please fill in all required fields!')
@@ -972,27 +974,23 @@ const submitAdjustment = async () => {
     console.log('Current product found:', currentProduct)
     console.log('Using Firestore document ID:', productId)
 
-    // TAMBAHAN: Verifikasi document exists di Firestore sebelum update
+    // Verifikasi document exists di Firestore sebelum update
     console.log('=== VERIFYING DOCUMENT EXISTS ===')
     const productRef = doc($firebase.firestore, 'products', productId)
-    
+        
     try {
       const docSnap = await getDoc(productRef)
       if (!docSnap.exists()) {
         console.error('Document does not exist in Firestore!')
-        console.error('Document ID:', productId)
-        console.error('Document path:', `products/${productId}`)
         
         // Coba cari dengan field "id" sebagai gantinya
         console.log('=== SEARCHING BY FIELD ID ===')
         const q = query(collection($firebase.firestore, "products"), where("id", "==", currentProduct.productId))
         const querySnapshot = await getDocs(q)
-        
+                
         if (!querySnapshot.empty) {
           const actualDoc = querySnapshot.docs[0]
           console.log('Found document by field id:', actualDoc.id)
-          console.log('Actual Firestore document ID:', actualDoc.id)
-          console.log('Field id value:', actualDoc.data().id)
           
           // Update dengan document ID yang benar
           const correctProductRef = doc($firebase.firestore, 'products', actualDoc.id)
@@ -1041,7 +1039,7 @@ const submitAdjustment = async () => {
           })
 
           console.log('Stock adjustment completed successfully with correct document ID')
-          alert(`Stock ${type}d successfully! New stock: ${newStock}`)
+          alert(`Stock ${type}d successfully! New stock: ${newStock}, Status: ${newStatus}`)
           closeAdjustmentModal()
           return
         } else {
@@ -1050,10 +1048,9 @@ const submitAdjustment = async () => {
           return
         }
       }
-      
+            
       console.log('Document exists, proceeding with update...')
-      console.log('Document data:', docSnap.data())
-      
+          
     } catch (docError) {
       console.error('Error checking document existence:', docError)
       alert('Error verifying document existence!')
@@ -1150,7 +1147,6 @@ const reorderProduct = (itemId) => {
 
 const exportInventory = () => {
   console.log('Export inventory data')
-  
 }
 
 onMounted(() => {
