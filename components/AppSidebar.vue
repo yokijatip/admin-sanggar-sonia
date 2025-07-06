@@ -110,6 +110,18 @@ const data = {
       ],
     },
     {
+      title: "Finance",
+      url: "/finance/financeDashboard",
+      icon: PieChart,
+      isActive: true,
+      items: [
+        {
+          title: "Expenses",
+          url: "/finance/expenses",
+        },
+      ],
+    },
+    {
       title: "Settings",
       url: "/settings/settings",
       icon: Settings2,
