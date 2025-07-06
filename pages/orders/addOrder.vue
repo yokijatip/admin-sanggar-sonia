@@ -77,7 +77,6 @@
                   type="date"
                   @change="generateOrderId"
                   required
-                  disabled
                 />
               </div>
 
@@ -508,9 +507,9 @@ const form = reactive({
     .split("T")[0], // Format to YYYY-MM-DD
   status: "pending",
   // Timestamp for deadline
-  deadline: Timestamp.fromDate(new Date()),
+  deadline: serverTimestamp(), // Atau gunakan default date setelah reactive,
   // orderTime
-  orderTime: Timestamp.fromDate(new Date()),
+  orderTime: serverTimestamp(),
   products: [],
   shippingAddress: "",
   notes: "",
@@ -539,24 +538,25 @@ const loadProducts = async () => {
   try {
     const productsRef = collection($firebase.firestore, "products");
     const querySnapshot = await getDocs(productsRef);
-
     products.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      name: doc.data().title,
+      title: doc.data().title, // Use 'title' as the product name
       price: doc.data().price,
     }));
-
     console.log("Products loaded:", products.value);
 
     // If no products found, use default products
     if (Object.keys(products.value).length === 0) {
       products.value = {
-        "PRD-000": { name: "No Product", price: 0 },
+        PRD_000: { title: "No Product", price: 0 },
       };
     }
   } catch (error) {
     console.error("Error loading products:", error);
     // Fallback to default products if needed
+    products.value = {
+      PRD_000: { title: "No Product", price: 0 },
+    };
   }
 };
 
@@ -568,10 +568,10 @@ const hideProductDropdown = (index) => {
 
 const selectProduct = (index, product) => {
   form.products[index].productId = product.id;
+  form.products[index].productName = product.title; // Directly set productName
   form.products[index].unitPrice = product.price;
   form.products[index].subtotal = form.products[index].quantity * product.price;
-
-  productInputs.value[index] = product.name;
+  productInputs.value[index] = product.title; // Update input value
   showProductDropdown.value[index] = false;
 };
 
@@ -639,39 +639,38 @@ const loadCustomers = async () => {
 
 const generateOrderId = async () => {
   try {
-    const orderDate = new Date(form.orderDate);
-    const dateStr = orderDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+    const today = new Date(form.orderDate);
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    // Query orders for the same date - menggunakan query yang lebih sederhana
+    // Konversi ke Timestamp
+    const startDate = Timestamp.fromDate(startOfDay);
+    const endDate = Timestamp.fromDate(endOfDay);
+
+    // Query orders di hari ini
     const ordersRef = collection($firebase.firestore, "orders");
-    const q = query(ordersRef, where("orderDate", "==", dateStr));
+    const q = query(
+      ordersRef,
+      where("orderDate", ">=", startDate),
+      where("orderDate", "<=", endDate)
+    );
 
     const querySnapshot = await getDocs(q);
-
-    // Hitung jumlah order hari ini dan tambah 1
     let orderCount = querySnapshot.size + 1;
 
-    // Jika ada order, cek apakah ada duplikasi ID
-    if (querySnapshot.size > 0) {
-      const existingOrderIds = querySnapshot.docs.map(
-        (doc) => doc.data().orderId
-      );
-
-      // Loop sampai dapat ID yang unique
-      while (
-        existingOrderIds.includes(
-          `ORD-${orderCount.toString().padStart(3, "0")}`
-        )
-      ) {
-        orderCount++;
-      }
+    // Pastikan ID unik jika ada duplikasi
+    const existingOrderIds = querySnapshot.docs.map(
+      (doc) => doc.data().orderId
+    );
+    while (
+      existingOrderIds.includes(`ORD-${orderCount.toString().padStart(3, "0")}`)
+    ) {
+      orderCount++;
     }
 
-    // Format: ORD-001, ORD-002, etc.
     form.orderId = `ORD-${orderCount.toString().padStart(3, "0")}`;
   } catch (error) {
     console.error("Error generating order ID:", error);
-    // Fallback yang lebih baik - gunakan timestamp tapi tetap format yang benar
     const fallbackId = Math.floor(Math.random() * 999) + 1;
     form.orderId = `ORD-${fallbackId.toString().padStart(3, "0")}`;
   }
@@ -710,9 +709,8 @@ const addProduct = () => {
 
 const filteredProducts = (index) => {
   if (!productInputs.value[index]) return products.value;
-
   return products.value.filter((product) =>
-    product.name
+    product.title
       .toLowerCase()
       .includes(productInputs.value[index].toLowerCase())
   );
@@ -751,7 +749,8 @@ const calculateGrandTotal = () => {
 };
 
 const getProductName = (productId) => {
-  return products.value[productId]?.title || "Unknown Product";
+  const product = products.value.find((p) => p.id === productId);
+  return product ? product.title : "Unknown Product";
 };
 
 const formatPrice = (price) => {
@@ -806,21 +805,21 @@ const validateForm = () => {
 
 const handleSubmit = async () => {
   if (!validateForm()) return;
-
   isLoading.value = true;
+
   try {
     // Prepare order data
     const orderData = {
       orderId: form.orderId,
       customerName: customerInput.value,
       customerEmail: form.customerEmail || "",
-      orderDate: Timestamp.fromDate(new Date(form.orderDate)), // Convert to Firestore Timestamp
+      orderDate: serverTimestamp(),
       deadline: form.deadline,
-      orderTime: form.orderTime,
+      orderTime: serverTimestamp(),
       status: form.status,
       products: form.products.map((product) => ({
         productId: product.productId,
-        productName: getProductName(product.productId),
+        productName: getProductName(product.productId), // Use getProductName
         quantity: Number(product.quantity),
         unitPrice: Number(product.unitPrice),
         subtotal: Number(product.subtotal),
@@ -841,7 +840,7 @@ const handleSubmit = async () => {
     );
     console.log("Order saved with ID: ", docRef.id);
 
-    // Show success modal instead of message
+    // Show success modal
     showSuccessModal.value = true;
     showPreview.value = false;
   } catch (error) {
@@ -906,7 +905,7 @@ const viewOrder = () => {
 // Initialize component
 onMounted(async () => {
   await loadCustomers();
-  await loadProducts();
+  await loadProducts(); // Load Products sebelum proses
   await generateOrderId();
 });
 </script>
