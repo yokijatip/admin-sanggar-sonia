@@ -50,13 +50,13 @@
       <!-- Total Revenue -->
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
+          class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
-          <TrendingUp class="h-4 w-4 text-green-600" />
+          <TrendingUp class="text-green-600" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-green-600">
+          <div class="text-xl font-bold text-green-600">
             Rp {{ formatPrice(financialData.totalRevenue) }}
           </div>
           <p class="text-xs text-muted-foreground">
@@ -78,13 +78,13 @@
       <!-- Total Expenses -->
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
+          class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Total Expenses</CardTitle>
-          <TrendingDown class="h-4 w-4 text-red-600" />
+          <TrendingDown class="text-red-600" />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-red-600">
+          <div class="text-xl font-bold text-red-600">
             Rp {{ formatPrice(financialData.totalExpenses) }}
           </div>
           <p class="text-xs text-muted-foreground">
@@ -106,14 +106,14 @@
       <!-- Net Profit -->
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
+          class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Net Profit</CardTitle>
-          <DollarSign class="h-4 w-4 text-blue-600" />
+          <DollarSign class="text-blue-600" />
         </CardHeader>
         <CardContent>
           <div
-            class="text-2xl font-bold"
+            class="text-xl font-bold"
             :class="
               financialData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
             "
@@ -134,14 +134,14 @@
       <!-- Cash Flow -->
       <Card>
         <CardHeader
-          class="flex flex-row items-center justify-between space-y-0 pb-2"
+          class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Cash Flow</CardTitle>
-          <Wallet class="h-4 w-4 text-purple-600" />
+          <Wallet class="text-purple-600" />
         </CardHeader>
         <CardContent>
           <div
-            class="text-2xl font-bold"
+            class="text-xl font-bold"
             :class="
               financialData.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'
             "

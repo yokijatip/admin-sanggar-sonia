@@ -119,6 +119,10 @@ const data = {
           title: "Expenses",
           url: "/finance/expenses",
         },
+        {
+          title: "Transactions",
+          url: "/finance/transactions",
+        },
       ],
     },
     {

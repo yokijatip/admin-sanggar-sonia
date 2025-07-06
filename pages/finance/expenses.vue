@@ -74,44 +74,56 @@
     <!-- Expense Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <Card>
-        <CardHeader class="pb-2">
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
           <CardTitle class="text-sm font-medium">Total Expenses</CardTitle>
+          <DollarSign />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">
+          <div class="text-xl font-bold">
             Rp {{ formatPrice(expenseSummary.total) }}
           </div>
           <p class="text-xs text-muted-foreground">This month</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader class="pb-2">
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
           <CardTitle class="text-sm font-medium">Pending Approval</CardTitle>
+          <Clock />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-orange-600">
+          <div class="text-xl font-bold text-orange-600">
             {{ expenseSummary.pending }}
           </div>
           <p class="text-xs text-muted-foreground">Awaiting approval</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader class="pb-2">
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
           <CardTitle class="text-sm font-medium">Approved</CardTitle>
+          <CheckCircle />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-green-600">
+          <div class="text-xl font-bold text-green-600">
             {{ expenseSummary.approved }}
           </div>
           <p class="text-xs text-muted-foreground">Ready for payment</p>
         </CardContent>
       </Card>
       <Card>
-        <CardHeader class="pb-2">
+        <CardHeader
+          class="flex flex-row items-center justify-between space-y-0"
+        >
           <CardTitle class="text-sm font-medium">Paid</CardTitle>
+          <CreditCard />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-blue-600">
+          <div class="text-xl font-bold text-blue-600">
             {{ expenseSummary.paid }}
           </div>
           <p class="text-xs text-muted-foreground">Completed</p>
@@ -331,7 +343,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Filter, Eye, Edit, Trash2 } from "lucide-vue-next";
+import {
+  Plus,
+  Filter,
+  Eye,
+  Edit,
+  Trash2,
+  DollarSign,
+  Clock,
+  CheckCircle,
+  CreditCard,
+} from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
 // State
