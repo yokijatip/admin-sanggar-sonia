@@ -87,49 +87,20 @@
       </div>
 
       <!-- Charts and Categories Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Sales Overview Chart -->
-        <Card class="lg:col-span-2">
-          <CardHeader>
-            <div class="flex justify-between items-center">
-              <div>
-                <CardTitle>Sales Overview</CardTitle>
-                <p class="text-sm text-muted-foreground">
-                  Monthly sales performance
-                </p>
-              </div>
-              <Select>
-                <SelectTrigger class="w-40">
-                  <SelectValue placeholder="Last 6 months" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="6months">Last 6 months</SelectItem>
-                  <SelectItem value="12months">Last 12 months</SelectItem>
-                  <SelectItem value="year">This year</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div class="h-64 flex items-end justify-between gap-2">
-              <div
-                v-for="(value, index) in chartData"
-                :key="index"
-                class="flex flex-col items-center flex-1"
-              >
-                <div
-                  class="w-full bg-primary rounded-t-sm transition-all duration-300 hover:opacity-80"
-                  :style="{
-                    height: `${(value / Math.max(...chartData)) * 200}px`,
-                  }"
-                ></div>
-                <span class="text-xs text-muted-foreground mt-2">{{
-                  months[index]
-                }}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <!-- Charts and Recent Activity -->
+          <div class="grid gap-4 md:grid-cols-3">
+            <!-- Sales Overview Chart -->
+            <Card class="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Overview</CardTitle>
+                <CardDescription>Grafik penjualan bulanan</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div class="h-80">
+                  <OverviewChart :data="chartData" />
+                </div>
+              </CardContent>
+            </Card>
 
         <!-- Top Categories -->
         <Card>
@@ -399,6 +370,7 @@ import {
   TrendingUp,
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+import OverviewChart from "@/components/chart/OverviewChart.vue";
 
 // Search functionality
 const searchQuery = ref("");
@@ -411,9 +383,35 @@ const stats = ref({
   totalRevenue: 45750000,
 });
 
-// Chart data
-const chartData = ref([120, 150, 180, 220, 160, 190]);
-const months = ref(["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]);
+
+
+// Data untuk chart
+const chartData = {
+  labels: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ],
+  datasets: [
+    {
+      data: [
+        5500, 4000, 2000, 2400, 3900, 1900, 3100, 2300, 4400, 3600, 5400, 4500,
+      ],
+      backgroundColor: "#FF4F0F",
+      borderRadius: 4,
+      borderSkipped: false,
+    },
+  ],
+};
 
 // Top categories
 const topCategories = ref([
