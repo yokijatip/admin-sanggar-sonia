@@ -6,7 +6,6 @@
         title="Add New Order"
         description="Fill in the order details below"
       />
-
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="space-y-6">
         <!-- Customer Information Card -->
@@ -31,7 +30,6 @@
                   Auto-generated based on date
                 </p>
               </div>
-
               <!-- Customer Selection with Combobox -->
               <div>
                 <Label class="pb-2" for="customer">Customer</Label>
@@ -67,19 +65,19 @@
                   customer name
                 </p>
               </div>
-
-              <!-- Order Date -->
+              <!-- Deadline Date -->
               <div>
                 <Label class="pb-2" for="deadline">Deadline</Label>
                 <Input
                   id="deadline"
-                  v-model="form.deadline"
-                  type="date"
-                  @change="generateOrderId"
+                  v-model="form.deadlineDate"
+                  type="datetime-local"
                   required
                 />
+                <p class="text-xs text-gray-500 mt-1">
+                  Set the deadline for this order
+                </p>
               </div>
-
               <!-- Order Status -->
               <div>
                 <Label class="pb-2" for="status">Order Status</Label>
@@ -100,7 +98,6 @@
             </div>
           </CardContent>
         </Card>
-
         <!-- Products Card -->
         <Card class="p-6">
           <CardHeader class="px-0 pt-0">
@@ -128,19 +125,18 @@
                 Click "Add Product" to start adding items to this order
               </p>
             </div>
-
             <div v-else class="space-y-4">
               <div
                 v-for="(product, index) in form.products"
                 :key="index"
                 class="border rounded-lg p-4 bg-gray-50"
               >
-                <div class="grid grid-cols-12 gap-4 items-end">
-                  <!-- Product Selection - lebih lebar -->
+                <!-- Desktop Layout (md and up) -->
+                <div class="hidden md:grid md:grid-cols-12 gap-4 items-end">
                   <!-- Product Selection -->
-                  <div class="col-span-12 md:col-span-5">
+                  <div class="col-span-4">
                     <Label class="pb-2">Product</Label>
-                    <div class="relative">
+                    <div class="w-full relative">
                       <Input
                         v-model="productInputs[index]"
                         type="text"
@@ -151,12 +147,11 @@
                         required
                         class="w-full"
                       />
-
                       <!-- Dropdown List -->
                       <div
                         v-if="
                           showProductDropdown[index] &&
-                          filteredProducts.length > 0
+                          filteredProducts(index).length > 0
                         "
                         class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
                       >
@@ -166,15 +161,15 @@
                           @mousedown="selectProduct(index, product)"
                           class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                         >
-                          {{ product.name }} - Rp
-                          {{ formatPrice(product.price) }}
+                          {{ product.title }} - Rp{{
+                            formatPrice(product.price)
+                          }}
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  <!-- Quantity - lebih kecil -->
-                  <div class="col-span-6 md:col-span-2">
+                  <!-- Quantity -->
+                  <div class="col-span-2">
                     <Label class="pb-2">Qty</Label>
                     <Input
                       v-model="product.quantity"
@@ -184,9 +179,8 @@
                       @input="calculateSubtotal(index)"
                     />
                   </div>
-
-                  <!-- Unit Price - sedang -->
-                  <div class="col-span-6 md:col-span-2">
+                  <!-- Unit Price -->
+                  <div class="col-span-2">
                     <Label class="pb-2">Price</Label>
                     <Input
                       v-model="product.unitPrice"
@@ -195,30 +189,110 @@
                       class="bg-gray-100"
                     />
                   </div>
-
-                  <!-- Subtotal & Actions - lebih kompak -->
-                  <div class="col-span-12 md:col-span-3">
-                    <div class="flex items-center justify-between">
-                      <div class="text-sm font-medium truncate mr-2">
-                        Subtotal: Rp {{ formatPrice(product.subtotal || 0) }}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        @click="removeProduct(index)"
-                        class="flex-shrink-0"
-                      >
-                        <TrashIcon class="h-4 w-4" />
-                      </Button>
+                  <!-- Subtotal -->
+                  <div class="col-span-2">
+                    <Label class="pb-2">Subtotal</Label>
+                    <div
+                      class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium"
+                    >
+                      Rp{{ formatPrice(product.subtotal) }}
                     </div>
+                  </div>
+                  <!-- Actions -->
+                  <div class="col-span-2">
+                    <Button
+                      variant="destructive"
+                      @click="removeProduct(index)"
+                      class="w-full"
+                    >
+                      <TrashIcon class="h-4 w-4 mr-2" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+                <!-- Mobile Layout (sm and below) -->
+                <div class="md:hidden space-y-4">
+                  <!-- Product Selection -->
+                  <div>
+                    <Label class="pb-2">Product</Label>
+                    <div class="w-full relative">
+                      <Input
+                        v-model="productInputs[index]"
+                        type="text"
+                        placeholder="Type product name"
+                        @input="showProductDropdown[index] = true"
+                        @focus="showProductDropdown[index] = true"
+                        @blur="hideProductDropdown(index)"
+                        required
+                        class="w-full"
+                      />
+                      <!-- Dropdown List -->
+                      <div
+                        v-if="
+                          showProductDropdown[index] &&
+                          filteredProducts(index).length > 0
+                        "
+                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+                      >
+                        <div
+                          v-for="product in filteredProducts(index)"
+                          :key="product.id"
+                          @mousedown="selectProduct(index, product)"
+                          class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        >
+                          {{ product.title }} - Rp{{
+                            formatPrice(product.price)
+                          }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Quantity and Price Row -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label class="pb-2">Qty</Label>
+                      <Input
+                        v-model="product.quantity"
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        @input="calculateSubtotal(index)"
+                      />
+                    </div>
+                    <div>
+                      <Label class="pb-2">Price</Label>
+                      <Input
+                        v-model="product.unitPrice"
+                        type="number"
+                        readonly
+                        class="bg-gray-100"
+                      />
+                    </div>
+                  </div>
+                  <!-- Subtotal and Actions Row -->
+                  <div
+                    class="flex items-center justify-between bg-gray-50 p-3 rounded-md"
+                  >
+                    <div class="text-sm font-medium">
+                      Subtotal:
+                      <span class="text-lg font-bold text-green-600"
+                        >Rp{{ formatPrice(product.subtotal) }}</span
+                      >
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      @click="removeProduct(index)"
+                    >
+                      <TrashIcon class="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
         <!-- Order Summary Card -->
         <Card class="p-6">
           <CardHeader class="px-0 pt-0">
@@ -239,7 +313,6 @@
                   required
                 />
               </div>
-
               <!-- Notes -->
               <div>
                 <Label class="pb-2" for="notes">Order Notes (Optional)</Label>
@@ -250,7 +323,6 @@
                   rows="2"
                 />
               </div>
-
               <!-- Total Calculation -->
               <div class="border-t pt-4">
                 <div class="space-y-2">
@@ -273,7 +345,6 @@
                   </div>
                 </div>
               </div>
-
               <!-- Shipping Cost -->
               <div>
                 <Label class="pb-2" for="shippingCost"
@@ -291,7 +362,6 @@
             </div>
           </CardContent>
         </Card>
-
         <!-- Action Buttons -->
         <div class="flex justify-end space-x-4 pb-4">
           <Button type="button" variant="outline" @click="handleCancel">
@@ -335,7 +405,6 @@
           </Button>
         </div>
       </form>
-
       <!-- Alert -->
       <Alert
         v-if="message"
@@ -351,7 +420,6 @@
         }}</AlertTitle>
         <AlertDescription>{{ message }}</AlertDescription>
       </Alert>
-
       <!-- Preview -->
       <Card v-if="showPreview" class="my-4 p-6">
         <CardHeader>
@@ -365,10 +433,12 @@
                 <strong>Customer:</strong>
                 {{ customerInput }}
               </div>
-              <div><strong>Order Date:</strong> {{ form.orderDate }}</div>
+              <div>
+                <strong>Deadline:</strong>
+                {{ formatDateTime(form.deadlineDate) }}
+              </div>
               <div><strong>Status:</strong> {{ form.status }}</div>
             </div>
-
             <div>
               <strong>Products:</strong>
               <div class="mt-2 space-y-2">
@@ -386,7 +456,6 @@
                 </div>
               </div>
             </div>
-
             <div>
               <strong>Shipping Address:</strong> {{ form.shippingAddress }}
             </div>
@@ -404,7 +473,6 @@
         </CardContent>
       </Card>
     </div>
-
     <!-- Success Modal -->
     <Dialog v-model:open="showSuccessModal">
       <DialogContent>
@@ -437,7 +505,6 @@
         </div>
       </DialogContent>
     </Dialog>
-
     <!-- Error Toast -->
     <div
       v-if="errorMessage"
@@ -480,6 +547,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PlusIcon, TrashIcon, PackageIcon, CheckCircle } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+import { useNuxtApp } from "#app";
+import { navigateTo } from "#app";
 
 // Firebase imports
 import {
@@ -496,20 +565,20 @@ import {
 
 const { $firebase } = useNuxtApp();
 
+// Helper function to get default deadline (24 hours from now)
+const getDefaultDeadline = () => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().slice(0, 16); // Format for datetime-local input
+};
+
 // State
 const form = reactive({
   orderId: "",
   customerName: "",
   customerEmail: "",
-  orderDate: Timestamp.fromDate(new Date())
-    .toDate()
-    .toISOString()
-    .split("T")[0], // Format to YYYY-MM-DD
+  deadlineDate: getDefaultDeadline(), // Use datetime-local format
   status: "pending",
-  // Timestamp for deadline
-  deadline: serverTimestamp(), // Atau gunakan default date setelah reactive,
-  // orderTime
-  orderTime: serverTimestamp(),
   products: [],
   shippingAddress: "",
   notes: "",
@@ -523,7 +592,6 @@ const showCustomerDropdown = ref(false);
 const showProductDropdown = ref([]);
 const customers = ref([]);
 const products = ref({});
-const date = ref({ Timestamp: new Date() });
 const isLoading = ref(false);
 const message = ref("");
 const messageType = ref("");
@@ -540,12 +608,10 @@ const loadProducts = async () => {
     const querySnapshot = await getDocs(productsRef);
     products.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
-      title: doc.data().title, // Use 'title' as the product name
+      title: doc.data().title,
       price: doc.data().price,
     }));
     console.log("Products loaded:", products.value);
-
-    // If no products found, use default products
     if (Object.keys(products.value).length === 0) {
       products.value = {
         PRD_000: { title: "No Product", price: 0 },
@@ -553,7 +619,6 @@ const loadProducts = async () => {
     }
   } catch (error) {
     console.error("Error loading products:", error);
-    // Fallback to default products if needed
     products.value = {
       PRD_000: { title: "No Product", price: 0 },
     };
@@ -568,17 +633,16 @@ const hideProductDropdown = (index) => {
 
 const selectProduct = (index, product) => {
   form.products[index].productId = product.id;
-  form.products[index].productName = product.title; // Directly set productName
+  form.products[index].productName = product.title;
   form.products[index].unitPrice = product.price;
   form.products[index].subtotal = form.products[index].quantity * product.price;
-  productInputs.value[index] = product.title; // Update input value
+  productInputs.value[index] = product.title;
   showProductDropdown.value[index] = false;
 };
 
 // Computed properties
 const filteredCustomers = computed(() => {
   if (!customerInput.value) return customers.value;
-
   return customers.value.filter(
     (customer) =>
       customer.name.toLowerCase().includes(customerInput.value.toLowerCase()) ||
@@ -591,14 +655,11 @@ const loadCustomers = async () => {
   try {
     const customersRef = collection($firebase.firestore, "customers");
     const querySnapshot = await getDocs(customersRef);
-
     customers.value = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       name: doc.data().fullName,
       email: doc.data().email,
     }));
-
-    // Add default customers if none exist
     if (customers.value.length === 0) {
       customers.value = [
         {
@@ -618,7 +679,6 @@ const loadCustomers = async () => {
     }
   } catch (error) {
     console.error("Error loading customers:", error);
-    // Fallback to default customers
     customers.value = [
       {
         id: "cust-001",
@@ -639,26 +699,22 @@ const loadCustomers = async () => {
 
 const generateOrderId = async () => {
   try {
-    const today = new Date(form.orderDate);
+    const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    // Konversi ke Timestamp
     const startDate = Timestamp.fromDate(startOfDay);
     const endDate = Timestamp.fromDate(endOfDay);
 
-    // Query orders di hari ini
     const ordersRef = collection($firebase.firestore, "orders");
     const q = query(
       ordersRef,
-      where("orderDate", ">=", startDate),
-      where("orderDate", "<=", endDate)
+      where("createdAt", ">=", startDate),
+      where("createdAt", "<=", endDate)
     );
-
     const querySnapshot = await getDocs(q);
     let orderCount = querySnapshot.size + 1;
 
-    // Pastikan ID unik jika ada duplikasi
     const existingOrderIds = querySnapshot.docs.map(
       (doc) => doc.data().orderId
     );
@@ -667,7 +723,6 @@ const generateOrderId = async () => {
     ) {
       orderCount++;
     }
-
     form.orderId = `ORD-${orderCount.toString().padStart(3, "0")}`;
   } catch (error) {
     console.error("Error generating order ID:", error);
@@ -677,11 +732,21 @@ const generateOrderId = async () => {
 };
 
 const handleCustomerInput = () => {
+  // ✅ PERBAIKAN: Cek apakah input customer cocok dengan customer yang ada
+  const exactMatch = customers.value.find(
+    (customer) =>
+      customer.name.toLowerCase() === customerInput.value.toLowerCase()
+  );
+
+  if (!exactMatch) {
+    // Jika tidak ada yang cocok persis, kosongkan email
+    form.customerEmail = "";
+    form.customerName = customerInput.value;
+  }
   showCustomerDropdown.value = true;
 };
 
 const handleCustomerBlur = () => {
-  // Delay hiding dropdown to allow click on items
   setTimeout(() => {
     showCustomerDropdown.value = false;
   }, 200);
@@ -698,13 +763,11 @@ const addProduct = () => {
   form.products.push({
     productId: "",
     quantity: 1,
-    // Add Complexity with scale 1-10
-    complexity: 0,
     unitPrice: 0,
     subtotal: 0,
   });
-  productInputs.value.push(""); // input pencarian produk per item
-  showProductDropdown.value.push(false); // kontrol dropdown per item
+  productInputs.value.push("");
+  showProductDropdown.value.push(false);
 };
 
 const filteredProducts = (index) => {
@@ -718,14 +781,6 @@ const filteredProducts = (index) => {
 
 const removeProduct = (index) => {
   form.products.splice(index, 1);
-};
-
-const updateProductPrice = (index) => {
-  const product = form.products[index];
-  if (product.productId && productData[product.productId]) {
-    product.unitPrice = productData[product.productId].price;
-    calculateSubtotal(index);
-  }
 };
 
 const calculateSubtotal = (index) => {
@@ -758,6 +813,11 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat("id-ID").format(price);
 };
 
+const formatDateTime = (dateTimeString) => {
+  if (!dateTimeString) return "";
+  return new Date(dateTimeString).toLocaleString("id-ID");
+};
+
 const showMessage = (msg, type) => {
   message.value = msg;
   messageType.value = type;
@@ -771,7 +831,7 @@ const validateForm = () => {
   if (
     !form.orderId ||
     !customerInput.value ||
-    !form.orderDate ||
+    !form.deadlineDate ||
     !form.status ||
     !form.shippingAddress
   ) {
@@ -806,20 +866,21 @@ const validateForm = () => {
 const handleSubmit = async () => {
   if (!validateForm()) return;
   isLoading.value = true;
-
   try {
+    // Convert deadline string to Timestamp
+    const deadlineTimestamp = Timestamp.fromDate(new Date(form.deadlineDate));
+
     // Prepare order data
     const orderData = {
       orderId: form.orderId,
       customerName: customerInput.value,
       customerEmail: form.customerEmail || "",
-      orderDate: serverTimestamp(),
-      deadline: form.deadline,
-      orderTime: serverTimestamp(),
+      deadline: deadlineTimestamp, // ✅ Proper deadline timestamp
+      orderTime: serverTimestamp(), // ✅ When order was created (for FIFO)
       status: form.status,
       products: form.products.map((product) => ({
         productId: product.productId,
-        productName: getProductName(product.productId), // Use getProductName
+        productName: getProductName(product.productId),
         quantity: Number(product.quantity),
         unitPrice: Number(product.unitPrice),
         subtotal: Number(product.subtotal),
@@ -830,7 +891,7 @@ const handleSubmit = async () => {
       subtotal: calculateTotal(),
       tax: calculateTax(),
       grandTotal: calculateGrandTotal(),
-      createdAt: serverTimestamp(),
+      createdAt: serverTimestamp(), // ✅ Document creation time
     };
 
     // Save to Firestore
@@ -856,12 +917,11 @@ const handleSubmit = async () => {
 
 const handleCancel = () => {
   if (confirm("Are you sure you want to cancel? All data will be lost.")) {
-    // Reset form
     Object.assign(form, {
       orderId: "",
       customerName: "",
       customerEmail: "",
-      orderDate: new Date().toISOString().split("T")[0],
+      deadlineDate: getDefaultDeadline(),
       status: "pending",
       products: [],
       shippingAddress: "",
@@ -870,8 +930,6 @@ const handleCancel = () => {
     });
     customerInput.value = "";
     showPreview.value = false;
-
-    // Generate new order ID
     generateOrderId();
   }
 };
@@ -879,12 +937,11 @@ const handleCancel = () => {
 // Modal action methods
 const createAnother = () => {
   showSuccessModal.value = false;
-  // Reset form for new order
   Object.assign(form, {
     orderId: "",
     customerName: "",
     customerEmail: "",
-    orderDate: new Date().toISOString().split("T")[0],
+    deadlineDate: getDefaultDeadline(),
     status: "pending",
     products: [],
     shippingAddress: "",
@@ -898,14 +955,13 @@ const createAnother = () => {
 
 const viewOrder = () => {
   showSuccessModal.value = false;
-  // Navigate to order detail page
   navigateTo(`/orders/${form.orderId}`);
 };
 
 // Initialize component
 onMounted(async () => {
   await loadCustomers();
-  await loadProducts(); // Load Products sebelum proses
+  await loadProducts();
   await generateOrderId();
 });
 </script>
