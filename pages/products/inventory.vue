@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto px-4 space-y-6">
+  <div class="container mx-auto space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent
@@ -342,6 +342,37 @@
           </div>
         </div>
       </div>
+    </div><!-- Low Stock Alerts -->
+    <div v-if="activeTab === 'alerts'" class="space-y-4">
+      <div v-if="lowStockItems.length === 0" class="text-center py-8 text-muted-foreground">
+        <AlertTriangle class="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+        <p>No low stock alerts at the moment</p>
+      </div>
+      <div
+        v-for="alert in lowStockItems"
+        :key="alert.id"
+        class="border rounded-lg p-4"
+      >
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <AlertTriangle class="h-5 w-5 text-orange-500" />
+            <div>
+              <h3 class="font-medium">{{ alert.productName }}</h3>
+              <p class="text-sm text-muted-foreground">SKU: {{ alert.sku }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-right">
+              <p class="text-sm font-medium">Current: {{ alert.currentStock }}</p>
+              <p class="text-sm text-muted-foreground">Min: {{ alert.minLevel }}</p>
+            </div>
+            <Button size="sm" @click="reorderProduct(alert.id)">
+              <ShoppingCart class="h-4 w-4 mr-1" />
+              Reorder
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Analytics -->
@@ -421,88 +452,100 @@
     </div>
 
     <!-- Stock Adjustment Modal -->
-    <div v-if="showAdjustmentModal" class="fixed inset-0 bg-slate-900/70 bg-opacity-50 flex items-center justify-center z-50">
-      <Card class="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Stock Adjustment</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="relative">
-  <Label class="pb-1">Product</Label>
-  <Input
-    v-model="adjustmentSearchInput"
-    type="text"
-    placeholder="Search product name"
-    @input="showAdjustmentDropdown = true"
-    @focus="showAdjustmentDropdown = true"
-    @blur="hideAdjustmentDropdown"
-  />
+<div v-if="showAdjustmentModal" class="fixed inset-0 bg-slate-900/70 bg-opacity-50 flex items-center justify-center z-50">
+  <Card class="w-full max-w-md">
+    <CardHeader>
+      <CardTitle>Stock Adjustment</CardTitle>
+    </CardHeader>
+    <CardContent class="space-y-4">
+      <div class="relative">
+        <Label class="pb-1">Product</Label>
+        <Input
+          v-model="adjustmentSearchInput"
+          type="text"
+          placeholder="Search product name"
+          @input="showAdjustmentDropdown = true"
+          @focus="showAdjustmentDropdown = true"
+          @blur="hideAdjustmentDropdown"
+        />
+        <!-- Dropdown List -->
+        <div
+          v-if="showAdjustmentDropdown && filteredAdjustmentProducts.length > 0"
+          class="absolute z-20 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+        >
+          <div
+            v-for="item in filteredAdjustmentProducts"
+            :key="item.id"
+            @mousedown.prevent="selectAdjustmentProduct(item)"
+            class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+          >
+            {{ item.productName }}
+          </div>
+        </div>
+      </div>
+                
+      <div>
+        <Label class="mb-2">Adjustment Type</Label>
+        <Select v-model="adjustmentForm.type">
+          <SelectTrigger>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="increase">Increase Stock</SelectItem>
+            <SelectItem value="decrease">Decrease Stock</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+                
+      <div>
+        <Label class="mb-2">Quantity</Label>
+        <Input v-model="adjustmentForm.quantity" type="number" placeholder="Enter quantity" />
+      </div>
 
-  <!-- Dropdown List -->
-  <div
-    v-if="showAdjustmentDropdown && filteredAdjustmentProducts.length > 0"
-    class="absolute z-20 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
-  >
-    <div
-      v-for="item in filteredAdjustmentProducts"
-      :key="item.id"
-      @mousedown.prevent="selectAdjustmentProduct(item)"
-      class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-    >
-      {{ item.productName }}
-    </div>
-  </div>
+      <!-- Field Min Level yang baru ditambahkan -->
+      <div>
+        <Label class="mb-2">Min Level</Label>
+        <Input 
+          v-model="adjustmentForm.minLevel" 
+          type="number" 
+          placeholder="Enter minimum stock level" 
+          min="0"
+        />
+        <p class="text-xs text-muted-foreground mt-1">
+          Stock will be marked as "Low Stock" when below this level
+        </p>
+      </div>
+                
+      <div>
+        <Label class="mb-2">Reason</Label>
+        <Select v-model="adjustmentForm.reason">
+          <SelectTrigger>
+            <SelectValue placeholder="Select reason" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="purchase">Purchase</SelectItem>
+            <SelectItem value="return">Return</SelectItem>
+            <SelectItem value="damaged">Damaged</SelectItem>
+            <SelectItem value="theft">Theft</SelectItem>
+            <SelectItem value="correction">Correction</SelectItem>
+            <SelectItem value="other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+                
+      <div>
+        <Label class="mb-2">Notes</Label>
+        <Textarea v-model="adjustmentForm.notes" placeholder="Additional notes..." />
+      </div>
+    </CardContent>
+    <CardHeader>
+      <div class="flex justify-end gap-2">
+        <Button variant="outline" @click="closeAdjustmentModal">Cancel</Button>
+        <Button @click="submitAdjustment">Submit</Button>
+      </div>
+    </CardHeader>
+  </Card>
 </div>
-          
-          <div>
-            <Label>Adjustment Type</Label>
-            <Select v-model="adjustmentForm.type">
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="increase">Increase Stock</SelectItem>
-                <SelectItem value="decrease">Decrease Stock</SelectItem>
-                <SelectItem value="set">Set Stock Level</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label>Quantity</Label>
-            <Input v-model="adjustmentForm.quantity" type="number" placeholder="Enter quantity" />
-          </div>
-          
-          <div>
-            <Label>Reason</Label>
-            <Select v-model="adjustmentForm.reason">
-              <SelectTrigger>
-                <SelectValue placeholder="Select reason" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="purchase">Purchase</SelectItem>
-                <SelectItem value="return">Return</SelectItem>
-                <SelectItem value="damaged">Damaged</SelectItem>
-                <SelectItem value="theft">Theft</SelectItem>
-                <SelectItem value="correction">Correction</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Label>Notes</Label>
-            <Textarea v-model="adjustmentForm.notes" placeholder="Additional notes..." />
-          </div>
-        </CardContent>
-        <CardHeader>
-          <div class="flex justify-end gap-2">
-            <Button variant="outline" @click="closeAdjustmentModal">Cancel</Button>
-            <Button @click="submitAdjustment">Submit</Button>
-          </div>
-        </CardHeader>
-      </Card>
-    </div>
   </div>
 </template>
 
@@ -714,6 +757,17 @@ const refreshStockMovements = () => {
   fetchStockMovements()
 }
 
+// Fungsi helper untuk menentukan status berdasarkan stock dan minLevel
+const determineStockStatus = (currentStock, minLevel) => {
+  if (currentStock === 0) {
+    return 'out'
+  } else if (currentStock <= minLevel) {
+    return 'low'
+  } else {
+    return 'normal'
+  }
+}
+
 const adjustmentSearchInput = ref('')
 const showAdjustmentDropdown = ref(false)
 const filteredAdjustmentProducts = computed(() => {
@@ -725,6 +779,7 @@ const filteredAdjustmentProducts = computed(() => {
 
 const selectAdjustmentProduct = (item) => {
   adjustmentForm.value.productId = item.id
+  adjustmentForm.value.minLevel = item.minLevel || 0
   adjustmentSearchInput.value = `${item.productName}`
   showAdjustmentDropdown.value = false
 }
@@ -758,6 +813,7 @@ const adjustmentForm = ref({
   productId: '',
   type: '',
   quantity: 0,
+  minLevel: 0,
   reason: '',
   notes: ''
 })
@@ -878,6 +934,7 @@ const closeAdjustmentModal = () => {
     productId: '',
     type: '',
     quantity: 0,
+    minLevel: 0,
     reason: '',
     notes: ''
   }
@@ -886,16 +943,21 @@ const closeAdjustmentModal = () => {
 
 const submitAdjustment = async () => {
   try {
-    const { productId, type, quantity, reason, notes } = adjustmentForm.value
-    
+    const { productId, type, quantity, minLevel, reason, notes } = adjustmentForm.value
+        
     console.log('=== SUBMIT ADJUSTMENT DEBUG ===')
     console.log('Form productId:', productId)
-    console.log('typeof productId:', typeof productId)
-    console.log('productId length:', productId?.length)
-    
+    console.log('Form minLevel:', minLevel)
+        
     // Validate form data
     if (!productId || !type || !quantity) {
       alert('Please fill in all required fields!')
+      return
+    }
+
+    // Validate minLevel
+    if (minLevel < 0) {
+      alert('Min Level cannot be negative!')
       return
     }
 
@@ -903,10 +965,6 @@ const submitAdjustment = async () => {
     const currentProduct = allInventory.value.find(item => item.id === productId)
     if (!currentProduct) {
       console.error('Product not found with id:', productId)
-      console.error('Available products:')
-      allInventory.value.forEach(item => {
-        console.error(`- ${item.productName}: id=${item.id}`)
-      })
       alert('Product not found in local data!')
       return
     }
@@ -941,24 +999,26 @@ const submitAdjustment = async () => {
           
           // Calculate new stock
           let newStock = currentProduct.currentStock
+          let actualQuantity = 0
+
           if (type === 'increase') {
             newStock += parseInt(quantity)
+            actualQuantity = parseInt(quantity)
           } else if (type === 'decrease') {
             newStock = Math.max(0, newStock - parseInt(quantity))
+            actualQuantity = -parseInt(quantity)
           } else if (type === 'set') {
+            actualQuantity = parseInt(quantity) - currentProduct.currentStock
             newStock = parseInt(quantity)
           }
 
-          // Determine new status
-          let newStatus = 'normal'
-          if (newStock === 0) {
-            newStatus = 'out'
-          } else if (newStock <= currentProduct.minLevel) {
-            newStatus = 'low'
-          }
+          // Determine new status berdasarkan newStock dan minLevel yang baru
+          const newStatus = determineStockStatus(newStock, parseInt(minLevel))
 
+          // Update product dengan stock, minLevel, dan status baru
           await updateDoc(correctProductRef, {
             stock: newStock,
+            minLevel: parseInt(minLevel),
             statusInventory: newStatus,
             updatedAt: serverTimestamp()
           })
@@ -969,11 +1029,13 @@ const submitAdjustment = async () => {
             productName: currentProduct.productName,
             type: 'adjustment',
             adjustmentType: type,
-            quantity: type === 'increase' ? parseInt(quantity) : type === 'decrease' ? -parseInt(quantity) : parseInt(quantity) - currentProduct.currentStock,
+            quantity: actualQuantity,
             previousStock: currentProduct.currentStock,
             newStock: newStock,
+            minLevel: parseInt(minLevel),
             reason: reason,
             notes: notes,
+            reference: `ADJ-${Date.now().toString().slice(-6)}`,
             createdAt: serverTimestamp(),
             createdBy: 'admin'
           })
@@ -1000,21 +1062,21 @@ const submitAdjustment = async () => {
 
     // Calculate new stock based on adjustment type
     let newStock = currentProduct.currentStock
+    let actualQuantity = 0
+
     if (type === 'increase') {
       newStock += parseInt(quantity)
+      actualQuantity = parseInt(quantity)
     } else if (type === 'decrease') {
       newStock = Math.max(0, newStock - parseInt(quantity))
+      actualQuantity = -parseInt(quantity)
     } else if (type === 'set') {
+      actualQuantity = parseInt(quantity) - currentProduct.currentStock
       newStock = parseInt(quantity)
     }
 
-    // Determine new status based on stock levels
-    let newStatus = 'normal'
-    if (newStock === 0) {
-      newStatus = 'out'
-    } else if (newStock <= currentProduct.minLevel) {
-      newStatus = 'low'
-    }
+    // Determine new status berdasarkan newStock dan minLevel yang baru
+    const newStatus = determineStockStatus(newStock, parseInt(minLevel))
 
     console.log('About to update document with ID:', productId)
     console.log('Stock calculation:', {
@@ -1022,12 +1084,14 @@ const submitAdjustment = async () => {
       adjustment: quantity,
       type: type,
       newStock: newStock,
+      newMinLevel: minLevel,
       newStatus: newStatus
     })
 
-    // Update product stock in Firestore
+    // Update product stock, minLevel, dan status di Firestore
     await updateDoc(productRef, {
       stock: newStock,
+      minLevel: parseInt(minLevel),
       statusInventory: newStatus,
       updatedAt: serverTimestamp()
     })
@@ -1038,46 +1102,55 @@ const submitAdjustment = async () => {
       productName: currentProduct.productName,
       type: 'adjustment',
       adjustmentType: type,
-      quantity: type === 'increase' ? parseInt(quantity) : type === 'decrease' ? -parseInt(quantity) : parseInt(quantity) - currentProduct.currentStock,
+      quantity: actualQuantity,
       previousStock: currentProduct.currentStock,
       newStock: newStock,
+      minLevel: parseInt(minLevel),
       reason: reason,
       notes: notes,
+      reference: `ADJ-${Date.now().toString().slice(-6)}`,
       createdAt: serverTimestamp(),
       createdBy: 'admin'
     })
 
     console.log('Stock adjustment completed successfully')
-    alert(`Stock ${type}d successfully! New stock: ${newStock}`)
+    alert(`Stock ${type}d successfully! New stock: ${newStock}, Status: ${newStatus}`)
     closeAdjustmentModal()
-    
+      
   } catch (error) {
     console.error('Error updating stock:', error)
-    console.error('Error details:', {
-      code: error.code,
-      message: error.message,
-      productId: adjustmentForm.value.productId
-    })
     alert(`Error updating stock: ${error.message}`)
   }
 }
 
+// Modifikasi adjustStock untuk mengisi minLevel saat edit
 const adjustStock = (itemId) => {
   const product = allInventory.value.find(item => item.id === itemId)
   if (product) {
     adjustmentForm.value.productId = itemId
+    adjustmentForm.value.minLevel = product.minLevel || 0 // Isi minLevel dari data produk
     adjustmentSearchInput.value = product.productName
     showAdjustmentModal.value = true
   }
 }
 const viewHistory = (itemId) => {
-  console.log('View history for item:', itemId)
+  // Filter history by product and switch to history tab
+  historyFilter.value = 'all'
+  activeTab.value = 'history'
+  
+  // You can add additional filtering by product here
+  setTimeout(() => {
+    filterStockMovements()
+  }, 100)
 }
 const reorderProduct = (itemId) => {
   console.log('Reorder product:', itemId)
+  
 }
+
 const exportInventory = () => {
   console.log('Export inventory data')
+  
 }
 
 onMounted(() => {
