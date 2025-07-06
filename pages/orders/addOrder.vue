@@ -135,12 +135,12 @@
                 :key="index"
                 class="border rounded-lg p-4 bg-gray-50"
               >
-                <div class="grid grid-cols-12 gap-4 items-end">
-                  <!-- Product Selection - lebih lebar -->
+                <!-- Desktop Layout (md and up) -->
+                <div class="hidden md:grid md:grid-cols-12 gap-4 items-end">
                   <!-- Product Selection -->
-                  <div class="col-span-12 md:col-span-5">
+                  <div class="col-span-4">
                     <Label class="pb-2">Product</Label>
-                    <div class="relative">
+                    <div class="w-full relative">
                       <Input
                         v-model="productInputs[index]"
                         type="text"
@@ -151,12 +151,11 @@
                         required
                         class="w-full"
                       />
-
                       <!-- Dropdown List -->
                       <div
                         v-if="
                           showProductDropdown[index] &&
-                          filteredProducts.length > 0
+                          filteredProducts(index).length > 0
                         "
                         class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
                       >
@@ -166,15 +165,16 @@
                           @mousedown="selectProduct(index, product)"
                           class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
                         >
-                          {{ product.name }} - Rp
-                          {{ formatPrice(product.price) }}
+                          {{ product.title }} - Rp{{
+                            formatPrice(product.price)
+                          }}
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Quantity - lebih kecil -->
-                  <div class="col-span-6 md:col-span-2">
+                  <!-- Quantity -->
+                  <div class="col-span-2">
                     <Label class="pb-2">Qty</Label>
                     <Input
                       v-model="product.quantity"
@@ -185,8 +185,8 @@
                     />
                   </div>
 
-                  <!-- Unit Price - sedang -->
-                  <div class="col-span-6 md:col-span-2">
+                  <!-- Unit Price -->
+                  <div class="col-span-2">
                     <Label class="pb-2">Price</Label>
                     <Input
                       v-model="product.unitPrice"
@@ -196,22 +196,108 @@
                     />
                   </div>
 
-                  <!-- Subtotal & Actions - lebih kompak -->
-                  <div class="col-span-12 md:col-span-3">
-                    <div class="flex items-center justify-between">
-                      <div class="text-sm font-medium truncate mr-2">
-                        Subtotal: Rp {{ formatPrice(product.subtotal || 0) }}
-                      </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        @click="removeProduct(index)"
-                        class="flex-shrink-0"
-                      >
-                        <TrashIcon class="h-4 w-4" />
-                      </Button>
+                  <!-- Subtotal -->
+                  <div class="col-span-2">
+                    <Label class="pb-2">Subtotal</Label>
+                    <div
+                      class="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium"
+                    >
+                      Rp{{ formatPrice(product.subtotal) }}
                     </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div class="col-span-2">
+                    <Button
+                      variant="destructive"
+                      @click="removeProduct(index)"
+                      class="w-full"
+                    >
+                      <TrashIcon class="h-4 w-4 mr-2" />
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+
+                <!-- Mobile Layout (sm and below) -->
+                <div class="md:hidden space-y-4">
+                  <!-- Product Selection -->
+                  <div>
+                    <Label class="pb-2">Product</Label>
+                    <div class="w-full relative">
+                      <Input
+                        v-model="productInputs[index]"
+                        type="text"
+                        placeholder="Type product name"
+                        @input="showProductDropdown[index] = true"
+                        @focus="showProductDropdown[index] = true"
+                        @blur="hideProductDropdown(index)"
+                        required
+                        class="w-full"
+                      />
+                      <!-- Dropdown List -->
+                      <div
+                        v-if="
+                          showProductDropdown[index] &&
+                          filteredProducts(index).length > 0
+                        "
+                        class="absolute z-10 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto mt-1"
+                      >
+                        <div
+                          v-for="product in filteredProducts(index)"
+                          :key="product.id"
+                          @mousedown="selectProduct(index, product)"
+                          class="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                        >
+                          {{ product.title }} - Rp{{
+                            formatPrice(product.price)
+                          }}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Quantity and Price Row -->
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label class="pb-2">Qty</Label>
+                      <Input
+                        v-model="product.quantity"
+                        type="number"
+                        min="1"
+                        placeholder="1"
+                        @input="calculateSubtotal(index)"
+                      />
+                    </div>
+                    <div>
+                      <Label class="pb-2">Price</Label>
+                      <Input
+                        v-model="product.unitPrice"
+                        type="number"
+                        readonly
+                        class="bg-gray-100"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Subtotal and Actions Row -->
+                  <div
+                    class="flex items-center justify-between bg-gray-50 p-3 rounded-md"
+                  >
+                    <div class="text-sm font-medium">
+                      Subtotal:
+                      <span class="text-lg font-bold text-green-600"
+                        >Rp{{ formatPrice(product.subtotal) }}</span
+                      >
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      @click="removeProduct(index)"
+                    >
+                      <TrashIcon class="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
                   </div>
                 </div>
               </div>

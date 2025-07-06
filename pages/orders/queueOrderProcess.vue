@@ -578,6 +578,7 @@ const loadQueueOrders = async () => {
         customerEmail: data.customerEmail,
         products: data.products || [],
         deadline: deadline,
+        grandTotal: data.grandTotal || 0,
         orderTime: data.orderTime?.toDate() || new Date(data.orderTime),
         status: data.status,
         priorityScore: 0,
