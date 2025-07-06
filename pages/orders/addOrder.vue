@@ -77,7 +77,6 @@
                   type="date"
                   @change="generateOrderId"
                   required
-                  disabled
                 />
               </div>
 
@@ -639,39 +638,38 @@ const loadCustomers = async () => {
 
 const generateOrderId = async () => {
   try {
-    const orderDate = new Date(form.orderDate);
-    const dateStr = orderDate.toISOString().split("T")[0]; // YYYY-MM-DD format
+    const today = new Date(form.orderDate);
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
 
-    // Query orders for the same date - menggunakan query yang lebih sederhana
+    // Konversi ke Timestamp
+    const startDate = Timestamp.fromDate(startOfDay);
+    const endDate = Timestamp.fromDate(endOfDay);
+
+    // Query orders di hari ini
     const ordersRef = collection($firebase.firestore, "orders");
-    const q = query(ordersRef, where("orderDate", "==", dateStr));
+    const q = query(
+      ordersRef,
+      where("orderDate", ">=", startDate),
+      where("orderDate", "<=", endDate)
+    );
 
     const querySnapshot = await getDocs(q);
-
-    // Hitung jumlah order hari ini dan tambah 1
     let orderCount = querySnapshot.size + 1;
 
-    // Jika ada order, cek apakah ada duplikasi ID
-    if (querySnapshot.size > 0) {
-      const existingOrderIds = querySnapshot.docs.map(
-        (doc) => doc.data().orderId
-      );
-
-      // Loop sampai dapat ID yang unique
-      while (
-        existingOrderIds.includes(
-          `ORD-${orderCount.toString().padStart(3, "0")}`
-        )
-      ) {
-        orderCount++;
-      }
+    // Pastikan ID unik jika ada duplikasi
+    const existingOrderIds = querySnapshot.docs.map(
+      (doc) => doc.data().orderId
+    );
+    while (
+      existingOrderIds.includes(`ORD-${orderCount.toString().padStart(3, "0")}`)
+    ) {
+      orderCount++;
     }
 
-    // Format: ORD-001, ORD-002, etc.
     form.orderId = `ORD-${orderCount.toString().padStart(3, "0")}`;
   } catch (error) {
     console.error("Error generating order ID:", error);
-    // Fallback yang lebih baik - gunakan timestamp tapi tetap format yang benar
     const fallbackId = Math.floor(Math.random() * 999) + 1;
     form.orderId = `ORD-${fallbackId.toString().padStart(3, "0")}`;
   }
@@ -814,7 +812,7 @@ const handleSubmit = async () => {
       orderId: form.orderId,
       customerName: customerInput.value,
       customerEmail: form.customerEmail || "",
-      orderDate: Timestamp.fromDate(new Date(form.orderDate)), // Convert to Firestore Timestamp
+      orderDate: serverTimestamp(),
       deadline: form.deadline,
       orderTime: form.orderTime,
       status: form.status,

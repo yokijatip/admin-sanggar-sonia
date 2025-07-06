@@ -446,11 +446,6 @@ const fetchProducts = async () => {
 
     allProducts.value = products;
     filterProducts();
-
-    toast({
-      title: "Success",
-      description: `Loaded ${products.length} products`,
-    });
   } catch (error) {
     console.error("Error fetching products:", error);
   } finally {
@@ -460,7 +455,7 @@ const fetchProducts = async () => {
 
 // Get product status
 const getProductStatus = (product) => {
-  return product.stock === 0 ? "out_of_stock" : product.status;
+  return product.stock === 0 ? "out_of_stock" : product.statusProduct;
 };
 
 // Filter products
@@ -558,7 +553,6 @@ const deleteProduct = async () => {
     await deleteDoc(
       doc($firebase.firestore, "products", productToDelete.value.id)
     );
-    
 
     // Remove from local state
     allProducts.value = allProducts.value.filter(
