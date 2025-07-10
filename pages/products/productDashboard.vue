@@ -249,7 +249,7 @@
                   v-model="searchQuery"
                 />
               </div>
-              <Select>
+              <Select v-model="selectedAlertFilter">
                 <SelectTrigger class="w-48">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
@@ -310,7 +310,7 @@
                           size="sm" 
                           variant="outline" 
                           class="gap-1"
-                          @click="restockProduct(alert)"
+                          @click="openRestockModal(alert)"
                         >
                           <History class="h-3 w-3" />
                           Restock
@@ -319,7 +319,7 @@
                           size="sm" 
                           variant="ghost" 
                           class="gap-1"
-                          @click="editProduct(alert)"
+                          @click="openEditModal(alert)"
                         >
                           <Edit class="h-3 w-3" />
                           Edit
@@ -357,6 +357,175 @@
         </CardContent>
       </Card>
     </div>
+    <!-- Restock Modal -->
+    <AlertDialog v-model:open="restockModalOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Restock Product</AlertDialogTitle>
+          <AlertDialogDescription>
+            Add stock to {{ selectedProduct?.title }}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div v-if="selectedProduct" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="text-sm font-medium">Product</Label>
+              <p class="text-sm text-muted-foreground">{{ selectedProduct.title }}</p>
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Current Stock</Label>
+              <p class="text-sm text-muted-foreground font-semibold">{{ selectedProduct.stock }} units</p>
+            </div>
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Add Quantity *</Label>
+            <Input 
+              v-model="restockForm.quantity" 
+              type="number"
+              placeholder="Enter quantity to add"
+              min="1"
+              :disabled="restockLoading"
+            />
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Reason</Label>
+            <Textarea 
+              v-model="restockForm.reason" 
+              placeholder="Enter reason for restocking (optional)"
+              rows="2"
+              :disabled="restockLoading"
+            />
+          </div>
+          <div class="p-3 bg-muted rounded-lg">
+            <p class="text-sm">
+              <span class="font-medium">New Stock:</span> 
+              {{ selectedProduct.stock + (parseInt(restockForm.quantity) || 0) }} units
+            </p>
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="closeRestockModal" :disabled="restockLoading">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            @click="handleRestock" 
+            :disabled="restockLoading || !restockForm.quantity || restockForm.quantity <= 0"
+          >
+            <Loader2 v-if="restockLoading" class="h-4 w-4 mr-2 animate-spin" />
+            Restock
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Edit Modal -->
+    <AlertDialog v-model:open="editModalOpen">
+      <AlertDialogContent class="max-w-2xl">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Edit Product</AlertDialogTitle>
+          <AlertDialogDescription>
+            Update product information
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div v-if="selectedProduct" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="text-sm font-medium">Product ID</Label>
+              <Input 
+                :value="selectedProduct.id" 
+                disabled 
+                class="bg-muted"
+              />
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Title *</Label>
+              <Input 
+                v-model="editForm.title" 
+                placeholder="Enter product title"
+                :disabled="editLoading"
+              />
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Category *</Label>
+              <Select v-model="editForm.category" :disabled="editLoading">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem 
+                    v-for="category in categories"
+                    :key="category.id"
+                    :value="category.id"
+                  >
+                    {{ category.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Price *</Label>
+              <Input 
+                v-model="editForm.price" 
+                type="number"
+                placeholder="Enter price"
+                :disabled="editLoading"
+              />
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Stock *</Label>
+              <Input 
+                v-model="editForm.stock" 
+                type="number"
+                placeholder="Enter stock quantity"
+                :disabled="editLoading"
+              />
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Min Level</Label>
+              <Input 
+                v-model="editForm.minLevel" 
+                type="number"
+                placeholder="Enter minimum stock level"
+                :disabled="editLoading"
+              />
+            </div>
+            <div>
+              <Label class="text-sm font-medium">Status</Label>
+              <Select v-model="editForm.statusProduct" :disabled="editLoading">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <Label class="text-sm font-medium">Description</Label>
+            <Textarea 
+              v-model="editForm.description" 
+              placeholder="Enter product description"
+              rows="3"
+              :disabled="editLoading"
+            />
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="closeEditModal" :disabled="editLoading">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            @click="handleEdit" 
+            :disabled="editLoading || !editForm.title || !editForm.category"
+          >
+            <Loader2 v-if="editLoading" class="h-4 w-4 mr-2 animate-spin" />
+            Save Changes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -407,6 +576,8 @@ import {
   onSnapshot,
   limit,
   where,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 
 const { $firebase } = useNuxtApp();
@@ -415,6 +586,28 @@ const { $firebase } = useNuxtApp();
 const loading = ref(true);
 const searchQuery = ref("");
 const selectedAlertFilter = ref("all");
+const selectedStatusFilter = ref("all");
+
+// Modal states
+const restockModalOpen = ref(false);
+const editModalOpen = ref(false);
+const selectedProduct = ref(null);
+
+// Form data for modals
+const restockForm = ref({
+  quantity: 0,
+  reason: "",
+});
+
+const editForm = ref({
+  title: "",
+  price: 0,
+  stock: 0,
+  minLevel: 0,
+  category: "",
+  statusProduct: "active",
+  description: "",
+});
 
 // Products and categories
 const allProducts = ref([]);
@@ -475,8 +668,20 @@ const filteredAlerts = computed(() => {
     if (selectedAlertFilter.value === "out") {
       filtered = filtered.filter(alert => alert.stock === 0);
     } else if (selectedAlertFilter.value === "low") {
-      filtered = filtered.filter(alert => alert.stock > 0 && alert.stock <= (alert.minLevel || 10));
+      filtered = filtered.filter(alert => alert.stock > 0 && alert.stock <= (alert.minLevel));
     }
+  }
+
+  return filtered;
+});
+
+// Filtered products by status
+const filteredProducts = computed(() => {
+  let filtered = allProducts.value;
+
+  // Filter by status
+  if (selectedStatusFilter.value !== "all") {
+    filtered = filtered.filter(product => product.statusProduct === selectedStatusFilter.value);
   }
 
   return filtered;
@@ -675,23 +880,127 @@ const exportData = () => {
 };
 
 const viewAllActivities = () => {
-  // Navigate to activities page
-  console.log("Navigate to activities page");
+  navigateTo("/products/inventory");
 };
 
 const viewAllProducts = () => {
   navigateTo("/products/listProducts");
 };
 
-const restockProduct = (product) => {
-  // Navigate to restock page or open restock modal
-  console.log("Restock product:", product);
-  navigateTo(`/products/restock/${product.firestoreId}`);
+// Modal functions
+const openRestockModal = (product) => {
+  selectedProduct.value = product;
+  restockForm.value = {
+    quantity: 0,
+    reason: "",
+  };
+  restockModalOpen.value = true;
 };
 
-const editProduct = (product) => {
-  // Navigate to edit page
-  navigateTo(`/products/edit/${product.firestoreId}`);
+const openEditModal = (product) => {
+  selectedProduct.value = product;
+  editForm.value = {
+    title: product.title || "",
+    price: product.price || 0,
+    stock: product.stock || 0,
+    minLevel: product.minLevel || 0,
+    category: product.category || "",
+    statusProduct: product.statusProduct || "active",
+    description: product.description || "",
+  };
+  editModalOpen.value = true;
+};
+
+const closeRestockModal = () => {
+  restockModalOpen.value = false;
+  selectedProduct.value = null;
+  restockForm.value = {
+    quantity: 0,
+    reason: "",
+  };
+};
+
+const closeEditModal = () => {
+  editModalOpen.value = false;
+  selectedProduct.value = null;
+  editForm.value = {
+    title: "",
+    price: 0,
+    stock: 0,
+    minLevel: 0,
+    category: "",
+    statusProduct: "active",
+    description: "",
+  };
+};
+
+const handleRestock = async () => {
+  try {
+    if (!selectedProduct.value || restockForm.value.quantity <= 0) {
+      alert("Please enter a valid quantity");
+      return;
+    }
+
+    const productRef = doc($firebase.firestore, "products", selectedProduct.value.firestoreId);
+    const newStock = selectedProduct.value.stock + parseInt(restockForm.value.quantity);
+    
+    await updateDoc(productRef, {
+      stock: newStock,
+      lastRestocked: new Date().toISOString(),
+      restockReason: restockForm.value.reason || "Manual restock",
+    });
+
+    // Update local data
+    const productIndex = allProducts.value.findIndex(p => p.firestoreId === selectedProduct.value.firestoreId);
+    if (productIndex !== -1) {
+      allProducts.value[productIndex].stock = newStock;
+    }
+
+    alert("Product restocked successfully!");
+    closeRestockModal();
+    
+  } catch (error) {
+    console.error("Error restocking product:", error);
+    alert("Failed to restock product. Please try again.");
+  }
+};
+
+const handleEdit = async () => {
+  try {
+    if (!selectedProduct.value) return;
+
+    const productRef = doc($firebase.firestore, "products", selectedProduct.value.firestoreId);
+    
+    await updateDoc(productRef, {
+      title: editForm.value.title,
+      price: parseFloat(editForm.value.price),
+      stock: parseInt(editForm.value.stock),
+      minLevel: parseInt(editForm.value.minLevel),
+      category: editForm.value.category,
+      statusProduct: editForm.value.statusProduct,
+      description: editForm.value.description,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Update local data
+    const productIndex = allProducts.value.findIndex(p => p.firestoreId === selectedProduct.value.firestoreId);
+    if (productIndex !== -1) {
+      allProducts.value[productIndex] = {
+        ...allProducts.value[productIndex],
+        ...editForm.value,
+        price: parseFloat(editForm.value.price),
+        stock: parseInt(editForm.value.stock),
+        minLevel: parseInt(editForm.value.minLevel),
+      };
+    }
+
+    alert("Product updated successfully!");
+    closeEditModal();
+    
+  } catch (error) {
+    console.error("Error updating product:", error);
+    alert("Failed to update product. Please try again.");
+  }
 };
 
 // Initialize
