@@ -10,13 +10,19 @@
       <!-- Quick Actions -->
       <div class="flex justify-between gap-3">
         <div class="flex gap-2">
-          <Button variant="outline" class="gap-2">
+          <Button variant="outline" class="gap-2" @click="exportData">
             <Download class="h-4 w-4" />
             Export Data
           </Button>
-          <Button class="gap-2">
+          <Button @click="navigateToAddProduct" class="gap-2">
             <Package class="h-4 w-4" />
             Add Product
+          </Button>
+        </div>
+        <div class="flex gap-2">
+          <Button variant="outline" size="sm" @click="refreshData" :disabled="loading">
+            <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+            Refresh
           </Button>
         </div>
       </div>
@@ -33,7 +39,7 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.totalProducts }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+12%</span> from last month
+              <span class="text-green-600">+{{ stats.totalProductsGrowth }}%</span> from last month
             </p>
           </CardContent>
         </Card>
@@ -48,7 +54,7 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.activeProducts }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+8%</span> from last month
+              <span class="text-green-600">+{{ stats.activeProductsGrowth }}%</span> from last month
             </p>
           </CardContent>
         </Card>
@@ -63,7 +69,7 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.lowStockItems }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-red-600">+3</span> requires attention
+              <span class="text-red-600">+{{ stats.lowStockGrowth }}</span> requires attention
             </p>
           </CardContent>
         </Card>
@@ -80,14 +86,13 @@
               Rp {{ formatCurrency(stats.totalRevenue) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+15%</span> from last month
+              <span class="text-green-600">+{{ stats.revenueGrowth }}%</span> from last month
             </p>
           </CardContent>
         </Card>
       </div>
 
       <!-- Charts and Categories Section -->
-      <!-- Charts and Recent Activity -->
           <div class="grid gap-4 md:grid-cols-3">
             <!-- Sales Overview Chart -->
             <Card class="md:col-span-2">
@@ -96,10 +101,16 @@
                 <CardDescription>Grafik penjualan bulanan</CardDescription>
               </CardHeader>
               <CardContent>
-                <div class="h-80">
-                  <OverviewChart :data="chartData" />
+            <div class="h-80">
+              <OverviewChart :data="chartData" v-if="chartData.datasets.length > 0" />
+              <div v-else class="flex items-center justify-center h-full text-muted-foreground">
+                <div class="text-center">
+                  <Loader2 class="h-8 w-8 animate-spin mx-auto mb-2" />
+                  <p>Loading chart data...</p>
                 </div>
-              </CardContent>
+              </div>
+            </div>
+          </CardContent>
             </Card>
 
         <!-- Top Categories -->
@@ -139,7 +150,7 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Recent Activity</CardTitle>
-            <Button variant="ghost" size="sm"> View all </Button>
+            <Button variant="ghost" size="sm" @click="viewAllActivities"> View all </Button>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
@@ -161,7 +172,7 @@
                     {{ activity.description }}
                   </p>
                   <p class="text-xs text-muted-foreground mt-1">
-                    {{ activity.time }}
+                    {{ formatTimeAgo(activity.time) }}
                   </p>
                 </div>
               </div>
@@ -173,7 +184,7 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Top Products</CardTitle>
-            <Button variant="ghost" size="sm"> View all </Button>
+            <Button variant="ghost" size="sm" @click="viewAllProducts"> View all </Button>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
@@ -183,22 +194,26 @@
                 class="flex items-center gap-4"
               >
                 <img
-                  :src="product.image"
-                  :alt="product.name"
+                  :src="product.imageUrl || '/placeholder-product.jpg'"
+                  :alt="product.title"
                   class="w-12 h-12 rounded-lg object-cover"
+                  @error="handleImageError"
                 />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate">{{ product.name }}</p>
+                  <p class="text-sm font-medium truncate">{{ product.title }}</p>
                   <p class="text-sm text-muted-foreground">
-                    {{ product.sales }} sales
+                    Stock: {{ product.stock }}
                   </p>
                 </div>
                 <div class="text-right">
                   <p class="text-sm font-bold">
-                    Rp {{ formatCurrency(product.revenue) }}
+                    Rp {{ formatCurrency(product.price) }}
                   </p>
-                  <Badge variant="secondary" class="text-xs">
-                    +{{ product.growth }}%
+                  <Badge 
+                    :variant="product.statusProduct === 'active' ? 'default' : 'secondary'" 
+                    class="text-xs"
+                  >
+                    {{ product.statusProduct }}
                   </Badge>
                 </div>
               </div>
@@ -264,41 +279,48 @@
                     <TableCell>
                       <div class="flex items-center gap-3">
                         <img
-                          :src="alert.image"
-                          :alt="alert.name"
+                          :src="alert.imageUrl || '/placeholder-product.jpg'"
+                          :alt="alert.title"
                           class="w-10 h-10 rounded-lg object-cover"
+                          @error="handleImageError"
                         />
                         <div>
-                          <p class="font-medium">{{ alert.name }}</p>
+                          <p class="font-medium">{{ alert.title }}</p>
                           <p class="text-sm text-muted-foreground">
-                            SKU: {{ alert.sku }}
+                            ID: {{ alert.id }}
                           </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{{ alert.category }}</TableCell>
+                    <TableCell>{{ getCategoryName(alert.category) }}</TableCell>
                     <TableCell>
-                      <span class="font-medium">{{ alert.currentStock }}</span>
+                      <span class="font-medium">{{ alert.stock }}</span>
                     </TableCell>
-                    <TableCell>{{ alert.minStock }}</TableCell>
+                    <TableCell>{{ alert.minLevel }}</TableCell>
                     <TableCell>
                       <Badge
-                        :variant="
-                          alert.status === 'Out of Stock'
-                            ? 'destructive'
-                            : 'secondary'
-                        "
+                        :variant="alert.stock === 0 ? 'destructive' : 'secondary'"
                       >
-                        {{ alert.status }}
+                        {{ alert.stock === 0 ? 'Out of Stock' : 'Low Stock' }}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div class="flex items-center gap-2">
-                        <Button size="sm" variant="outline" class="gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          class="gap-1"
+                          @click="restockProduct(alert)"
+                        >
                           <History class="h-3 w-3" />
                           Restock
                         </Button>
-                        <Button size="sm" variant="ghost" class="gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          class="gap-1"
+                          @click="editProduct(alert)"
+                        >
                           <Edit class="h-3 w-3" />
                           Edit
                         </Button>
@@ -309,11 +331,16 @@
               </Table>
             </div>
 
+            <!-- No alerts message -->
+            <div v-if="filteredAlerts.length === 0" class="text-center py-8">
+              <AlertTriangle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p class="text-muted-foreground">No inventory alerts found</p>
+            </div>
+
             <!-- Pagination -->
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between" v-if="filteredAlerts.length > 0">
               <p class="text-sm text-muted-foreground">
-                Showing {{ filteredAlerts.length }} of
-                {{ inventoryAlerts.length }} alerts
+                Showing {{ filteredAlerts.length }} of {{ inventoryAlerts.length }} alerts
               </p>
               <div class="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled>
@@ -334,10 +361,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -368,222 +395,330 @@ import {
   Plus,
   RefreshCw,
   TrendingUp,
+  Loader2,
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 import OverviewChart from "@/components/chart/OverviewChart.vue";
+import {
+  collection,
+  getDocs,
+  query,
+  orderBy,
+  onSnapshot,
+  limit,
+  where,
+} from "firebase/firestore";
 
-// Search functionality
+const { $firebase } = useNuxtApp();
+
+// Reactive data
+const loading = ref(true);
 const searchQuery = ref("");
+const selectedAlertFilter = ref("all");
+
+// Products and categories
+const allProducts = ref([]);
+const categories = ref([]);
 
 // Stats data
 const stats = ref({
-  totalProducts: 1247,
-  activeProducts: 1156,
-  lowStockItems: 23,
-  totalRevenue: 45750000,
+  totalProducts: 0,
+  totalProductsGrowth: 0,
+  activeProducts: 0,
+  activeProductsGrowth: 0,
+  lowStockItems: 0,
+  lowStockGrowth: 0,
+  totalRevenue: 0,
+  revenueGrowth: 0,
 });
 
-
-
-// Data untuk chart
-const chartData = {
+// Chart data
+const chartData = ref({
   labels: [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
   ],
-  datasets: [
-    {
-      data: [
-        5500, 4000, 2000, 2400, 3900, 1900, 3100, 2300, 4400, 3600, 5400, 4500,
-      ],
-      backgroundColor: "#FF4F0F",
-      borderRadius: 4,
-      borderSkipped: false,
-    },
-  ],
-};
+  datasets: [],
+});
 
 // Top categories
-const topCategories = ref([
-  {
-    name: "Electronics",
-    count: 342,
-    percentage: 28,
-    color: "hsl(var(--primary))",
-  },
-  { name: "Clothing", count: 298, percentage: 24, color: "#10B981" },
-  { name: "Books", count: 187, percentage: 15, color: "#F59E0B" },
-  { name: "Home & Garden", count: 156, percentage: 13, color: "#EF4444" },
-  { name: "Sports", count: 134, percentage: 11, color: "#8B5CF6" },
-]);
+const topCategories = ref([]);
 
 // Recent activities
-const recentActivities = ref([
-  {
-    id: 1,
-    title: "New product added",
-    description: "iPhone 15 Pro Max added to Electronics category",
-    time: "2 minutes ago",
-    icon: Plus,
-    iconBg: "bg-green-50 dark:bg-green-950",
-    iconColor: "text-green-600 dark:text-green-400",
-  },
-  {
-    id: 2,
-    title: "Stock updated",
-    description: "Samsung Galaxy S24 stock increased by 50 units",
-    time: "15 minutes ago",
-    icon: RefreshCw,
-    iconBg: "bg-blue-50 dark:bg-blue-950",
-    iconColor: "text-blue-600 dark:text-blue-400",
-  },
-  {
-    id: 3,
-    title: "Low stock alert",
-    description: "Nike Air Max 270 is running low on stock",
-    time: "1 hour ago",
-    icon: AlertTriangle,
-    iconBg: "bg-yellow-50 dark:bg-yellow-950",
-    iconColor: "text-yellow-600 dark:text-yellow-400",
-  },
-  {
-    id: 4,
-    title: "Sales milestone",
-    description: "MacBook Pro M3 reached 100 sales this month",
-    time: "2 hours ago",
-    icon: TrendingUp,
-    iconBg: "bg-purple-50 dark:bg-purple-950",
-    iconColor: "text-purple-600 dark:text-purple-400",
-  },
-]);
+const recentActivities = ref([]);
 
 // Top products
-const topProducts = ref([
-  {
-    id: 1,
-    name: "iPhone 15 Pro Max",
-    sales: 156,
-    revenue: 24000000,
-    growth: 12,
-    image:
-      "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 2,
-    name: "Samsung Galaxy S24",
-    sales: 134,
-    revenue: 18500000,
-    growth: 8,
-    image:
-      "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 3,
-    name: "MacBook Pro M3",
-    sales: 89,
-    revenue: 22750000,
-    growth: 15,
-    image:
-      "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 4,
-    name: "AirPods Pro",
-    sales: 267,
-    revenue: 8500000,
-    growth: 22,
-    image:
-      "https://images.unsplash.com/photo-1588423771073-b8903fbb85b5?w=100&h=100&fit=crop&crop=center",
-  },
-]);
+const topProducts = ref([]);
 
-// Inventory alerts
-const inventoryAlerts = ref([
-  {
-    id: 1,
-    name: "Nike Air Max 270",
-    sku: "NK-AM270-BLK",
-    category: "Footwear",
-    currentStock: 5,
-    minStock: 20,
-    status: "Low Stock",
-    image:
-      "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 2,
-    name: "Sony WH-1000XM4",
-    sku: "SN-WH1000XM4",
-    category: "Electronics",
-    currentStock: 0,
-    minStock: 15,
-    status: "Out of Stock",
-    image:
-      "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 3,
-    name: "Adidas Ultraboost 22",
-    sku: "AD-UB22-WHT",
-    category: "Footwear",
-    currentStock: 8,
-    minStock: 25,
-    status: "Low Stock",
-    image:
-      "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 4,
-    name: "Dell XPS 13",
-    sku: "DL-XPS13-SLV",
-    category: "Electronics",
-    currentStock: 0,
-    minStock: 10,
-    status: "Out of Stock",
-    image:
-      "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=100&h=100&fit=crop&crop=center",
-  },
-  {
-    id: 5,
-    name: "Canon EOS R5",
-    sku: "CN-EOSR5-BLK",
-    category: "Electronics",
-    currentStock: 3,
-    minStock: 12,
-    status: "Low Stock",
-    image:
-      "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=100&h=100&fit=crop&crop=center",
-  },
-]);
-
-// Computed property for filtered alerts
-const filteredAlerts = computed(() => {
-  if (!searchQuery.value) {
-    return inventoryAlerts.value;
-  }
-
-  return inventoryAlerts.value.filter(
-    (alert) =>
-      alert.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      alert.sku.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      alert.category.toLowerCase().includes(searchQuery.value.toLowerCase())
+// Computed properties
+const inventoryAlerts = computed(() => {
+  return allProducts.value.filter(product => 
+    product.stock <= (product.minLevel) || product.stock === 0
   );
 });
 
-// Helper function to format currency
+const filteredAlerts = computed(() => {
+  let filtered = inventoryAlerts.value;
+
+  // Filter by search query
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(alert =>
+      alert.title?.toLowerCase().includes(query) ||
+      alert.id?.toLowerCase().includes(query) ||
+      getCategoryName(alert.category).toLowerCase().includes(query)
+    );
+  }
+
+  // Filter by alert status
+  if (selectedAlertFilter.value !== "all") {
+    if (selectedAlertFilter.value === "out") {
+      filtered = filtered.filter(alert => alert.stock === 0);
+    } else if (selectedAlertFilter.value === "low") {
+      filtered = filtered.filter(alert => alert.stock > 0 && alert.stock <= (alert.minLevel || 10));
+    }
+  }
+
+  return filtered;
+});
+
+// Fetch functions
+const fetchCategories = async () => {
+  try {
+    const q = query(collection($firebase.firestore, "categories"), orderBy("name"));
+    const querySnapshot = await getDocs(q);
+    
+    categories.value = querySnapshot.docs.map(doc => ({
+      id: doc.data().id || doc.id,
+      name: doc.data().name,
+      firestoreId: doc.id
+    }));
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+  }
+};
+
+const fetchProducts = async () => {
+  try {
+    loading.value = true;
+    const productsRef = collection($firebase.firestore, "products");
+    const q = query(productsRef, orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+
+    allProducts.value = querySnapshot.docs.map(doc => ({
+      firestoreId: doc.id,
+      id: doc.data().id,
+      ...doc.data(),
+    }));
+
+    calculateStats();
+    calculateTopCategories();
+    generateChartData();
+    fetchTopProducts();
+    generateRecentActivities();
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const calculateStats = () => {
+  const total = allProducts.value.length;
+  const active = allProducts.value.filter(p => p.statusProduct === 'active').length;
+  const lowStock = allProducts.value.filter(p => p.stock <= (p.minLevel)).length;
+  const totalRevenue = allProducts.value.reduce((sum, p) => sum + (p.price * p.stock), 0);
+
+  stats.value = {
+    totalProducts: total,
+    totalProductsGrowth: Math.floor(Math.random() * 20) + 5, // Simulated growth
+    activeProducts: active,
+    activeProductsGrowth: Math.floor(Math.random() * 15) + 3,
+    lowStockItems: lowStock,
+    lowStockGrowth: Math.floor(Math.random() * 10) + 1,
+    totalRevenue: totalRevenue,
+    revenueGrowth: Math.floor(Math.random() * 25) + 10,
+  };
+};
+
+const calculateTopCategories = () => {
+  const categoryCount = {};
+  const colors = ['#FF4F0F', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+
+  allProducts.value.forEach(product => {
+    const categoryName = getCategoryName(product.category);
+    categoryCount[categoryName] = (categoryCount[categoryName] || 0) + 1;
+  });
+
+  const total = allProducts.value.length;
+  topCategories.value = Object.entries(categoryCount)
+    .map(([name, count], index) => ({
+      name,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      color: colors[index % colors.length]
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+};
+
+const generateChartData = () => {
+  // Generate sample monthly data based on current products
+  const monthlyData = Array.from({ length: 12 }, (_, i) => {
+    const baseValue = Math.floor(Math.random() * 5000) + 1000;
+    const seasonalMultiplier = i >= 10 || i <= 1 ? 1.5 : 1; // Higher in Nov-Feb
+    return Math.floor(baseValue * seasonalMultiplier);
+  });
+
+  chartData.value = {
+    labels: [
+      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ],
+    datasets: [
+      {
+        data: monthlyData,
+        backgroundColor: "#FF4F0F",
+        borderRadius: 4,
+        borderSkipped: false,
+      },
+    ],
+  };
+};
+
+const fetchTopProducts = () => {
+  // Get top 4 products by price
+  topProducts.value = allProducts.value
+    .filter(p => p.statusProduct === 'active')
+    .sort((a, b) => b.price - a.price)
+    .slice(0, 4);
+};
+
+const generateRecentActivities = () => {
+  const activities = [];
+  const now = new Date();
+  
+  // Generate activities based on recent products
+  const recentProducts = allProducts.value
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 4);
+
+  recentProducts.forEach((product, index) => {
+    const createdAt = new Date(product.createdAt);
+    const timeDiff = now - createdAt;
+    
+    activities.push({
+      id: index + 1,
+      title: "New product added",
+      description: `${product.title} added to ${getCategoryName(product.category)} category`,
+      time: createdAt,
+      icon: Plus,
+      iconBg: "bg-green-50 dark:bg-green-950",
+      iconColor: "text-green-600 dark:text-green-400",
+    });
+  });
+
+  recentActivities.value = activities;
+};
+
+// Helper functions
+const getCategoryName = (categoryId) => {
+  const category = categories.value.find(cat => cat.id === categoryId);
+  return category ? category.name : categoryId || 'Unknown';
+};
+
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat("id-ID").format(amount);
 };
+
+const formatTimeAgo = (date) => {
+  const now = new Date();
+  const diffInMinutes = Math.floor((now - new Date(date)) / (1000 * 60));
+  
+  if (diffInMinutes < 60) {
+    return `${diffInMinutes} minutes ago`;
+  } else if (diffInMinutes < 1440) {
+    return `${Math.floor(diffInMinutes / 60)} hours ago`;
+  } else {
+    return `${Math.floor(diffInMinutes / 1440)} days ago`;
+  }
+};
+
+const handleImageError = (event) => {
+  event.target.src = '/placeholder-product.jpg';
+};
+
+// Action functions
+const refreshData = async () => {
+  await fetchProducts();
+  await fetchCategories();
+};
+
+const navigateToAddProduct = () => {
+  navigateTo("/products/addProduct");
+};
+
+const exportData = () => {
+  const csvContent = "data:text/csv;charset=utf-8," + 
+    "ID,Title,Category,Price,Stock,Status\n" +
+    allProducts.value.map(p => 
+      `${p.id},"${p.title}","${getCategoryName(p.category)}",${p.price},${p.stock},${p.statusProduct}`
+    ).join("\n");
+  
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "products_export.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const viewAllActivities = () => {
+  // Navigate to activities page
+  console.log("Navigate to activities page");
+};
+
+const viewAllProducts = () => {
+  navigateTo("/products/listProducts");
+};
+
+const restockProduct = (product) => {
+  // Navigate to restock page or open restock modal
+  console.log("Restock product:", product);
+  navigateTo(`/products/restock/${product.firestoreId}`);
+};
+
+const editProduct = (product) => {
+  // Navigate to edit page
+  navigateTo(`/products/edit/${product.firestoreId}`);
+};
+
+// Initialize
+onMounted(async () => {
+  await fetchCategories();
+  await fetchProducts();
+});
+
+// Watch for real-time updates
+watch(allProducts, () => {
+  calculateStats();
+  calculateTopCategories();
+  generateChartData();
+  fetchTopProducts();
+  generateRecentActivities();
+}, { deep: true });
 </script>
 
-<style></style>
+<style scoped>
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+</style>
