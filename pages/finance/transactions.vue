@@ -105,7 +105,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Total Income </CardTitle>
-          <TrendingUp class="text-green-600" />
+          <TrendingUp />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-green-600">
@@ -124,7 +124,7 @@
           <CardTitle class="text-sm font-medium flex items-center">
             Total Expenses
           </CardTitle>
-          <TrendingDown class="text-red-600" />
+          <TrendingDown />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-red-600">
@@ -141,7 +141,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Net Flow </CardTitle>
-          <DollarSign class="text-blue-600" />
+          <DollarSign />
         </CardHeader>
         <CardContent>
           <div
@@ -163,7 +163,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Pending </CardTitle>
-          <Clock class="text-orange-600" />
+          <Clock />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-orange-600">
