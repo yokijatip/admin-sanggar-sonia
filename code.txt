@@ -4,260 +4,130 @@ untuk styling menggunakna tailwind.css 4 dan ui component library menggunakna sh
 untuk backend seluruh nya di handle mengugnakn firebase auth dan firebase firestore,
 untuk storage seperti image menggunakan cloudinary
 
-tugas nya: Implementasi Auth yang kuat, jadi guest atau orang random yang belum login sebaiknya tidak bisa masuk ke halaman "/" atau dashboard, dan halaman lainnya, jika user guest mencoba memaksa akses ke halaman lainnya lewat url, maka langsung di redirect ke halaman login
+tugas nya: Implementasi breadcrumb
 
-plugins: firebase.client.js
+plugins: firebase.client.js:
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-};
-
-let app;
-let auth;
-let db;
-let storage;
-
 export default defineNuxtPlugin(() => {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
+  const config = useRuntimeConfig();
 
-  return {
-    provide: {
-      firebase: {
-        app,
-        auth,
-        firestore: db,
-        storage,
-      },
-    },
+  const firebaseConfig = {
+    apiKey: config.public.firebaseApiKey,
+    authDomain: config.public.firebaseAuthDomain,
+    projectId: config.public.firebaseProjectId,
+    storageBucket: config.public.firebaseStorageBucket,
+    messagingSenderId: config.public.firebaseMessagingSenderId,
+    appId: config.public.firebaseAppId,
+    measurementId: config.public.firebaseMeasurementId,
   };
-});
 
-// Export for direct usage
-export { auth, db, storage };
-
-middleware: 
-1. auth.js:
-export default defineNuxtRouteMiddleware(() => {
-  const { user, loading } = useAuth();
-
-  if (loading.value) return; // Tungu auth state siap
-
-  if (!user.value) {
-    return navigateTo("/login");
-  }
-});
-
-2. guest.js:
-export default defineNuxtRouteMiddleware(() => {
-  const { user, loading } = useAuth();
-
-  if (loading.value) return;
-
-  if (user.value) {
-    return navigateTo("/");
-  }
-});
-
-3. role.js:
-export default defineNuxtRouteMiddleware((to) => {
-  const { user, loading } = useAuth();
-
-  if (loading.value) return;
-
-  if (!user.value) {
-    return navigateTo("/login");
-  }
-
-  // Ambil role yang dibutuhkan dari meta
-  const requiredRole = to.meta.requiredRole;
-
-  // Kalau tidak sesuai role, redirect
+  // Check if all required config is available
   if (
-    requiredRole &&
-    user.value.role !== requiredRole &&
-    user.value.role !== "owner"
+    !firebaseConfig.apiKey ||
+    !firebaseConfig.authDomain ||
+    !firebaseConfig.projectId
   ) {
-    return navigateTo("/unauthorized");
+    console.error("Firebase config is missing required fields");
+    return;
+  }
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    console.log("Firebase initialized successfully");
+
+    return {
+      provide: {
+        firebase: {
+          app,
+          auth,
+          firestore: db,
+          storage,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+    throw error;
   }
 });
 
-
-composables: useAuth.js
-// composables/useAuth.js
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
-
-export const useAuth = () => {
-  const { $firebase } = useNuxtApp();
-  const auth = $firebase.auth;
-  const db = $firebase.firestore;
-  const user = useState("user", () => null); // Global state
-  const loading = useState("loading", () => true);
-
-  // Monitor auth state
-  onAuthStateChanged(auth, async (authUser) => {
-    if (authUser) {
-      const userDoc = await getDoc(doc(db, "users", authUser.uid));
-      if (userDoc.exists()) {
-        user.value = { uid: authUser.uid, ...userDoc.data() };
-      } else {
-        user.value = null;
-      }
-    } else {
-      user.value = null;
-    }
-    loading.value = false;
-  });
-
-  // Login
-  const loginUser = async (email, password) => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const authUser = userCredential.user;
-
-      const userDoc = await getDoc(doc(db, "users", authUser.uid));
-      if (!userDoc.exists()) throw new Error("User not found");
-
-      user.value = { uid: authUser.uid, ...userDoc.data() };
-      return user.value;
-    } catch (error) {
-      console.error("Error logging in:", error);
-      throw error;
-    }
-  };
-
-  // Register
-  const registerUser = async (
-    email,
-    password,
-    firstName,
-    lastName,
-    phoneNumber = "",
-    imageUrl = "",
-    role = "staff"
-  ) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const authUser = userCredential.user;
-
-      const userData = {
-        uid: authUser.uid,
-        email,
-        firstName,
-        lastName,
-        phoneNumber,
-        imageUrl,
-        role,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      await setDoc(doc(db, "users", authUser.uid), userData);
-
-      user.value = userData;
-      return userData;
-    } catch (error) {
-      console.error("Error registering user:", error.code, error.message);
-      throw error;
-    }
-  };
-
-  // Logout
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      user.value = null;
-      await navigateTo("/login");
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  };
-
-  return {
-    user: readonly(user),
-    loading: readonly(loading),
-    loginUser,
-    registerUser,
-    logout,
-  };
-};
-
-layout: default.vue
-<script lang="ts">
-export const description = "An inset sidebar with secondary navigation.";
-export const iframeHeight = "800px";
-</script>
-<script setup lang="ts">
-import AppSidebar from "@/components/AppSidebar.vue";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-</script>
+app.vue:
 <template>
-  <SidebarProvider>
-    <AppSidebar />
-    <SidebarInset class="max-w-screen overflow-hidden">
-      <header class="flex h-16 shrink-0 items-center gap-2">
-        <div class="flex items-center gap-2 px-4">
-          <SidebarTrigger class="-ml-1" />
-          <Separator orientation="vertical" class="mr-2 h-4" />
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem class="hidden md:block">
-                <BreadcrumbLink href="#">
-                  Building Your Application
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator class="hidden md:block" />
-              <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-      </header>
-      <slot />
-    </SidebarInset>
-  </SidebarProvider>
+  <div>
+    <!-- Loading state saat auth belum initialized -->
+    <div
+      v-if="isLoading"
+      class="fixed inset-0 bg-white flex items-center justify-center z-50"
+    >
+      <div class="text-center">
+        <div
+          class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"
+        ></div>
+        <p class="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Main app content -->
+    <div v-else>
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </div>
+  </div>
 </template>
+
+<script setup>
+const nuxtApp = useNuxtApp();
+const isLoading = ref(true);
+
+onMounted(async () => {
+  // Wait for Firebase to be ready
+  await nextTick();
+
+  if (nuxtApp.$firebase) {
+    console.log("Firebase available, initializing auth");
+
+    try {
+      const { loading, initialized } = useAuth();
+
+      // Watch for auth initialization
+      watch(
+        [initialized, loading],
+        ([init, load]) => {
+          if (init && !load) {
+            console.log("Auth ready, hiding loading");
+            isLoading.value = false;
+          }
+        },
+        { immediate: true }
+      );
+
+      // Timeout fallback
+      setTimeout(() => {
+        if (isLoading.value) {
+          console.log("Auth timeout, showing content anyway");
+          isLoading.value = false;
+        }
+      }, 3000);
+    } catch (error) {
+      console.error("Error initializing auth:", error);
+      isLoading.value = false;
+    }
+  } else {
+    console.error("Firebase not available in app.vue");
+    isLoading.value = false;
+  }
+});
+</script>
+
 
 index.vue:
 <script setup lang="ts">
@@ -591,11 +461,331 @@ const chartData = {
 </template>
 
 
-app.vue:
+nuxt.config.ts:
+import tailwindcss from "@tailwindcss/vite";
+
+// https://nuxt.com/docs/api/configuration/nuxt-config
+export default defineNuxtConfig({
+  ssr: false, // Full SPA mode
+
+  // atau bisa hybrid dengan nitro presets
+  nitro: {
+    preset: "static", // jika mau deploy sebagai static files
+  },
+
+  compatibilityDate: "2025-05-15",
+  devtools: { enabled: true },
+
+  // TAMBAHKAN PLUGINS SECTION
+  plugins: [
+    { src: "~/plugins/firebase.client.js", mode: "client" },
+    { src: "~/plugins/auth.client.js", mode: "client" },
+  ],
+
+  modules: [
+    "@nuxt/icon",
+    "@nuxt/fonts",
+    "@nuxt/image",
+    "shadcn-nuxt",
+    "@nuxtjs/color-mode",
+  ],
+
+  colorMode: {
+    preference: "system", // default theme
+    dataValue: "theme", // activate data-theme in <html> tag
+    classSuffix: "",
+  },
+
+  // Add Tailwind
+  vite: {
+    plugins: [tailwindcss()],
+  },
+
+  css: ["~/assets/css/main.css"],
+
+  shadcn: {
+    /**
+     * Prefix for all the imported component
+     */
+    prefix: "",
+    /**
+     * Directory that the component lives in.
+     * @default "./components/ui"
+     */
+    componentDir: "./components/ui",
+  },
+
+  // Runtime config untuk environment variables
+  runtimeConfig: {
+    // Server-side environment variables (private)
+    cloudinaryApiSecret: process.env.NUXT_CLOUDINARY_API_SECRET,
+
+    // Public environment variables (client-side)
+    public: {
+      cloudinaryCloudName: process.env.VITE_CLOUDINARY_CLOUD_NAME,
+      cloudinaryApiKey: process.env.VITE_CLOUDINARY_API_KEY,
+      cloudinaryUploadPreset: process.env.VITE_CLOUDINARY_UPLOAD_PRESET,
+      // Firebase config
+      firebaseApiKey: process.env.VITE_FIREBASE_API_KEY,
+      firebaseAuthDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+      firebaseProjectId: process.env.VITE_FIREBASE_PROJECT_ID,
+      firebaseStorageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+      firebaseMessagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      firebaseAppId: process.env.VITE_FIREBASE_APP_ID,
+      firebaseMeasurementId: process.env.VITE_FIREBASE_MEASUREMENT_ID,
+    },
+  },
+});
+
+layouts: default.vue:
+<script lang="ts">
+export const description = "An inset sidebar with secondary navigation.";
+export const iframeHeight = "800px";
+</script>
+<script setup lang="ts">
+import AppSidebar from "@/components/AppSidebar.vue";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+</script>
 <template>
-  <NuxtLayout>
-    <NuxtPage />
-  </NuxtLayout>
+  <SidebarProvider>
+    <AppSidebar />
+    <SidebarInset class="max-w-screen overflow-hidden">
+      <header class="flex h-16 shrink-0 items-center gap-2">
+        <div class="flex items-center gap-2 px-4">
+          <SidebarTrigger class="-ml-1" />
+          <Separator orientation="vertical" class="mr-2 h-4" />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem class="hidden md:block">
+                <!-- Implement BreadcrumbLink with NuxtLink -->
+                <BreadcrumbLink
+                  to="/"
+                  class="hover:text-foreground cursor-pointer"
+                >
+                  Home</BreadcrumbLink
+                >
+              </BreadcrumbItem>
+              <BreadcrumbSeparator class="hidden md:block" />
+              <BreadcrumbItem>
+                <!-- Implement BreadcrumbPage -->
+                <BreadcrumbPage> Finance Approval </BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+        </div>
+      </header>
+      <slot />
+    </SidebarInset>
+  </SidebarProvider>
+</template>
+
+
+component: AppSidebar.vue
+<script setup lang="ts">
+import {
+  Command,
+  LifeBuoy,
+  PieChart,
+  Send,
+  Settings2,
+  Package2,
+  Users,
+  ShoppingBasket,
+} from "lucide-vue-next";
+
+import NavMain from "@/components/NavMain.vue";
+import NavSecondary from "@/components/NavSecondary.vue";
+import NavUser from "@/components/NavUser.vue";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  type SidebarProps,
+} from "@/components/ui/sidebar";
+
+const props = withDefaults(defineProps<SidebarProps>(), {
+  variant: "inset",
+});
+
+// Get User data
+const { user }: any = useAuth();
+
+const data = {
+  navMain: [
+    {
+      title: "Dashboard",
+      url: "/",
+      icon: Command,
+      isActive: true,
+    },
+    {
+      title: "Products",
+      url: "/products/productDashboard",
+      icon: Package2,
+      isActive: false,
+      items: [
+        {
+          title: "List Products",
+          url: "/products/listProducts",
+        },
+        {
+          title: "Add Product",
+          url: "/products/addProduct",
+        },
+        {
+          title: "Inventory",
+          url: "/products/inventory",
+        },
+      ],
+    },
+    {
+      title: "Orders",
+      url: "/orders/orderDashboard",
+      icon: ShoppingBasket,
+      isActive: true,
+      items: [
+        {
+          title: "List Orders",
+          url: "/orders/listOrder",
+        },
+        {
+          title: "Add Order",
+          url: "/orders/addOrder",
+        },
+        {
+          title: "History Order",
+          url: "/orders/historyOrder",
+        },
+        {
+          title: "Queue Order",
+          url: "/orders/queueOrderProcess",
+        },
+      ],
+    },
+    {
+      title: "Customers",
+      url: "/customers/customerDashboard",
+      icon: Users,
+      isActive: false,
+      items: [
+        {
+          title: "List Customer",
+          url: "/customers/listCustomer",
+        },
+        {
+          title: "Add Customer",
+          url: "/customers/addCustomer",
+        },
+        {
+          title: "Customer Information",
+          url: "/customers/customerInformation",
+        },
+      ],
+    },
+    {
+      title: "Finance",
+      url: "/finance/financeDashboard",
+      icon: PieChart,
+      isActive: true,
+      items: [
+        {
+          title: "Expenses",
+          url: "/finance/expenses",
+        },
+        {
+          title: "Transactions",
+          url: "/finance/transactions",
+        },
+        {
+          title: "Approvals",
+          url: "/finance/approval",
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      url: "/settings/settings",
+      icon: Settings2,
+      items: [
+        {
+          title: "Team",
+          url: "/settings/team",
+        },
+        {
+          title: "Billing",
+          url: "/settings/billing",
+        },
+      ],
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Support",
+      url: "/support",
+      icon: LifeBuoy,
+    },
+    {
+      title: "Feedback",
+      url: "/feedback",
+      icon: Send,
+    },
+  ],
+};
+</script>
+
+<template>
+  <Sidebar v-bind="props">
+    <SidebarHeader>
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg" as-child>
+            <NuxtLink to="/">
+              <div
+                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
+              >
+                <Command class="size-4" />
+              </div>
+              <div class="grid flex-1 text-left text-sm leading-tight">
+                <span class="truncate font-medium">Toko Kue Dlillah</span>
+                <span class="truncate text-xs">Enterprise</span>
+              </div>
+            </NuxtLink>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    </SidebarHeader>
+    <SidebarContent>
+      <NavMain :items="data.navMain" />
+      <NavSecondary :items="data.navSecondary" class="mt-auto" />
+    </SidebarContent>
+    <SidebarFooter>
+      <!-- Kirim data user yang diambil dari FIrestore -->
+      <NavUser
+        :user="{
+          name: user ? `${user.firstName} ${user.lastName}` : 'Guest',
+          email: user?.email || 'No Email',
+          avatar: '/avatars/shadcn.jpg', // default avatar sementara
+        }"
+      />
+    </SidebarFooter>
+  </Sidebar>
 </template>
 
 

@@ -1,7 +1,7 @@
 <template>
   <div class="container mx-auto">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 mb-6">
+    <div class="flex items-center justify-between px-4">
       <HeadersContent
         title="Team Management"
         description="Manage your team members and their permissions"

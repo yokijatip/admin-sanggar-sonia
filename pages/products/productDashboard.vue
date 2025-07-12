@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-background p-6">
+  <div class="container mx-auto px-4">
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- Header -->
       <HeadersContent

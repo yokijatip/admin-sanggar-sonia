@@ -64,8 +64,8 @@
                     class="h-20 w-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center"
                   >
                     <span class="text-xl font-bold text-white">
-                      {{ userProfile.firstName.charAt(0).toUpperCase()
-                      }}{{ userProfile.lastName.charAt(0).toUpperCase() }}
+                      {{ user.firstName.charAt(0).toUpperCase()
+                      }}{{ user.lastName.charAt(0).toUpperCase() }}
                     </span>
                   </div>
                   <button
@@ -79,14 +79,16 @@
                 <!-- Basic Info -->
                 <div class="flex-1">
                   <h3 class="text-lg font-semibold">
-                    {{ userProfile.firstName }} {{ userProfile.lastName }}
+                    {{ user.firstName }} {{ user.lastName }}
                   </h3>
-                  <p class="text-muted-foreground">{{ userProfile.email }}</p>
+                  <p class="text-muted-foreground">
+                    {{ user.email }}
+                  </p>
                   <div class="flex items-center space-x-3 mt-2">
-                    <Badge variant="default">{{ userProfile.plan }} Plan</Badge>
-                    <Badge variant="outline">{{ userProfile.role }}</Badge>
+                    <Badge variant="default">{{ user.plan }} Plan</Badge>
+                    <Badge variant="outline">{{ user.role }}</Badge>
                     <span class="text-sm text-muted-foreground">
-                      Member since {{ formatDate(userProfile.joinedAt) }}
+                      Member since {{ formatDate(user.createdAt) }}
                     </span>
                   </div>
                 </div>
@@ -97,26 +99,26 @@
                 <h3 class="text-lg font-medium">Personal Information</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label for="firstName">First Name</Label>
+                    <Label for="firstName" class="mb-2">First Name</Label>
                     <Input
                       id="firstName"
-                      v-model="userProfile.firstName"
+                      v-model="user.firstName"
                       placeholder="Enter your first name"
                     />
                   </div>
                   <div>
-                    <Label for="lastName">Last Name</Label>
+                    <Label for="lastName" class="mb-2">Last Name</Label>
                     <Input
                       id="lastName"
-                      v-model="userProfile.lastName"
+                      v-model="user.lastName"
                       placeholder="Enter your last name"
                     />
                   </div>
                   <div>
-                    <Label for="email">Email Address</Label>
+                    <Label for="email" class="mb-2">Email Address</Label>
                     <Input
                       id="email"
-                      v-model="userProfile.email"
+                      v-model="user.email"
                       type="email"
                       placeholder="your@email.com"
                     />
@@ -125,43 +127,12 @@
                     </p>
                   </div>
                   <div>
-                    <Label for="phone">Phone Number</Label>
+                    <Label for="phone" class="mb-2">Phone Number</Label>
                     <Input
                       id="phone"
-                      v-model="userProfile.phone"
-                      placeholder="+62 812-3456-7890"
+                      v-model="user.phoneNumber"
+                      placeholder="+62 "
                     />
-                  </div>
-                  <div>
-                    <Label for="timezone">Timezone</Label>
-                    <Select v-model="userProfile.timezone">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Asia/Jakarta"
-                          >Asia/Jakarta (WIB)</SelectItem
-                        >
-                        <SelectItem value="Asia/Makassar"
-                          >Asia/Makassar (WITA)</SelectItem
-                        >
-                        <SelectItem value="Asia/Jayapura"
-                          >Asia/Jayapura (WIT)</SelectItem
-                        >
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label for="language">Preferred Language</Label>
-                    <Select v-model="userProfile.language">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="id">Bahasa Indonesia</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
               </div>
@@ -171,7 +142,7 @@
                 <h3 class="text-lg font-medium">Business Information</h3>
                 <div class="space-y-4">
                   <div>
-                    <Label for="businessName">Business Name</Label>
+                    <Label for="businessName" class="mb-2">Business Name</Label>
                     <Input
                       id="businessName"
                       v-model="userProfile.businessName"
@@ -180,7 +151,9 @@
                   </div>
                   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label for="businessType">Business Type</Label>
+                      <Label for="businessType" class="mb-2"
+                        >Business Type</Label
+                      >
                       <Select v-model="userProfile.businessType">
                         <SelectTrigger>
                           <SelectValue placeholder="Select business type" />
@@ -195,7 +168,9 @@
                       </Select>
                     </div>
                     <div>
-                      <Label for="businessPhone">Business Phone</Label>
+                      <Label for="businessPhone" class="mb-2"
+                        >Business Phone</Label
+                      >
                       <Input
                         id="businessPhone"
                         v-model="userProfile.businessPhone"
@@ -204,7 +179,9 @@
                     </div>
                   </div>
                   <div>
-                    <Label for="businessAddress">Business Address</Label>
+                    <Label for="businessAddress" class="mb-2"
+                      >Business Address</Label
+                    >
                     <Textarea
                       id="businessAddress"
                       v-model="userProfile.businessAddress"
@@ -278,154 +255,6 @@
                     Delete Account
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <!-- General Settings -->
-          <Card v-if="activeSection === 'general'">
-            <CardHeader>
-              <CardTitle>General Settings</CardTitle>
-              <CardDescription
-                >Manage your basic account information and
-                preferences</CardDescription
-              >
-            </CardHeader>
-            <CardContent class="space-y-6">
-              <!-- Business Information -->
-              <div class="space-y-4">
-                <h3 class="text-lg font-medium">Business Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label for="businessName">Business Name</Label>
-                    <Input
-                      id="businessName"
-                      v-model="settings.general.businessName"
-                      placeholder="Your business name"
-                    />
-                  </div>
-                  <div>
-                    <Label for="businessType">Business Type</Label>
-                    <Select v-model="settings.general.businessType">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select business type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bakery">Bakery</SelectItem>
-                        <SelectItem value="restaurant">Restaurant</SelectItem>
-                        <SelectItem value="cafe">Cafe</SelectItem>
-                        <SelectItem value="catering">Catering</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label for="businessEmail">Business Email</Label>
-                    <Input
-                      id="businessEmail"
-                      v-model="settings.general.businessEmail"
-                      type="email"
-                      placeholder="business@example.com"
-                    />
-                  </div>
-                  <div>
-                    <Label for="businessPhone">Business Phone</Label>
-                    <Input
-                      id="businessPhone"
-                      v-model="settings.general.businessPhone"
-                      placeholder="+62 21-1234-5678"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label for="businessAddress">Business Address</Label>
-                  <Textarea
-                    id="businessAddress"
-                    v-model="settings.general.businessAddress"
-                    placeholder="Enter your complete business address"
-                    rows="3"
-                  />
-                </div>
-              </div>
-
-              <!-- Timezone & Currency -->
-              <div class="space-y-4">
-                <h3 class="text-lg font-medium">Regional Settings</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label for="timezone">Timezone</Label>
-                    <Select v-model="settings.general.timezone">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select timezone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Asia/Jakarta"
-                          >Asia/Jakarta (WIB)</SelectItem
-                        >
-                        <SelectItem value="Asia/Makassar"
-                          >Asia/Makassar (WITA)</SelectItem
-                        >
-                        <SelectItem value="Asia/Jayapura"
-                          >Asia/Jayapura (WIT)</SelectItem
-                        >
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label for="currency">Currency</Label>
-                    <Select v-model="settings.general.currency">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="IDR"
-                          >Indonesian Rupiah (IDR)</SelectItem
-                        >
-                        <SelectItem value="USD">US Dollar (USD)</SelectItem>
-                        <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Language & Date Format -->
-              <div class="space-y-4">
-                <h3 class="text-lg font-medium">Display Preferences</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label for="language">Language</Label>
-                    <Select v-model="settings.general.language">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="id">Bahasa Indonesia</SelectItem>
-                        <SelectItem value="en">English</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label for="dateFormat">Date Format</Label>
-                    <Select v-model="settings.general.dateFormat">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select date format" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
-                        <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
-                        <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex justify-end">
-                <Button @click="saveGeneralSettings">
-                  <Save class="mr-2 h-4 w-4" />
-                  Save Changes
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1094,6 +923,9 @@ definePageMeta({
   middleware: "auth",
 });
 
+// Get User Data
+const { user } = useAuth();
+
 // Active section
 const activeSection = ref("account");
 
@@ -1111,7 +943,6 @@ const settingSections = [
     badge: "2FA",
     badgeVariant: "default",
   },
-  { id: "general", name: "General", icon: SettingsIcon },
   { id: "notifications", name: "Notifications", icon: Bell },
   { id: "security", name: "Security", icon: Shield },
   { id: "integrations", name: "Integrations", icon: Plug },

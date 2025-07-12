@@ -1012,6 +1012,11 @@ definePageMeta({
   middleware: "auth",
 });
 
+const nuxtApp = useNuxtApp();
+
+// Get User Data
+const user = nuxtApp.$auth.user;
+
 // State
 const activeTab = ref("personal");
 const showAvatarModal = ref(false);

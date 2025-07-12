@@ -26,7 +26,7 @@
     <!-- Approval Interface (Only for Owner/Manager) -->
     <div v-else>
       <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
+      <div class="flex items-center justify-between">
         <HeadersContent
           title="Expense Approval Center"
           description="Review and approve pending expense requests"
@@ -45,52 +45,70 @@
 
       <!-- Approval Summary -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <!-- Pending Expenses -->
         <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center">
-              <Clock class="mr-2 h-4 w-4 text-orange-600" />
-              Pending Review
-            </CardTitle>
+          <CardHeader
+            class="flex flex-row items-center justify-between space-y-0"
+          >
+            <CardTitle class="text-sm font-medium">Pending Review</CardTitle>
+            <Clock />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-orange-600">
+            <div class="text-xl font-bold">
               {{ pendingExpenses.length }}
             </div>
             <p class="text-xs text-muted-foreground">Awaiting your approval</p>
           </CardContent>
         </Card>
 
+        <!-- Total Amount -->
         <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center">
-              <DollarSign class="mr-2 h-4 w-4 text-blue-600" />
-              Total Amount
-            </CardTitle>
+          <CardHeader
+            class="flex flex-row items-center justify-between space-y-0"
+          >
+            <CardTitle class="text-sm font-medium">Total Amount</CardTitle>
+            <DollarSign />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-blue-600">
+            <div class="text-xl font-bold">
               Rp {{ formatPrice(totalPendingAmount) }}
             </div>
             <p class="text-xs text-muted-foreground">Pending approval value</p>
           </CardContent>
         </Card>
 
+        <!-- Approved Today -->
         <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center">
-              <CheckCircle class="mr-2 h-4 w-4 text-green-600" />
-              Approved Today
-            </CardTitle>
+          <CardHeader
+            class="flex flex-row items-center justify-between space-y-0"
+          >
+            <CardTitle class="text-sm font-medium">Approved Today</CardTitle>
+            <CheckCircle class="text-green-500" />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold text-green-600">
+            <div class="text-xl font-bold text-green-600">
               {{ todayApprovedCount }}
             </div>
             <p class="text-xs text-muted-foreground">Expenses approved</p>
           </CardContent>
         </Card>
 
+        <!-- Rejected Today -->
         <Card>
+          <CardHeader
+            class="flex flex-row items-center justify-between space-y-0"
+          >
+            <CardTitle class="text-sm font-medium">Rejected Today</CardTitle>
+            <XCircle class="text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div class="text-xl font-bold text-red-600">
+              {{ todayRejectedCount }}
+            </div>
+            <p class="text-xs text-muted-foreground">Expenses rejected</p>
+          </CardContent>
+        </Card>
+        <!-- <Card>
           <CardHeader class="pb-2">
             <CardTitle class="text-sm font-medium flex items-center">
               <XCircle class="mr-2 h-4 w-4 text-red-600" />
@@ -103,7 +121,7 @@
             </div>
             <p class="text-xs text-muted-foreground">Expenses rejected</p>
           </CardContent>
-        </Card>
+        </Card> -->
       </div>
 
       <!-- Pending Expenses Table -->
@@ -133,7 +151,7 @@
               <TableRow>
                 <TableHead>Expense Details</TableHead>
                 <TableHead>Submitted By</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead class="text-right">Amount</TableHead>
                 <TableHead>Date Submitted</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Actions</TableHead>
@@ -187,7 +205,7 @@
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div class="font-bold text-lg">
+                  <div class="font-bold text-md">
                     Rp {{ formatPrice(expense.amount) }}
                   </div>
                   <div class="text-xs text-muted-foreground">
@@ -451,7 +469,7 @@ const pendingExpenses = computed(() => {
       expenseId: "EXP-003",
       description: "Office Electricity Bill",
       category: "utilities",
-      amount: 2500000,
+      amount: 2500000000,
       vendor: "PLN",
       submittedBy: "Admin",
       department: "Operations",

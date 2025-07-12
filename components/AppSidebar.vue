@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import {
-  BookOpen,
-  Bot,
   Command,
-  Frame,
   LifeBuoy,
-  Map,
   PieChart,
   Send,
   Settings2,
-  SquareTerminal,
   Package2,
   Users,
-  LogOut,
   ShoppingBasket,
 } from "lucide-vue-next";
 
@@ -49,7 +43,7 @@ const data = {
       title: "Products",
       url: "/products/productDashboard",
       icon: Package2,
-      isActive: true,
+      isActive: false,
       items: [
         {
           title: "List Products",
@@ -93,7 +87,7 @@ const data = {
       title: "Customers",
       url: "/customers/customerDashboard",
       icon: Users,
-      isActive: true,
+      isActive: false,
       items: [
         {
           title: "List Customer",
