@@ -123,6 +123,10 @@ const data = {
           title: "Transactions",
           url: "/finance/transactions",
         },
+        {
+          title: "Approvals",
+          url: "/finance/approval",
+        },
       ],
     },
     {
