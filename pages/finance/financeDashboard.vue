@@ -53,7 +53,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
-          <TrendingUp />
+          <TrendingUp class="text-green-500" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-green-600">
@@ -81,7 +81,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Total Expenses</CardTitle>
-          <TrendingDown />
+          <TrendingDown class="text-red-500" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-red-600">
@@ -112,12 +112,7 @@
           <DollarSign />
         </CardHeader>
         <CardContent>
-          <div
-            class="text-xl font-bold"
-            :class="
-              financialData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
-            "
-          >
+          <div class="text-xl font-bold">
             Rp {{ formatPrice(financialData.netProfit) }}
           </div>
           <p class="text-xs text-muted-foreground">
@@ -140,12 +135,7 @@
           <Wallet />
         </CardHeader>
         <CardContent>
-          <div
-            class="text-xl font-bold"
-            :class="
-              financialData.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'
-            "
-          >
+          <div class="text-xl font-bold">
             Rp {{ formatPrice(financialData.cashFlow) }}
           </div>
           <p class="text-xs text-muted-foreground">Current cash position</p>
@@ -208,7 +198,7 @@
     </div>
 
     <!-- Recent Transactions -->
-    <Card>
+    <Card class="mb-4">
       <CardHeader class="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Recent Transactions</CardTitle>

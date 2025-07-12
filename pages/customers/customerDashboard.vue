@@ -45,7 +45,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Total Customer </CardTitle>
-          <Users class="text-blue-500" />
+          <Users class="" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold">{{ metrics.totalCustomers }}</div>
@@ -115,7 +115,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Average CLV </CardTitle>
-          <TrendingUp class="text-purple-500" />
+          <TrendingUp class="" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold">
