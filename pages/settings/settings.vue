@@ -943,6 +943,7 @@ const settingSections = [
     badge: "2FA",
     badgeVariant: "default",
   },
+  { id: "general", name: "General", icon: SettingsIcon },
   { id: "notifications", name: "Notifications", icon: Bell },
   { id: "security", name: "Security", icon: Shield },
   { id: "integrations", name: "Integrations", icon: Plug },

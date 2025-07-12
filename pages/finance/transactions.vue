@@ -1,7 +1,7 @@
 <template>
-  <div class="container mx-auto px-4">
+  <div class="container mx-auto px-4 min-w-full">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between">
       <HeadersContent
         title="Transaction Management"
         description="Monitor all financial transactions and cash flow"
@@ -49,11 +49,11 @@
                 <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="sales">Sales</SelectItem>
                 <SelectItem value="materials">Materials</SelectItem>
-                <SelectItem value="labor">Labor</SelectItem>
+                <SelectItem value="labor">Labor costs</SelectItem>
                 <SelectItem value="operational">Operational</SelectItem>
                 <SelectItem value="marketing">Marketing</SelectItem>
                 <SelectItem value="utilities">Utilities</SelectItem>
-                <SelectItem value="transport">Transport</SelectItem>
+                <SelectItem value="transport">Transportation</SelectItem>
                 <SelectItem value="others">Others</SelectItem>
               </SelectContent>
             </Select>
@@ -105,7 +105,7 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium"> Total Income </CardTitle>
-          <TrendingUp />
+          <TrendingUp class="text-green-500" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-green-600">
@@ -124,7 +124,7 @@
           <CardTitle class="text-sm font-medium flex items-center">
             Total Expenses
           </CardTitle>
-          <TrendingDown />
+          <TrendingDown class="text-red-500" />
         </CardHeader>
         <CardContent>
           <div class="text-xl font-bold text-red-600">
@@ -398,24 +398,36 @@
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="sales">Sales</SelectItem>
-                  <SelectItem value="materials">Materials</SelectItem>
-                  <SelectItem value="labor">Labor</SelectItem>
+                  <SelectItem value="materials">Raw Materials</SelectItem>
+                  <SelectItem value="labor">Labor Costs</SelectItem>
                   <SelectItem value="operational">Operational</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="transport">Transport</SelectItem>
+                  <SelectItem value="transportation">Transportation</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
-          <div>
-            <Label for="description" class="mb-2">Description *</Label>
-            <Input
-              id="description"
-              v-model="transactionForm.description"
-              required
-            />
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label for="entity" class="mb-2"
+                >Vendor/Supplier/Customer *</Label
+              >
+              <Input
+                id="description"
+                v-model="transactionForm.entity"
+                required
+              />
+            </div>
+            <div>
+              <Label for="description" class="mb-2">Description *</Label>
+              <Input
+                id="description"
+                v-model="transactionForm.description"
+                required
+              />
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -469,16 +481,17 @@
             </div>
           </div>
           <div>
-            <Label for="reference" class="mb-2">Reference Number</Label>
-            <Input
-              id="reference"
-              v-model="transactionForm.reference"
-              placeholder="Order ID, Invoice number, etc."
-            />
-          </div>
-          <div>
             <Label for="notes" class="mb-2">Notes</Label>
             <Textarea id="notes" v-model="transactionForm.notes" rows="3" />
+          </div>
+          <div>
+            <Label for="receipt" class="mb-2">Receipt/Invoice</Label>
+            <Input
+              id="receipt"
+              type="file"
+              accept="image/*,application/pdf"
+              @change="handleFileUpload"
+            />
           </div>
           <div class="flex justify-end space-x-2">
             <Button
@@ -542,9 +555,15 @@
               </Badge>
             </div>
           </div>
-          <div>
-            <Label class="font-medium mb-2">Description</Label>
-            <p>{{ selectedTransaction.description }}</p>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="font-medium mb-2">Vendor/Supplier/Customer</Label>
+              <p>{{ selectedTransaction.entity }}</p>
+            </div>
+            <div>
+              <Label class="font-medium mb-2">Description</Label>
+              <p>{{ selectedTransaction.description }}</p>
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -670,6 +689,7 @@ const filters = reactive({
 const transactionForm = reactive({
   type: "",
   category: "",
+  entity: "",
   description: "",
   amount: "",
   date: "",
@@ -677,6 +697,7 @@ const transactionForm = reactive({
   status: "completed",
   reference: "",
   notes: "",
+  receipt: null,
 });
 
 const transactions = ref([
@@ -684,6 +705,7 @@ const transactions = ref([
     id: 1,
     transactionId: "TXN-001",
     type: "income",
+    entity: "John Doe",
     description: "Order Payment - ORD-001",
     category: "sales",
     amount: 2500000,
@@ -697,6 +719,7 @@ const transactions = ref([
     id: 2,
     transactionId: "TXN-002",
     type: "expense",
+    entity: "Supplier A",
     description: "Raw Material Purchase - Flour & Sugar",
     category: "materials",
     amount: 1200000,
@@ -710,6 +733,7 @@ const transactions = ref([
     id: 3,
     transactionId: "TXN-003",
     type: "expense",
+    entity: "Production Team",
     description: "Employee Salary - Production Team",
     category: "labor",
     amount: 8000000,
@@ -723,6 +747,7 @@ const transactions = ref([
     id: 4,
     transactionId: "TXN-004",
     type: "expense",
+    entity: "Office Landlord",
     description: "Office Rent Payment",
     category: "operational",
     amount: 3000000,
@@ -736,6 +761,7 @@ const transactions = ref([
     id: 5,
     transactionId: "TXN-005",
     type: "income",
+    entity: "Jane Smith",
     description: "Order Payment - ORD-002",
     category: "sales",
     amount: 1800000,
@@ -749,6 +775,7 @@ const transactions = ref([
     id: 6,
     transactionId: "TXN-006",
     type: "expense",
+    entity: "Marketing Agency",
     description: "Marketing Campaign - Social Media Ads",
     category: "marketing",
     amount: 500000,
@@ -762,6 +789,7 @@ const transactions = ref([
     id: 7,
     transactionId: "TXN-007",
     type: "expense",
+    entity: "Electricity Company",
     description: "Electricity Bill",
     category: "utilities",
     amount: 750000,
@@ -775,6 +803,7 @@ const transactions = ref([
     id: 8,
     transactionId: "TXN-008",
     type: "expense",
+    entity: "Delivery Service",
     description: "Delivery Service",
     category: "transport",
     amount: 300000,
@@ -977,6 +1006,7 @@ const editTransaction = (transaction) => {
   Object.assign(transactionForm, {
     type: transaction.type,
     category: transaction.category,
+    entity: transaction.entity,
     description: transaction.description,
     amount: transaction.amount,
     date: new Date(transaction.date).toISOString().slice(0, 16),
@@ -1032,6 +1062,7 @@ const closeTransactionModal = () => {
   Object.assign(transactionForm, {
     type: "",
     category: "",
+    entity: "",
     description: "",
     amount: "",
     date: "",
@@ -1039,7 +1070,15 @@ const closeTransactionModal = () => {
     status: "completed",
     reference: "",
     notes: "",
+    receipt: null,
   });
+};
+
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    expenseForm.receipt = file;
+  }
 };
 
 const exportTransactions = () => {

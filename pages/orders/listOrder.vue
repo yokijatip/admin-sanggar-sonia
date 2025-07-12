@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto">
+  <div class="container mx-auto min-w-full">
     <!-- Title and Button -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent

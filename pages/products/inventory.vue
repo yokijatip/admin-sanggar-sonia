@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto px-4 space-y-6">
+  <div class="container mx-auto min-w-full">
     <!-- Header -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent
@@ -19,16 +19,16 @@
     </div>
 
     <!-- Stock Overview Cards -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-4">
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4 px-4 mb-6">
       <Card>
         <CardHeader
           class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Total Items</CardTitle>
-          <Package class="h-4 w-4 text-muted-foreground" />
+          <Package />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">{{ totalItems }}</div>
+          <div class="text-xl font-bold">{{ totalItems }}</div>
           <p class="text-xs text-muted-foreground">Active products</p>
         </CardContent>
       </Card>
@@ -38,10 +38,10 @@
           class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Low Stock Items</CardTitle>
-          <AlertTriangle class="h-4 w-4 text-orange-500" />
+          <AlertTriangle />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-orange-600">
+          <div class="text-xl font-bold text-orange-600">
             {{ lowStockCount }}
           </div>
           <p class="text-xs text-muted-foreground">Need reorder</p>
@@ -53,10 +53,10 @@
           class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Out of Stock</CardTitle>
-          <XCircle class="h-4 w-4 text-red-500" />
+          <XCircle />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold text-red-600">
+          <div class="text-xl font-bold text-red-600">
             {{ outOfStockCount }}
           </div>
           <p class="text-xs text-muted-foreground">Items unavailable</p>
@@ -68,10 +68,10 @@
           class="flex flex-row items-center justify-between space-y-0 pb-2"
         >
           <CardTitle class="text-sm font-medium">Total Value</CardTitle>
-          <DollarSign class="h-4 w-4 text-muted-foreground" />
+          <DollarSign />
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold">
+          <div class="text-xl font-bold">
             ${{ totalInventoryValue.toLocaleString() }}
           </div>
           <p class="text-xs text-muted-foreground">Current inventory value</p>
@@ -89,7 +89,7 @@
     </div>
 
     <!-- Filters and Search -->
-    <div class="flex flex-wrap items-center gap-4 px-4">
+    <div class="flex flex-wrap items-center gap-4 px-4 mb-4">
       <div class="relative flex-1 max-w-sm">
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input

@@ -1,5 +1,5 @@
 <template>
-  <div class="container mx-auto">
+  <div class="container mx-auto min-w-full">
     <!-- Header -->
     <div class="px-4 mb-6">
       <HeadersContent

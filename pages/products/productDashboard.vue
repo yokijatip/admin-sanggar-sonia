@@ -1,6 +1,6 @@
 <template>
-  <div class="container mx-auto px-4">
-    <div class="max-w-7xl mx-auto space-y-6">
+  <div class="container mx-auto px-4 min-w-full">
+    <div class="mx-auto space-y-6">
       <!-- Header -->
       <HeadersContent
         title="Product Dashboard"
@@ -39,10 +39,10 @@
             class="flex flex-row items-center justify-between space-y-0 pb-2"
           >
             <CardTitle class="text-sm font-medium">Total Products</CardTitle>
-            <Package class="h-4 w-4 text-muted-foreground" />
+            <Package />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ stats.totalProducts }}</div>
+            <div class="text-xl font-bold">{{ stats.totalProducts }}</div>
             <p class="text-xs text-muted-foreground">
               <span class="text-green-600"
                 >+{{ stats.totalProductsGrowth }}%</span
@@ -57,10 +57,10 @@
             class="flex flex-row items-center justify-between space-y-0 pb-2"
           >
             <CardTitle class="text-sm font-medium">Active Products</CardTitle>
-            <ShoppingCart class="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ stats.activeProducts }}</div>
+            <div class="text-xl font-bold">{{ stats.activeProducts }}</div>
             <p class="text-xs text-muted-foreground">
               <span class="text-green-600"
                 >+{{ stats.activeProductsGrowth }}%</span
@@ -75,10 +75,10 @@
             class="flex flex-row items-center justify-between space-y-0 pb-2"
           >
             <CardTitle class="text-sm font-medium">Low Stock Items</CardTitle>
-            <AlertTriangle class="h-4 w-4 text-muted-foreground" />
+            <AlertTriangle />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">{{ stats.lowStockItems }}</div>
+            <div class="text-xl font-bold">{{ stats.lowStockItems }}</div>
             <p class="text-xs text-muted-foreground">
               <span class="text-red-600">+{{ stats.lowStockGrowth }}</span>
               requires attention
@@ -91,10 +91,10 @@
             class="flex flex-row items-center justify-between space-y-0 pb-2"
           >
             <CardTitle class="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign class="h-4 w-4 text-muted-foreground" />
+            <DollarSign />
           </CardHeader>
           <CardContent>
-            <div class="text-2xl font-bold">
+            <div class="text-xl font-bold">
               Rp {{ formatCurrency(stats.totalRevenue) }}
             </div>
             <p class="text-xs text-muted-foreground">
@@ -252,7 +252,7 @@
       </div>
 
       <!-- Inventory Alerts -->
-      <Card>
+      <Card class="mb-4">
         <CardHeader class="flex flex-row items-center justify-between">
           <div>
             <CardTitle class="flex items-center gap-2">

@@ -1,7 +1,7 @@
 <template>
-  <div class="container mx-auto px-4">
+  <div class="container mx-auto px-4 min-w-full">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between">
       <HeadersContent
         title="Expense Management"
         description="Track and manage your business expenses"
@@ -241,7 +241,7 @@
                   <SelectItem value="operational">Operational</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="utilities">Utilities</SelectItem>
-                  <SelectItem value="transport">Transportation</SelectItem>
+                  <SelectItem value="transportation">Transportation</SelectItem>
                   <SelectItem value="others">Others</SelectItem>
                 </SelectContent>
               </Select>
