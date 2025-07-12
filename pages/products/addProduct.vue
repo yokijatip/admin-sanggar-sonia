@@ -293,6 +293,10 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Tambahkan ini di bagian script setup
 const config = useRuntimeConfig();
 
@@ -681,7 +685,6 @@ const handleSubmit = async () => {
     console.log("Submitted product data:", productData);
 
     await addDoc(collection($firebase.firestore, "products"), productData);
-
 
     // Success
     showMessage("Product added successfully!", "success");

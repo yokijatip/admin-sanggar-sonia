@@ -1,8 +1,12 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
 
-  if (loading.value) return;
+  // Tunggu auth state initialized
+  if (!initialized.value || loading.value) {
+    return;
+  }
 
+  // Jika user tidak ada, redirect ke login
   if (!user.value) {
     return navigateTo("/login");
   }
@@ -10,7 +14,7 @@ export default defineNuxtRouteMiddleware((to) => {
   // Ambil role yang dibutuhkan dari meta
   const requiredRole = to.meta.requiredRole;
 
-  // Kalau tidak sesuai role, redirect
+  // Jika ada role requirement dan user tidak memenuhi
   if (
     requiredRole &&
     user.value.role !== requiredRole &&

@@ -20,7 +20,12 @@
           </Button>
         </div>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" @click="refreshData" :disabled="loading">
+          <Button
+            variant="outline"
+            size="sm"
+            @click="refreshData"
+            :disabled="loading"
+          >
             <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
             Refresh
           </Button>
@@ -39,7 +44,10 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.totalProducts }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+{{ stats.totalProductsGrowth }}%</span> from last month
+              <span class="text-green-600"
+                >+{{ stats.totalProductsGrowth }}%</span
+              >
+              from last month
             </p>
           </CardContent>
         </Card>
@@ -54,7 +62,10 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.activeProducts }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+{{ stats.activeProductsGrowth }}%</span> from last month
+              <span class="text-green-600"
+                >+{{ stats.activeProductsGrowth }}%</span
+              >
+              from last month
             </p>
           </CardContent>
         </Card>
@@ -69,7 +80,8 @@
           <CardContent>
             <div class="text-2xl font-bold">{{ stats.lowStockItems }}</div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-red-600">+{{ stats.lowStockGrowth }}</span> requires attention
+              <span class="text-red-600">+{{ stats.lowStockGrowth }}</span>
+              requires attention
             </p>
           </CardContent>
         </Card>
@@ -86,24 +98,31 @@
               Rp {{ formatCurrency(stats.totalRevenue) }}
             </div>
             <p class="text-xs text-muted-foreground">
-              <span class="text-green-600">+{{ stats.revenueGrowth }}%</span> from last month
+              <span class="text-green-600">+{{ stats.revenueGrowth }}%</span>
+              from last month
             </p>
           </CardContent>
         </Card>
       </div>
 
       <!-- Charts and Categories Section -->
-          <div class="grid gap-4 md:grid-cols-3">
-            <!-- Sales Overview Chart -->
-            <Card class="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Overview</CardTitle>
-                <CardDescription>Grafik penjualan bulanan</CardDescription>
-              </CardHeader>
-              <CardContent>
+      <div class="grid gap-4 md:grid-cols-3">
+        <!-- Sales Overview Chart -->
+        <Card class="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Overview</CardTitle>
+            <CardDescription>Grafik penjualan bulanan</CardDescription>
+          </CardHeader>
+          <CardContent>
             <div class="h-80">
-              <OverviewChart :data="chartData" v-if="chartData.datasets.length > 0" />
-              <div v-else class="flex items-center justify-center h-full text-muted-foreground">
+              <OverviewChart
+                :data="chartData"
+                v-if="chartData.datasets.length > 0"
+              />
+              <div
+                v-else
+                class="flex items-center justify-center h-full text-muted-foreground"
+              >
                 <div class="text-center">
                   <Loader2 class="h-8 w-8 animate-spin mx-auto mb-2" />
                   <p>Loading chart data...</p>
@@ -111,7 +130,7 @@
               </div>
             </div>
           </CardContent>
-            </Card>
+        </Card>
 
         <!-- Top Categories -->
         <Card>
@@ -150,7 +169,9 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Recent Activity</CardTitle>
-            <Button variant="ghost" size="sm" @click="viewAllActivities"> View all </Button>
+            <Button variant="ghost" size="sm" @click="viewAllActivities">
+              View all
+            </Button>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
@@ -184,7 +205,9 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Top Products</CardTitle>
-            <Button variant="ghost" size="sm" @click="viewAllProducts"> View all </Button>
+            <Button variant="ghost" size="sm" @click="viewAllProducts">
+              View all
+            </Button>
           </CardHeader>
           <CardContent>
             <div class="space-y-4">
@@ -200,7 +223,9 @@
                   @error="handleImageError"
                 />
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium truncate">{{ product.title }}</p>
+                  <p class="text-sm font-medium truncate">
+                    {{ product.title }}
+                  </p>
                   <p class="text-sm text-muted-foreground">
                     Stock: {{ product.stock }}
                   </p>
@@ -209,8 +234,12 @@
                   <p class="text-sm font-bold">
                     Rp {{ formatCurrency(product.price) }}
                   </p>
-                  <Badge 
-                    :variant="product.statusProduct === 'active' ? 'default' : 'secondary'" 
+                  <Badge
+                    :variant="
+                      product.statusProduct === 'active'
+                        ? 'default'
+                        : 'secondary'
+                    "
                     class="text-xs"
                   >
                     {{ product.statusProduct }}
@@ -299,25 +328,27 @@
                     <TableCell>{{ alert.minLevel }}</TableCell>
                     <TableCell>
                       <Badge
-                        :variant="alert.stock === 0 ? 'destructive' : 'secondary'"
+                        :variant="
+                          alert.stock === 0 ? 'destructive' : 'secondary'
+                        "
                       >
-                        {{ alert.stock === 0 ? 'Out of Stock' : 'Low Stock' }}
+                        {{ alert.stock === 0 ? "Out of Stock" : "Low Stock" }}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div class="flex items-center gap-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           class="gap-1"
                           @click="openRestockModal(alert)"
                         >
                           <History class="h-3 w-3" />
                           Restock
                         </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
+                        <Button
+                          size="sm"
+                          variant="ghost"
                           class="gap-1"
                           @click="openEditModal(alert)"
                         >
@@ -333,14 +364,20 @@
 
             <!-- No alerts message -->
             <div v-if="filteredAlerts.length === 0" class="text-center py-8">
-              <AlertTriangle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <AlertTriangle
+                class="h-12 w-12 text-muted-foreground mx-auto mb-4"
+              />
               <p class="text-muted-foreground">No inventory alerts found</p>
             </div>
 
             <!-- Pagination -->
-            <div class="flex items-center justify-between" v-if="filteredAlerts.length > 0">
+            <div
+              class="flex items-center justify-between"
+              v-if="filteredAlerts.length > 0"
+            >
               <p class="text-sm text-muted-foreground">
-                Showing {{ filteredAlerts.length }} of {{ inventoryAlerts.length }} alerts
+                Showing {{ filteredAlerts.length }} of
+                {{ inventoryAlerts.length }} alerts
               </p>
               <div class="flex items-center gap-2">
                 <Button variant="outline" size="sm" disabled>
@@ -370,17 +407,21 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label class="text-sm font-medium">Product</Label>
-              <p class="text-sm text-muted-foreground">{{ selectedProduct.title }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ selectedProduct.title }}
+              </p>
             </div>
             <div>
               <Label class="text-sm font-medium">Current Stock</Label>
-              <p class="text-sm text-muted-foreground font-semibold">{{ selectedProduct.stock }} units</p>
+              <p class="text-sm text-muted-foreground font-semibold">
+                {{ selectedProduct.stock }} units
+              </p>
             </div>
           </div>
           <div>
             <Label class="text-sm font-medium">Add Quantity *</Label>
-            <Input 
-              v-model="restockForm.quantity" 
+            <Input
+              v-model="restockForm.quantity"
               type="number"
               placeholder="Enter quantity to add"
               min="1"
@@ -389,8 +430,8 @@
           </div>
           <div>
             <Label class="text-sm font-medium">Reason</Label>
-            <Textarea 
-              v-model="restockForm.reason" 
+            <Textarea
+              v-model="restockForm.reason"
               placeholder="Enter reason for restocking (optional)"
               rows="2"
               :disabled="restockLoading"
@@ -398,18 +439,28 @@
           </div>
           <div class="p-3 bg-muted rounded-lg">
             <p class="text-sm">
-              <span class="font-medium">New Stock:</span> 
-              {{ selectedProduct.stock + (parseInt(restockForm.quantity) || 0) }} units
+              <span class="font-medium">New Stock:</span>
+              {{
+                selectedProduct.stock + (parseInt(restockForm.quantity) || 0)
+              }}
+              units
             </p>
           </div>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="closeRestockModal" :disabled="restockLoading">
+          <AlertDialogCancel
+            @click="closeRestockModal"
+            :disabled="restockLoading"
+          >
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction 
-            @click="handleRestock" 
-            :disabled="restockLoading || !restockForm.quantity || restockForm.quantity <= 0"
+          <AlertDialogAction
+            @click="handleRestock"
+            :disabled="
+              restockLoading ||
+              !restockForm.quantity ||
+              restockForm.quantity <= 0
+            "
           >
             <Loader2 v-if="restockLoading" class="h-4 w-4 mr-2 animate-spin" />
             Restock
@@ -431,16 +482,12 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label class="text-sm font-medium">Product ID</Label>
-              <Input 
-                :value="selectedProduct.id" 
-                disabled 
-                class="bg-muted"
-              />
+              <Input :value="selectedProduct.id" disabled class="bg-muted" />
             </div>
             <div>
               <Label class="text-sm font-medium">Title *</Label>
-              <Input 
-                v-model="editForm.title" 
+              <Input
+                v-model="editForm.title"
                 placeholder="Enter product title"
                 :disabled="editLoading"
               />
@@ -452,7 +499,7 @@
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem 
+                  <SelectItem
                     v-for="category in categories"
                     :key="category.id"
                     :value="category.id"
@@ -464,8 +511,8 @@
             </div>
             <div>
               <Label class="text-sm font-medium">Price *</Label>
-              <Input 
-                v-model="editForm.price" 
+              <Input
+                v-model="editForm.price"
                 type="number"
                 placeholder="Enter price"
                 :disabled="editLoading"
@@ -473,8 +520,8 @@
             </div>
             <div>
               <Label class="text-sm font-medium">Stock *</Label>
-              <Input 
-                v-model="editForm.stock" 
+              <Input
+                v-model="editForm.stock"
                 type="number"
                 placeholder="Enter stock quantity"
                 :disabled="editLoading"
@@ -482,8 +529,8 @@
             </div>
             <div>
               <Label class="text-sm font-medium">Min Level</Label>
-              <Input 
-                v-model="editForm.minLevel" 
+              <Input
+                v-model="editForm.minLevel"
                 type="number"
                 placeholder="Enter minimum stock level"
                 :disabled="editLoading"
@@ -504,8 +551,8 @@
           </div>
           <div>
             <Label class="text-sm font-medium">Description</Label>
-            <Textarea 
-              v-model="editForm.description" 
+            <Textarea
+              v-model="editForm.description"
               placeholder="Enter product description"
               rows="3"
               :disabled="editLoading"
@@ -516,8 +563,8 @@
           <AlertDialogCancel @click="closeEditModal" :disabled="editLoading">
             Cancel
           </AlertDialogCancel>
-          <AlertDialogAction 
-            @click="handleEdit" 
+          <AlertDialogAction
+            @click="handleEdit"
             :disabled="editLoading || !editForm.title || !editForm.category"
           >
             <Loader2 v-if="editLoading" class="h-4 w-4 mr-2 animate-spin" />
@@ -533,7 +580,13 @@
 import { ref, computed, onMounted, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -579,6 +632,10 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
+
+definePageMeta({
+  middleware: "auth",
+});
 
 const { $firebase } = useNuxtApp();
 
@@ -628,8 +685,18 @@ const stats = ref({
 // Chart data
 const chartData = ref({
   labels: [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
   ],
   datasets: [],
 });
@@ -645,8 +712,8 @@ const topProducts = ref([]);
 
 // Computed properties
 const inventoryAlerts = computed(() => {
-  return allProducts.value.filter(product => 
-    product.stock <= (product.minLevel) || product.stock === 0
+  return allProducts.value.filter(
+    (product) => product.stock <= product.minLevel || product.stock === 0
   );
 });
 
@@ -656,19 +723,22 @@ const filteredAlerts = computed(() => {
   // Filter by search query
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(alert =>
-      alert.title?.toLowerCase().includes(query) ||
-      alert.id?.toLowerCase().includes(query) ||
-      getCategoryName(alert.category).toLowerCase().includes(query)
+    filtered = filtered.filter(
+      (alert) =>
+        alert.title?.toLowerCase().includes(query) ||
+        alert.id?.toLowerCase().includes(query) ||
+        getCategoryName(alert.category).toLowerCase().includes(query)
     );
   }
 
   // Filter by alert status
   if (selectedAlertFilter.value !== "all") {
     if (selectedAlertFilter.value === "out") {
-      filtered = filtered.filter(alert => alert.stock === 0);
+      filtered = filtered.filter((alert) => alert.stock === 0);
     } else if (selectedAlertFilter.value === "low") {
-      filtered = filtered.filter(alert => alert.stock > 0 && alert.stock <= (alert.minLevel));
+      filtered = filtered.filter(
+        (alert) => alert.stock > 0 && alert.stock <= alert.minLevel
+      );
     }
   }
 
@@ -681,7 +751,9 @@ const filteredProducts = computed(() => {
 
   // Filter by status
   if (selectedStatusFilter.value !== "all") {
-    filtered = filtered.filter(product => product.statusProduct === selectedStatusFilter.value);
+    filtered = filtered.filter(
+      (product) => product.statusProduct === selectedStatusFilter.value
+    );
   }
 
   return filtered;
@@ -690,13 +762,16 @@ const filteredProducts = computed(() => {
 // Fetch functions
 const fetchCategories = async () => {
   try {
-    const q = query(collection($firebase.firestore, "categories"), orderBy("name"));
+    const q = query(
+      collection($firebase.firestore, "categories"),
+      orderBy("name")
+    );
     const querySnapshot = await getDocs(q);
-    
-    categories.value = querySnapshot.docs.map(doc => ({
+
+    categories.value = querySnapshot.docs.map((doc) => ({
       id: doc.data().id || doc.id,
       name: doc.data().name,
-      firestoreId: doc.id
+      firestoreId: doc.id,
     }));
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -710,7 +785,7 @@ const fetchProducts = async () => {
     const q = query(productsRef, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
 
-    allProducts.value = querySnapshot.docs.map(doc => ({
+    allProducts.value = querySnapshot.docs.map((doc) => ({
       firestoreId: doc.id,
       id: doc.data().id,
       ...doc.data(),
@@ -730,9 +805,16 @@ const fetchProducts = async () => {
 
 const calculateStats = () => {
   const total = allProducts.value.length;
-  const active = allProducts.value.filter(p => p.statusProduct === 'active').length;
-  const lowStock = allProducts.value.filter(p => p.stock <= (p.minLevel)).length;
-  const totalRevenue = allProducts.value.reduce((sum, p) => sum + (p.price * p.stock), 0);
+  const active = allProducts.value.filter(
+    (p) => p.statusProduct === "active"
+  ).length;
+  const lowStock = allProducts.value.filter(
+    (p) => p.stock <= p.minLevel
+  ).length;
+  const totalRevenue = allProducts.value.reduce(
+    (sum, p) => sum + p.price * p.stock,
+    0
+  );
 
   stats.value = {
     totalProducts: total,
@@ -748,9 +830,16 @@ const calculateStats = () => {
 
 const calculateTopCategories = () => {
   const categoryCount = {};
-  const colors = ['#FF4F0F', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'];
+  const colors = [
+    "#FF4F0F",
+    "#10B981",
+    "#F59E0B",
+    "#EF4444",
+    "#8B5CF6",
+    "#06B6D4",
+  ];
 
-  allProducts.value.forEach(product => {
+  allProducts.value.forEach((product) => {
     const categoryName = getCategoryName(product.category);
     categoryCount[categoryName] = (categoryCount[categoryName] || 0) + 1;
   });
@@ -761,7 +850,7 @@ const calculateTopCategories = () => {
       name,
       count,
       percentage: total > 0 ? Math.round((count / total) * 100) : 0,
-      color: colors[index % colors.length]
+      color: colors[index % colors.length],
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
@@ -777,8 +866,18 @@ const generateChartData = () => {
 
   chartData.value = {
     labels: [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ],
     datasets: [
       {
@@ -794,7 +893,7 @@ const generateChartData = () => {
 const fetchTopProducts = () => {
   // Get top 4 products by price
   topProducts.value = allProducts.value
-    .filter(p => p.statusProduct === 'active')
+    .filter((p) => p.statusProduct === "active")
     .sort((a, b) => b.price - a.price)
     .slice(0, 4);
 };
@@ -802,7 +901,7 @@ const fetchTopProducts = () => {
 const generateRecentActivities = () => {
   const activities = [];
   const now = new Date();
-  
+
   // Generate activities based on recent products
   const recentProducts = allProducts.value
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
@@ -811,11 +910,13 @@ const generateRecentActivities = () => {
   recentProducts.forEach((product, index) => {
     const createdAt = new Date(product.createdAt);
     const timeDiff = now - createdAt;
-    
+
     activities.push({
       id: index + 1,
       title: "New product added",
-      description: `${product.title} added to ${getCategoryName(product.category)} category`,
+      description: `${product.title} added to ${getCategoryName(
+        product.category
+      )} category`,
       time: createdAt,
       icon: Plus,
       iconBg: "bg-green-50 dark:bg-green-950",
@@ -828,8 +929,8 @@ const generateRecentActivities = () => {
 
 // Helper functions
 const getCategoryName = (categoryId) => {
-  const category = categories.value.find(cat => cat.id === categoryId);
-  return category ? category.name : categoryId || 'Unknown';
+  const category = categories.value.find((cat) => cat.id === categoryId);
+  return category ? category.name : categoryId || "Unknown";
 };
 
 const formatCurrency = (amount) => {
@@ -839,7 +940,7 @@ const formatCurrency = (amount) => {
 const formatTimeAgo = (date) => {
   const now = new Date();
   const diffInMinutes = Math.floor((now - new Date(date)) / (1000 * 60));
-  
+
   if (diffInMinutes < 60) {
     return `${diffInMinutes} minutes ago`;
   } else if (diffInMinutes < 1440) {
@@ -850,7 +951,7 @@ const formatTimeAgo = (date) => {
 };
 
 const handleImageError = (event) => {
-  event.target.src = '/placeholder-product.jpg';
+  event.target.src = "/placeholder-product.jpg";
 };
 
 // Action functions
@@ -864,12 +965,18 @@ const navigateToAddProduct = () => {
 };
 
 const exportData = () => {
-  const csvContent = "data:text/csv;charset=utf-8," + 
+  const csvContent =
+    "data:text/csv;charset=utf-8," +
     "ID,Title,Category,Price,Stock,Status\n" +
-    allProducts.value.map(p => 
-      `${p.id},"${p.title}","${getCategoryName(p.category)}",${p.price},${p.stock},${p.statusProduct}`
-    ).join("\n");
-  
+    allProducts.value
+      .map(
+        (p) =>
+          `${p.id},"${p.title}","${getCategoryName(p.category)}",${p.price},${
+            p.stock
+          },${p.statusProduct}`
+      )
+      .join("\n");
+
   const encodedUri = encodeURI(csvContent);
   const link = document.createElement("a");
   link.setAttribute("href", encodedUri);
@@ -941,9 +1048,14 @@ const handleRestock = async () => {
       return;
     }
 
-    const productRef = doc($firebase.firestore, "products", selectedProduct.value.firestoreId);
-    const newStock = selectedProduct.value.stock + parseInt(restockForm.value.quantity);
-    
+    const productRef = doc(
+      $firebase.firestore,
+      "products",
+      selectedProduct.value.firestoreId
+    );
+    const newStock =
+      selectedProduct.value.stock + parseInt(restockForm.value.quantity);
+
     await updateDoc(productRef, {
       stock: newStock,
       lastRestocked: new Date().toISOString(),
@@ -951,14 +1063,15 @@ const handleRestock = async () => {
     });
 
     // Update local data
-    const productIndex = allProducts.value.findIndex(p => p.firestoreId === selectedProduct.value.firestoreId);
+    const productIndex = allProducts.value.findIndex(
+      (p) => p.firestoreId === selectedProduct.value.firestoreId
+    );
     if (productIndex !== -1) {
       allProducts.value[productIndex].stock = newStock;
     }
 
     alert("Product restocked successfully!");
     closeRestockModal();
-    
   } catch (error) {
     console.error("Error restocking product:", error);
     alert("Failed to restock product. Please try again.");
@@ -969,8 +1082,12 @@ const handleEdit = async () => {
   try {
     if (!selectedProduct.value) return;
 
-    const productRef = doc($firebase.firestore, "products", selectedProduct.value.firestoreId);
-    
+    const productRef = doc(
+      $firebase.firestore,
+      "products",
+      selectedProduct.value.firestoreId
+    );
+
     await updateDoc(productRef, {
       title: editForm.value.title,
       price: parseFloat(editForm.value.price),
@@ -983,7 +1100,9 @@ const handleEdit = async () => {
     });
 
     // Update local data
-    const productIndex = allProducts.value.findIndex(p => p.firestoreId === selectedProduct.value.firestoreId);
+    const productIndex = allProducts.value.findIndex(
+      (p) => p.firestoreId === selectedProduct.value.firestoreId
+    );
     if (productIndex !== -1) {
       allProducts.value[productIndex] = {
         ...allProducts.value[productIndex],
@@ -996,7 +1115,6 @@ const handleEdit = async () => {
 
     alert("Product updated successfully!");
     closeEditModal();
-    
   } catch (error) {
     console.error("Error updating product:", error);
     alert("Failed to update product. Please try again.");
@@ -1010,13 +1128,17 @@ onMounted(async () => {
 });
 
 // Watch for real-time updates
-watch(allProducts, () => {
-  calculateStats();
-  calculateTopCategories();
-  generateChartData();
-  fetchTopProducts();
-  generateRecentActivities();
-}, { deep: true });
+watch(
+  allProducts,
+  () => {
+    calculateStats();
+    calculateTopCategories();
+    generateChartData();
+    fetchTopProducts();
+    generateRecentActivities();
+  },
+  { deep: true }
+);
 </script>
 
 <style scoped>
@@ -1025,9 +1147,11 @@ watch(allProducts, () => {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
-
-
 </style>

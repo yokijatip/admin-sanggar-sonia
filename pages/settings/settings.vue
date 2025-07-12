@@ -1090,6 +1090,10 @@ import {
   Trash2,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Active section
 const activeSection = ref("account");
 

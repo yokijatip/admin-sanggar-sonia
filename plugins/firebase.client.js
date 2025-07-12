@@ -3,38 +3,49 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
-};
-
-let app;
-let auth;
-let db;
-let storage;
-
 export default defineNuxtPlugin(() => {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-  storage = getStorage(app);
+  const config = useRuntimeConfig();
 
-  return {
-    provide: {
-      firebase: {
-        app,
-        auth,
-        firestore: db,
-        storage,
-      },
-    },
+  const firebaseConfig = {
+    apiKey: config.public.firebaseApiKey,
+    authDomain: config.public.firebaseAuthDomain,
+    projectId: config.public.firebaseProjectId,
+    storageBucket: config.public.firebaseStorageBucket,
+    messagingSenderId: config.public.firebaseMessagingSenderId,
+    appId: config.public.firebaseAppId,
+    measurementId: config.public.firebaseMeasurementId,
   };
-});
 
-// Export for direct usage
-export { auth, db, storage };
+  // Check if all required config is available
+  if (
+    !firebaseConfig.apiKey ||
+    !firebaseConfig.authDomain ||
+    !firebaseConfig.projectId
+  ) {
+    console.error("Firebase config is missing required fields");
+    return;
+  }
+
+  try {
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    console.log("Firebase initialized successfully");
+
+    return {
+      provide: {
+        firebase: {
+          app,
+          auth,
+          firestore: db,
+          storage,
+        },
+      },
+    };
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+    throw error;
+  }
+});

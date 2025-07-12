@@ -22,16 +22,20 @@
       </div>
 
       <Select v-model="selectedCategory">
-          <SelectTrigger class="w-48">
-            <SelectValue placeholder="All Categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
-              {{ category.name }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+        <SelectTrigger class="w-48">
+          <SelectValue placeholder="All Categories" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem
+            v-for="category in categories"
+            :key="category.id"
+            :value="category.id"
+          >
+            {{ category.name }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
 
       <Select v-model="selectedStatus" @update:modelValue="filterProducts">
         <SelectTrigger class="w-36">
@@ -249,34 +253,50 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label class="text-sm font-medium">Product Name</Label>
-              <p class="text-sm text-muted-foreground">{{ currentProduct.title }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ currentProduct.title }}
+              </p>
             </div>
             <div>
               <Label class="text-sm font-medium">Category</Label>
-              <p class="text-sm text-muted-foreground">{{ getCategoryName(currentProduct.category) }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ getCategoryName(currentProduct.category) }}
+              </p>
             </div>
             <div>
               <Label class="text-sm font-medium">Price</Label>
-              <p class="text-sm text-muted-foreground">${{ currentProduct.price?.toFixed(2) }}</p>
+              <p class="text-sm text-muted-foreground">
+                ${{ currentProduct.price?.toFixed(2) }}
+              </p>
             </div>
             <div>
               <Label class="text-sm font-medium">Stock</Label>
-              <p class="text-sm text-muted-foreground">{{ currentProduct.stock }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ currentProduct.stock }}
+              </p>
             </div>
             <div>
               <Label class="text-sm font-medium">Status</Label>
-              <Badge :variant="getStatusVariant(getProductStatus(currentProduct))">
-                {{ getProductStatus(currentProduct).replace('_', ' ') }}
+              <Badge
+                :variant="getStatusVariant(getProductStatus(currentProduct))"
+              >
+                {{ getProductStatus(currentProduct).replace("_", " ") }}
               </Badge>
             </div>
           </div>
           <div>
             <Label class="text-sm font-medium">Description</Label>
-            <p class="text-sm text-muted-foreground mt-1">{{ currentProduct.description || 'No description available' }}</p>
+            <p class="text-sm text-muted-foreground mt-1">
+              {{ currentProduct.description || "No description available" }}
+            </p>
           </div>
           <div v-if="currentProduct.image">
             <Label class="text-sm font-medium">Product Image</Label>
-            <img :src="currentProduct.image" :alt="currentProduct.title" class="w-full h-48 object-cover rounded mt-2" />
+            <img
+              :src="currentProduct.image"
+              :alt="currentProduct.title"
+              class="w-full h-48 object-cover rounded mt-2"
+            />
           </div>
         </div>
       </DialogContent>
@@ -308,7 +328,11 @@
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="category in categories" :key="category.id" :value="category.id">
+                  <SelectItem
+                    v-for="category in categories"
+                    :key="category.id"
+                    :value="category.id"
+                  >
                     {{ category.name }}
                   </SelectItem>
                 </SelectContent>
@@ -401,8 +425,6 @@
       </div>
     </div>
 
-    
-
     <!-- Delete Confirmation Dialog -->
     <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent>
@@ -458,9 +480,6 @@
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
-
-    
-    
   </div>
 </template>
 
@@ -522,32 +541,39 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Firebase
 const { $firebase } = useNuxtApp();
 
 //categories
-const categories = ref([])
+const categories = ref([]);
 
 // Fetch categories from Firebase
 const fetchCategories = () => {
-  const q = query(collection($firebase.firestore, "categories"), orderBy("name"))
+  const q = query(
+    collection($firebase.firestore, "categories"),
+    orderBy("name")
+  );
   onSnapshot(q, (snapshot) => {
-    console.log('=== FETCH CATEGORIES DEBUG ===')
-    console.log('Fetched categories count:', snapshot.docs.length)
-    
+    console.log("=== FETCH CATEGORIES DEBUG ===");
+    console.log("Fetched categories count:", snapshot.docs.length);
+
     categories.value = snapshot.docs.map((doc) => {
-      const data = doc.data()
-      console.log('Category:', data)
+      const data = doc.data();
+      console.log("Category:", data);
       return {
         id: data.id || doc.id,
         name: data.name,
-        firestoreId: doc.id
-      }
-    })
-    
-    console.log('All categories:', categories.value)
-  })
-}
+        firestoreId: doc.id,
+      };
+    });
+
+    console.log("All categories:", categories.value);
+  });
+};
 
 // Reactive data
 const allProducts = ref([]);
@@ -572,13 +598,13 @@ const viewModalOpen = ref(false);
 const editModalOpen = ref(false);
 const currentProduct = ref(null);
 const editProduct = ref({
-  id: '',
-  title: '',
-  description: '',
+  id: "",
+  title: "",
+  description: "",
   price: 0,
   stock: 0,
-  category: '',
-  status: 'active'
+  category: "",
+  status: "active",
 });
 const editLoading = ref(false);
 
@@ -597,7 +623,7 @@ const selectAll = computed(() => {
   return (
     paginatedProducts.value.length > 0 &&
     paginatedProducts.value.every((product) =>
-    selectedProducts.value.includes(product.id)
+      selectedProducts.value.includes(product.id)
     )
   );
 });
@@ -626,7 +652,7 @@ const fetchProducts = async () => {
     querySnapshot.forEach((doc) => {
       products.push({
         firestoreId: doc.id, // ID dokumen Firestore yang sebenarnya
-        id: doc.data().id,   // ID dari field data
+        id: doc.data().id, // ID dari field data
         ...doc.data(),
       });
     });
@@ -661,8 +687,10 @@ const filterProducts = () => {
   }
 
   // Filter by category
-  if (selectedCategory.value !== 'all') {
-    filtered = filtered.filter(item => item.category === selectedCategory.value)
+  if (selectedCategory.value !== "all") {
+    filtered = filtered.filter(
+      (item) => item.category === selectedCategory.value
+    );
   }
 
   // Filter by status
@@ -735,15 +763,15 @@ const deleteProduct = async () => {
     deletingProducts.value.push(productToDelete.value.id);
 
     // Cari product untuk mendapatkan firestoreId
-    const product = allProducts.value.find(p => p.id === productToDelete.value.id);
+    const product = allProducts.value.find(
+      (p) => p.id === productToDelete.value.id
+    );
     if (!product) {
       throw new Error("Product not found");
     }
 
     // Delete from Firestore
-    await deleteDoc(
-      doc($firebase.firestore, "products", product.firestoreId)
-    );
+    await deleteDoc(doc($firebase.firestore, "products", product.firestoreId));
 
     // Remove from local state
     allProducts.value = allProducts.value.filter(
@@ -824,7 +852,6 @@ const navigateToAddProduct = () => {
   navigateTo("/products/addProduct");
 };
 
-
 // View product modal
 const viewProduct = (id) => {
   const product = allProducts.value.find((p) => p.id === id);
@@ -840,13 +867,13 @@ const openEditModal = (id) => {
   if (product) {
     editProduct.value = {
       firestoreId: product.firestoreId, // ID dokumen Firestore
-      id: product.id,                   // ID dari field data
-      title: product.title || '',
-      description: product.description || '',
+      id: product.id, // ID dari field data
+      title: product.title || "",
+      description: product.description || "",
       price: product.price || 0,
       stock: product.stock || 0,
-      category: product.category || '',
-      status: product.status || 'active'
+      category: product.category || "",
+      status: product.status || "active",
     };
     editModalOpen.value = true;
   }
@@ -859,8 +886,11 @@ const saveEditedProduct = async () => {
 
     console.log("Saving product:", editProduct.value); // debug
 
-    
-    const productDoc = doc($firebase.firestore, "products", editProduct.value.firestoreId);
+    const productDoc = doc(
+      $firebase.firestore,
+      "products",
+      editProduct.value.firestoreId
+    );
     await updateDoc(productDoc, {
       title: editProduct.value.title,
       description: editProduct.value.description,
@@ -868,11 +898,13 @@ const saveEditedProduct = async () => {
       stock: parseInt(editProduct.value.stock),
       category: editProduct.value.category,
       statusProduct: editProduct.value.status,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     });
 
     // Update local state
-    const productIndex = allProducts.value.findIndex(p => p.id === editProduct.value.id);
+    const productIndex = allProducts.value.findIndex(
+      (p) => p.id === editProduct.value.id
+    );
     if (productIndex !== -1) {
       allProducts.value[productIndex] = {
         ...allProducts.value[productIndex],
@@ -882,14 +914,12 @@ const saveEditedProduct = async () => {
         stock: parseInt(editProduct.value.stock),
         category: editProduct.value.category,
         statusProduct: editProduct.value.status,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
     }
 
     filterProducts();
     editModalOpen.value = false;
-    
-  
   } catch (error) {
     console.error("Error updating product:", error);
   } finally {
@@ -903,7 +933,7 @@ const bulkStatusUpdate = () => {
 
 // Helper function to get category name
 const getCategoryName = (categoryId) => {
-  const category = categories.value.find(cat => cat.id === categoryId);
+  const category = categories.value.find((cat) => cat.id === categoryId);
   return category ? category.name : categoryId;
 };
 

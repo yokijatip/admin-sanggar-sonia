@@ -563,6 +563,10 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 const { $firebase } = useNuxtApp();
 
 // Helper function to get default deadline (24 hours from now)

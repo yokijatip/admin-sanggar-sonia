@@ -435,6 +435,10 @@ import {
   Save,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const searchQuery = ref("");
 const selectedRole = ref("all");

@@ -645,6 +645,10 @@ import {
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const showFilters = ref(false);
 const showAddTransactionModal = ref(false);

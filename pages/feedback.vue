@@ -695,6 +695,10 @@ import {
   Send,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const showFeedbackModal = ref(false);
 const showSuggestionModal = ref(false);

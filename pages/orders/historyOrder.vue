@@ -538,6 +538,10 @@ import {
   TrendingUp,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const showFilters = ref(false);
 const showDetailsModal = ref(false);

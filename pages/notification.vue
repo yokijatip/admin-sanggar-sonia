@@ -508,6 +508,10 @@ import {
   Zap,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const searchQuery = ref("");
 const selectedType = ref("all");

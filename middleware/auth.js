@@ -1,9 +1,12 @@
-// middleware/auth.js
-export default defineNuxtRouteMiddleware(() => {
-  const { user, loading } = useAuth();
+export default defineNuxtRouteMiddleware((to) => {
+  const { user, loading, initialized } = useAuth();
 
-  if (loading.value) return; // Tungu auth state siap
+  // Tunggu auth state initialized
+  if (!initialized.value || loading.value) {
+    return; // Biarkan loading state handle ini
+  }
 
+  // Jika user tidak ada, redirect ke login
   if (!user.value) {
     return navigateTo("/login");
   }

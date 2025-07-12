@@ -461,6 +461,10 @@ import {
   getDocs,
 } from "firebase/firestore";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Mendapatkan variabel dari runtime config environment
 const runtimeConfig = useRuntimeConfig();
 

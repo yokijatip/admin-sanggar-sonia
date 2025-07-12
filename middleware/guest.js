@@ -1,8 +1,12 @@
 export default defineNuxtRouteMiddleware(() => {
-  const { user, loading } = useAuth();
+  const { user, loading, initialized } = useAuth();
 
-  if (loading.value) return;
+  // Tunggu auth state initialized
+  if (!initialized.value || loading.value) {
+    return;
+  }
 
+  // Jika user sudah login, redirect ke dashboard
   if (user.value) {
     return navigateTo("/");
   }

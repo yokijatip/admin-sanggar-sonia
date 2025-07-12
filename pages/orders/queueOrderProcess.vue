@@ -549,6 +549,10 @@ import {
 } from "firebase/firestore";
 import { useNuxtApp } from "#app";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 const { $firebase } = useNuxtApp();
 
 // State

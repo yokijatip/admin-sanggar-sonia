@@ -317,6 +317,10 @@ import {
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const selectedPeriod = ref("month");
 const customDateRange = reactive({

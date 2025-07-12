@@ -516,6 +516,10 @@ import {
   FileText,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Props (in real app, this would come from route params)
 const customerId = ref("CUST-001");
 

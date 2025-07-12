@@ -641,6 +641,10 @@ import {
   Clock,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const activeTab = ref("tickets");
 const knowledgeSearch = ref("");

@@ -1008,6 +1008,10 @@ import {
   Package,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const activeTab = ref("personal");
 const showAvatarModal = ref(false);

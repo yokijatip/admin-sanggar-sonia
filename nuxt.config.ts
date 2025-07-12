@@ -3,12 +3,21 @@ import tailwindcss from "@tailwindcss/vite";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   ssr: false, // Full SPA mode
+
   // atau bisa hybrid dengan nitro presets
   nitro: {
     preset: "static", // jika mau deploy sebagai static files
   },
+
   compatibilityDate: "2025-05-15",
   devtools: { enabled: true },
+
+  // TAMBAHKAN PLUGINS SECTION
+  plugins: [
+    { src: "~/plugins/firebase.client.js", mode: "client" },
+    { src: "~/plugins/auth.client.js", mode: "client" },
+  ],
+
   modules: [
     "@nuxt/icon",
     "@nuxt/fonts",
@@ -16,16 +25,20 @@ export default defineNuxtConfig({
     "shadcn-nuxt",
     "@nuxtjs/color-mode",
   ],
+
   colorMode: {
     preference: "system", // default theme
     dataValue: "theme", // activate data-theme in <html> tag
     classSuffix: "",
   },
+
   // Add Tailwind
   vite: {
     plugins: [tailwindcss()],
   },
+
   css: ["~/assets/css/main.css"],
+
   shadcn: {
     /**
      * Prefix for all the imported component

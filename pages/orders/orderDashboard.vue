@@ -436,6 +436,10 @@ import {
   Settings,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const selectedDateRange = ref("month");
 const showSettings = ref(false);

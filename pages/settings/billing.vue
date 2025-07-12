@@ -556,6 +556,10 @@ import {
   Save,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const showUpgradeModal = ref(false);
 const showAddPaymentModal = ref(false);

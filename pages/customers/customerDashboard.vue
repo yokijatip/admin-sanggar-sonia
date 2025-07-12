@@ -518,6 +518,10 @@ import {
   BarChart3,
 } from "lucide-vue-next";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // State
 const selectedPeriod = ref("month");
 

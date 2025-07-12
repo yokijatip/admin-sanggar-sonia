@@ -441,6 +441,10 @@ import {
   orderBy,
 } from "firebase/firestore";
 
+definePageMeta({
+  middleware: "auth",
+});
+
 // Firebase
 const { $firebase } = useNuxtApp();
 
