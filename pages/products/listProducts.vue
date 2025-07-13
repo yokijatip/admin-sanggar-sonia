@@ -3,7 +3,7 @@
     <!-- Title and Button -->
     <div class="flex items-center justify-between px-4">
       <HeadersContent title="Products" description="Manage your products" />
-      <Button @click="navigateToAddProduct" class="bg-primary">
+      <Button @click="navigateToAddProduct" class="bg-primary cursor-pointer">
         <Plus class="mr-2 h-4 w-4" />
         Add Product
       </Button>

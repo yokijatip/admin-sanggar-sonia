@@ -8,6 +8,7 @@ import {
   Package2,
   Users,
   ShoppingBasket,
+  VenetianMask,
 } from "lucide-vue-next";
 
 import NavMain from "@/components/NavMain.vue";
@@ -164,11 +165,11 @@ const data = {
               <div
                 class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
               >
-                <Command class="size-4" />
+                <VenetianMask class="size-6" />
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-medium">Toko Kue Dlillah</span>
-                <span class="truncate text-xs">Enterprise</span>
+                <span class="font-medium">Kastawa Dance Studio</span>
+                <span class="truncate text-xs">Studio</span>
               </div>
             </NuxtLink>
           </SidebarMenuButton>

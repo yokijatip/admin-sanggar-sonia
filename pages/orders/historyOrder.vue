@@ -537,6 +537,8 @@ import {
   BarChart3,
   TrendingUp,
 } from "lucide-vue-next";
+// Import Firebase dependencies
+import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 
 definePageMeta({
   middleware: "auth",
@@ -558,43 +560,8 @@ const filters = ref({
   search: "",
 });
 
-// Sample order history data
-const orderHistory = ref([
-  {
-    id: "ORD-001",
-    customer: { name: "Siti Aminah", email: "siti@email.com", type: "vip" },
-    products: [
-      { id: "P1", name: "Wedding Cake 3 Tier", quantity: 1, subtotal: 2500000 },
-      { id: "P2", name: "Cupcakes", quantity: 50, subtotal: 500000 },
-    ],
-    total: 3000000,
-    orderDate: "2024-01-15T08:00:00Z",
-    processingStarted: "2024-01-15T10:00:00Z",
-    completionDate: "2024-01-16T16:00:00Z",
-    duration: 30,
-    status: "completed",
-    notes: "Wedding cake for 200 guests",
-  },
-  {
-    id: "ORD-002",
-    customer: {
-      name: "Budi Santoso",
-      email: "budi@email.com",
-      type: "regular",
-    },
-    products: [
-      { id: "P3", name: "Birthday Cake", quantity: 1, subtotal: 350000 },
-    ],
-    total: 350000,
-    orderDate: "2024-01-14T14:20:00Z",
-    processingStarted: "2024-01-14T16:00:00Z",
-    completionDate: "2024-01-15T10:00:00Z",
-    duration: 18,
-    status: "completed",
-    notes: "",
-  },
-  // Add more sample data...
-]);
+// Order history data from Firebase
+const orderHistory = ref([]);
 
 // Computed
 const filteredHistory = computed(() => {
@@ -609,7 +576,7 @@ const filteredHistory = computed(() => {
 
   if (filters.value.customerType !== "all") {
     filtered = filtered.filter(
-      (order) => order.customer.type === filters.value.customerType
+      (order) => order.customer?.type === filters.value.customerType
     );
   }
 
@@ -618,8 +585,8 @@ const filteredHistory = computed(() => {
     filtered = filtered.filter(
       (order) =>
         order.id.toLowerCase().includes(query) ||
-        order.customer.name.toLowerCase().includes(query) ||
-        order.customer.email.toLowerCase().includes(query)
+        order.customer?.name?.toLowerCase().includes(query) ||
+        order.customer?.email?.toLowerCase().includes(query)
     );
   }
 
@@ -629,9 +596,9 @@ const filteredHistory = computed(() => {
 const filteredStats = computed(() => {
   const orders = filteredHistory.value;
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const totalRevenue = orders.reduce((sum, order) => sum + (order.subtotal || 0), 0);
   const completedOrders = orders.filter(
-    (order) => order.status === "completed"
+    (order) => order.status === "complete"
   ).length;
 
   return {
@@ -659,7 +626,17 @@ const formatPrice = (price) => {
 };
 
 const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+  if (!dateString) return "";
+  
+  let date;
+  if (dateString.toDate) {
+    // Firebase Timestamp
+    date = dateString.toDate();
+  } else {
+    date = new Date(dateString);
+  }
+  
+  return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -667,7 +644,17 @@ const formatDate = (dateString) => {
 };
 
 const formatDateTime = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+  if (!dateString) return "";
+  
+  let date;
+  if (dateString.toDate) {
+    // Firebase Timestamp
+    date = dateString.toDate();
+  } else {
+    date = new Date(dateString);
+  }
+  
+  return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -678,6 +665,7 @@ const formatDateTime = (dateString) => {
 
 const getStatusVariant = (status) => {
   switch (status) {
+    case "complete":
     case "completed":
       return "default";
     case "cancelled":
@@ -687,6 +675,77 @@ const getStatusVariant = (status) => {
     default:
       return "outline";
   }
+};
+
+// Firebase Instance
+const { $firebase } = useNuxtApp();
+
+// Firebase Methods
+const loadOrderHistory = async () => {
+  try {
+    isLoading.value = true;
+    
+    // Opsi 1: Query dengan index (setelah index dibuat di Firebase Console)
+    // const ordersCollection = collection($firebase.firestore, "orders");
+    // const ordersQuery = query(
+    //   ordersCollection,
+    //   where("status", "==", "complete"),
+    //   orderBy("createdAt", "desc")
+    // );
+    
+    // Opsi 2: Query tanpa orderBy (temporary fix)
+    const ordersCollection = collection($firebase.firestore, "orders");
+    const ordersQuery = query(
+      ordersCollection,
+      where("status", "==", "complete")
+    );
+    
+    const querySnapshot = await getDocs(ordersQuery);
+    
+    // Map data dari Firebase ke format yang dibutuhkan
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      
+      // Transform data sesuai struktur yang dibutuhkan
+      return {
+        id: doc.id,
+        customer: {
+          name: data.customerName || "",
+          email: data.customerEmail || "",
+          type: data.customerType || "regular"
+        },
+        products: data.products || [],
+        total: data.subtotal || 0,
+        subtotal: data.subtotal || 0,
+        tax: data.tax || 0,
+        orderDate: data.createdAt,
+        processingStarted: data.processingStarted || data.createdAt,
+        completionDate: data.updatedAt || data.createdAt,
+        duration: data.duration || 0,
+        status: data.status,
+        notes: data.notes || "",
+        shippingAddress: data.shippingAddress || "",
+        shippingCost: data.shippingCost || 0
+      };
+    });
+    
+    // Sort secara manual di client side
+    orderHistory.value = orders.sort((a, b) => {
+      const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate);
+      const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate);
+      return dateB - dateA; // Descending order (terbaru ke terlama)
+    });
+    
+  } catch (error) {
+    console.error("Error loading order history:", error);
+    // Tampilkan error notification jika diperlukan
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const refreshData = async () => {
+  await loadOrderHistory();
 };
 
 const applyFilters = () => {
@@ -729,8 +788,8 @@ const exportHistory = () => {
 };
 
 // Initialize
-onMounted(() => {
-  // Load order history data
+onMounted(async () => {
+  await loadOrderHistory();
 });
 </script>
 

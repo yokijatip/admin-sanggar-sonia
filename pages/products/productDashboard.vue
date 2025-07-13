@@ -10,11 +10,11 @@
       <!-- Quick Actions -->
       <div class="flex justify-between gap-3">
         <div class="flex gap-2">
-          <Button variant="outline" class="gap-2" @click="exportData">
+          <Button variant="outline" class="gap-2 cursor-pointer" @click="exportData">
             <Download class="h-4 w-4" />
             Export Data
           </Button>
-          <Button @click="navigateToAddProduct" class="gap-2">
+          <Button @click="navigateToAddProduct" class="gap-2 cursor-pointer">
             <Package class="h-4 w-4" />
             Add Product
           </Button>
@@ -25,6 +25,7 @@
             size="sm"
             @click="refreshData"
             :disabled="loading"
+            class="cursor-pointer"
           >
             <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
             Refresh

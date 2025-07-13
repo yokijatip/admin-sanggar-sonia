@@ -30,6 +30,7 @@
               v-model="form.category"
               @update:model-value="handleCategoryChange"
               required
+
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />
@@ -183,7 +184,7 @@
           >
             Cancel
           </Button>
-          <Button type="submit" :disabled="isLoading">
+          <Button type="submit" :disabled="isLoading" class="cursor-pointer">
             <span v-if="isLoading" class="flex items-center">
               <svg
                 class="animate-spin -ml-1 mr-3 h-5 w-5"

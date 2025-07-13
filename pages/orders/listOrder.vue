@@ -147,15 +147,23 @@
                 <Button variant="ghost" size="sm" @click="viewOrder(order.id)">
                   <Eye class="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="sm" @click="editOrder(order.id)">
-                  <Pencil class="h-4 w-4" />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  @click="editOrder(order)"
+                  :disabled="editingOrders.includes(order.id)"
+                >
+                  <Loader2 v-if="editingOrders.includes(order.id)" class="h-4 w-4 animate-spin" />
+                  <Pencil v-else class="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   @click="deleteOrder(order.id)"
+                  :disabled="deletingOrders.includes(order.id)"
                 >
-                  <Trash2 class="h-4 w-4 text-destructive" />
+                  <Loader2 v-if="deletingOrders.includes(order.id)" class="h-4 w-4 animate-spin" />
+                  <Trash2 v-else class="h-4 w-4 text-destructive" />
                 </Button>
               </div>
             </TableCell>
@@ -234,8 +242,9 @@
           >{{ selectedOrders.length }} selected</span
         >
         <div class="flex gap-2">
-          <Button variant="secondary" size="sm" @click="bulkDelete">
-            <Trash2 class="h-4 w-4 mr-1" />
+          <Button variant="secondary" size="sm" @click="bulkDelete" :disabled="bulkDeleting">
+            <Loader2 v-if="bulkDeleting" class="h-4 w-4 mr-1 animate-spin" />
+            <Trash2 v-else class="h-4 w-4 mr-1" />
             Delete
           </Button>
           <Button variant="secondary" size="sm" @click="bulkStatusUpdate">
@@ -328,6 +337,133 @@
         </div>
       </DialogContent>
     </Dialog>
+
+    <!-- Edit Order Status Modal -->
+    <AlertDialog v-model:open="editOrderModalOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Edit Order Status</AlertDialogTitle>
+          <AlertDialogDescription>
+            Update the status of this order
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div v-if="orderToEdit" class="space-y-4">
+          <!-- Order Information -->
+          <div class="p-4 bg-muted rounded-lg space-y-2">
+            <div class="flex justify-between">
+              <span class="font-medium">Order ID:</span>
+              <span class="font-mono">{{ orderToEdit.orderId || orderToEdit.id }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-medium">Customer:</span>
+              <span>{{ orderToEdit.customerName }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-medium">Current Status:</span>
+              <Badge :variant="getStatusVariant(orderToEdit.status)">
+                {{ orderToEdit.status || "pending" }}
+              </Badge>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-medium">Total:</span>
+              <span class="font-semibold">Rp {{ formatPrice(getOrderTotal(orderToEdit)) }}</span>
+            </div>
+          </div>
+
+          <!-- Status Selection -->
+          <div>
+            <Label class="text-sm font-medium">New Status *</Label>
+            <Select v-model="newOrderStatus" :disabled="editLoading">
+              <SelectTrigger class="mt-2">
+                <SelectValue placeholder="Select new status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="processing">Processing</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <!-- Special message for processing to complete -->
+          <div v-if="orderToEdit.status === 'processing' && newOrderStatus === 'complete'" class="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <div class="flex items-center gap-2">
+              <CheckCircle class="h-4 w-4 text-green-600" />
+              <span class="text-sm font-medium text-green-800">Order Completion</span>
+            </div>
+            <p class="text-sm text-green-700 mt-1">
+              This order will be marked as complete and moved to order history.
+            </p>
+          </div>
+
+          <!-- Notes -->
+          <div>
+            <Label class="text-sm font-medium">Notes (Optional)</Label>
+            <Textarea 
+              v-model="statusUpdateNotes" 
+              placeholder="Add notes about this status change..."
+              rows="2"
+              class="mt-2"
+              :disabled="editLoading"
+            />
+          </div>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="closeEditOrderModal" :disabled="editLoading">
+            Cancel
+          </AlertDialogCancel>
+          <AlertDialogAction 
+            @click="confirmEditOrderStatus" 
+            :disabled="editLoading || !newOrderStatus"
+            :class="newOrderStatus === 'complete' ? 'bg-green-600 hover:bg-green-700' : ''"
+          >
+            <Loader2 v-if="editLoading" class="h-4 w-4 mr-2 animate-spin" />
+            <CheckCircle v-else-if="newOrderStatus === 'complete'" class="h-4 w-4 mr-2" />
+            {{ newOrderStatus === 'complete' ? 'Complete Order' : 'Update Status' }}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    <!-- Bulk Status Update Modal -->
+    <AlertDialog v-model:open="bulkStatusModalOpen">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Update Order Status</AlertDialogTitle>
+          <AlertDialogDescription>
+            Select new status for {{ selectedOrders.length }} selected orders
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div class="py-4">
+          <Select v-model="newBulkStatus">
+            <SelectTrigger>
+              <SelectValue placeholder="Select new status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="complete">Complete</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelBulkStatusUpdate">Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            @click="confirmBulkStatusUpdate" 
+            :disabled="!newBulkStatus || bulkUpdating"
+          >
+            <Loader2 v-if="bulkUpdating" class="h-4 w-4 mr-2 animate-spin" />
+            Update Status
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
 
@@ -361,6 +497,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Search,
   Eye,
@@ -372,15 +518,20 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CheckCircle,
+  Loader2,
 } from "lucide-vue-next";
 import {
   collection,
   getDocs,
   doc,
   deleteDoc,
+  updateDoc,
+  addDoc,
   query,
   orderBy,
 } from "firebase/firestore";
+
 
 definePageMeta({
   middleware: "auth",
@@ -404,6 +555,23 @@ const itemsPerPage = ref(10);
 const showOrderModal = ref(false);
 const selectedOrder = ref(null);
 
+// Edit order states
+const editOrderModalOpen = ref(false);
+const orderToEdit = ref(null);
+const newOrderStatus = ref("");
+const statusUpdateNotes = ref("");
+const editLoading = ref(false);
+const editingOrders = ref([]);
+
+// Delete states
+const deletingOrders = ref([]);
+const bulkDeleting = ref(false);
+
+// Bulk status update states
+const bulkStatusModalOpen = ref(false);
+const newBulkStatus = ref("");
+const bulkUpdating = ref(false);
+
 // Fetch orders from Firestore
 const fetchOrders = async () => {
   try {
@@ -412,10 +580,13 @@ const fetchOrders = async () => {
     const ordersQuery = query(ordersCollection, orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(ordersQuery);
 
-    allOrders.value = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    // Filter out completed orders (they should be in history)
+    allOrders.value = querySnapshot.docs
+      .map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }))
+      .filter(order => order.status !== 'complete'); // Exclude completed orders
 
     filteredOrders.value = [...allOrders.value];
     console.log("Orders fetched successfully:", allOrders.value);
@@ -611,6 +782,92 @@ const clearSelection = () => {
   selectedOrders.value = [];
 };
 
+// Edit Order Functions
+const editOrder = (order) => {
+  console.log('=== EDIT ORDER ===');
+  console.log('Order:', order);
+  orderToEdit.value = order;
+  newOrderStatus.value = order.status || "pending";
+  statusUpdateNotes.value = "";
+  editOrderModalOpen.value = true;
+};
+
+const closeEditOrderModal = () => {
+  console.log('Close edit order modal');
+  editOrderModalOpen.value = false;
+  orderToEdit.value = null;
+  newOrderStatus.value = "";
+  statusUpdateNotes.value = "";
+};
+
+const confirmEditOrderStatus = async () => {
+  if (!orderToEdit.value || !newOrderStatus.value) return;
+  
+  console.log('=== CONFIRM EDIT ORDER STATUS ===');
+  console.log('Order ID:', orderToEdit.value.id);
+  console.log('New status:', newOrderStatus.value);
+  console.log('Notes:', statusUpdateNotes.value);
+  
+  try {
+    editLoading.value = true;
+    editingOrders.value.push(orderToEdit.value.id);
+    
+    const updateData = {
+      status: newOrderStatus.value,
+      updatedAt: new Date(),
+    };
+    
+    // Add notes if provided
+    if (statusUpdateNotes.value.trim()) {
+      updateData.statusUpdateNotes = statusUpdateNotes.value.trim();
+    }
+    
+    // If status is complete, add completion timestamp
+    if (newOrderStatus.value === 'complete') {
+      updateData.completedAt = new Date();
+      
+      // Optional: Move to history collection
+      const orderData = {
+        ...orderToEdit.value,
+        ...updateData
+      };
+      
+      // Add to order history collection if it exists
+      try {
+        await addDoc(collection($firebase.firestore, "orderHistory"), orderData);
+        console.log('Order added to history');
+      } catch (historyError) {
+        console.log('Order history collection not found, skipping history save');
+      }
+    }
+    
+    // Update the order in Firestore
+    await updateDoc(doc($firebase.firestore, "orders", orderToEdit.value.id), updateData);
+    
+    // Update local data
+    const orderIndex = allOrders.value.findIndex(o => o.id === orderToEdit.value.id);
+    if (orderIndex !== -1) {
+      allOrders.value[orderIndex] = {
+        ...allOrders.value[orderIndex],
+        ...updateData
+      };
+    }
+    
+    console.log('Order status updated successfully');
+    alert(`Order status updated to ${newOrderStatus.value} successfully!`);
+    
+    closeEditOrderModal();
+    filterOrders(); // Refresh the filtered list
+    
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    alert('Failed to update order status. Please try again.');
+  } finally {
+    editLoading.value = false;
+    editingOrders.value = editingOrders.value.filter(id => id !== orderToEdit.value?.id);
+  }
+};
+
 // Navigation methods
 const navigateToAddOrder = () => {
   console.log("Navigate to add order");
@@ -622,30 +879,39 @@ const viewOrder = (id) => {
   showOrderModal.value = true;
 };
 
-const editOrder = (id) => {
-  console.log("Edit order:", id);
-  // navigateTo(`/orders/edit/${id}`);
-};
+
 
 const deleteOrder = async (id) => {
-  if (confirm("Are you sure you want to delete this order?")) {
+  console.log('=== DELETE ORDER ===');
+  console.log('Order ID:', id);
+  
+  if (
+    confirm("Are you sure you want to delete this order?")) {
     try {
+      deletingOrders.value.push(id);
       await deleteDoc(doc($firebase.firestore, "orders", id));
       await fetchOrders(); // Refresh the orders list
       console.log("Order deleted successfully");
     } catch (error) {
       console.error("Error deleting order:", error);
+      alert('Failed to delete order. Please try again.');
+    } finally {
+      deletingOrders.value = deletingOrders.value.filter(orderId => orderId !== id);
     }
   }
 };
 
 const bulkDelete = async () => {
+  console.log('=== BULK DELETE ===');
+  console.log('Selected orders:', selectedOrders.value);
+  
   if (
     confirm(
       `Are you sure you want to delete ${selectedOrders.value.length} orders?`
     )
   ) {
     try {
+      bulkDeleting.value = true;
       const deletePromises = selectedOrders.value.map((orderId) =>
         deleteDoc(doc($firebase.firestore, "orders", orderId))
       );
@@ -655,13 +921,64 @@ const bulkDelete = async () => {
       console.log("Orders deleted successfully");
     } catch (error) {
       console.error("Error deleting orders:", error);
+      alert('Failed to delete orders. Please try again.');
+    } finally {
+      bulkDeleting.value = false;
     }
   }
 };
 
 const bulkStatusUpdate = () => {
   console.log("Bulk status update:", selectedOrders.value);
-  // Implement bulk status update logic here
+  if (selectedOrders.value.length === 0) return;
+  bulkStatusModalOpen.value = true;
+};
+
+const cancelBulkStatusUpdate = () => {
+  console.log('Cancel bulk status update');
+  bulkStatusModalOpen.value = false;
+  newBulkStatus.value = "";
+};
+
+const confirmBulkStatusUpdate = async () => {
+  if (!newBulkStatus.value || selectedOrders.value.length === 0) return;
+  
+  console.log('=== BULK STATUS UPDATE ===');
+  console.log('New status:', newBulkStatus.value);
+  console.log('Selected orders:', selectedOrders.value);
+  
+  try {
+    bulkUpdating.value = true;
+    
+    const updatePromises = selectedOrders.value.map(async (orderId) => {
+      const updateData = {
+        status: newBulkStatus.value,
+        updatedAt: new Date()
+      };
+      
+      // If status is complete, add completion timestamp
+      if (newBulkStatus.value === 'complete') {
+        updateData.completedAt = new Date();
+      }
+      
+      return await updateDoc(doc($firebase.firestore, "orders", orderId), updateData);
+    });
+    
+    await Promise.all(updatePromises);
+    await fetchOrders(); // Refresh the orders list
+    
+    console.log(`${selectedOrders.value.length} orders status updated successfully`);
+    
+    selectedOrders.value = [];
+    bulkStatusModalOpen.value = false;
+    newBulkStatus.value = "";
+    
+  } catch (error) {
+    console.error("Error bulk updating status:", error);
+    alert('Failed to update order status. Please try again.');
+  } finally {
+    bulkUpdating.value = false;
+  }
 };
 
 // Initialize
