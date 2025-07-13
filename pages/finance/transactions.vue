@@ -175,7 +175,7 @@
     </div>
 
     <!-- Transactions Table -->
-    <Card>
+    <Card class="mb-4">
       <CardHeader class="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Transaction History</CardTitle>
@@ -663,10 +663,27 @@ import {
   Car,
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { nextTick } from "vue";
 
 definePageMeta({
   middleware: "auth",
 });
+
+const config = useRuntimeConfig();
+const { user } = useAuth();
 
 // State
 const showFilters = ref(false);
@@ -686,6 +703,7 @@ const filters = reactive({
   search: "",
 });
 
+// Form State
 const transactionForm = reactive({
   type: "",
   category: "",
@@ -699,6 +717,8 @@ const transactionForm = reactive({
   notes: "",
   receipt: null,
 });
+
+// Reactive state for transactions summary
 
 const transactions = ref([
   {
