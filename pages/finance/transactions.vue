@@ -22,6 +22,15 @@
       </div>
     </div>
 
+    <!-- Alert Messages -->
+    <Alert
+      v-if="message"
+      :class="messageType === 'error' ? 'border-red-500' : 'border-green-500'"
+      class="mb-6"
+    >
+      <AlertDescription>{{ message }}</AlertDescription>
+    </Alert>
+
     <!-- Filters -->
     <Card v-if="showFilters" class="mb-6">
       <CardContent class="pt-6">
@@ -53,7 +62,7 @@
                 <SelectItem value="operational">Operational</SelectItem>
                 <SelectItem value="marketing">Marketing</SelectItem>
                 <SelectItem value="utilities">Utilities</SelectItem>
-                <SelectItem value="transport">Transportation</SelectItem>
+                <SelectItem value="transportation">Transportation</SelectItem>
                 <SelectItem value="others">Others</SelectItem>
               </SelectContent>
             </Select>
@@ -200,7 +209,13 @@
         </div>
       </CardHeader>
       <CardContent>
-        <Table>
+        <div v-if="loadingTransactions" class="text-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"
+          ></div>
+          <p class="mt-2 text-sm text-muted-foreground">Loading transactions...</p>
+        </div>
+        <Table v-else>
           <TableHeader>
             <TableRow>
               <TableHead class="w-32">Transaction ID</TableHead>
@@ -245,10 +260,10 @@
                   <div>
                     <div class="font-medium">{{ transaction.description }}</div>
                     <div
-                      v-if="transaction.reference"
+                      v-if="transaction.entity"
                       class="text-sm text-muted-foreground"
                     >
-                      Ref: {{ transaction.reference }}
+                      {{ transaction.entity }}
                     </div>
                   </div>
                 </div>
@@ -369,7 +384,7 @@
     </Card>
 
     <!-- Add/Edit Transaction Modal -->
-    <Dialog v-model:open="showAddTransactionModal">
+    <Dialog v-model:open="showAddTransactionModal" :key="modalKey">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{{
@@ -377,10 +392,20 @@
           }}</DialogTitle>
         </DialogHeader>
         <form @submit.prevent="saveTransaction" class="space-y-4">
+          <!-- Loading Status -->
+          <div v-if="uploadingStatus" class="text-center py-4">
+            <div
+              class="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto"
+            ></div>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {{ uploadingStatus }}
+            </p>
+          </div>
+
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label for="type" class="mb-2">Transaction Type *</Label>
-              <Select v-model="transactionForm.type" required>
+              <Select v-model="transactionForm.type" :disabled="isLoading" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
@@ -392,7 +417,7 @@
             </div>
             <div>
               <Label for="category" class="mb-2">Category *</Label>
-              <Select v-model="transactionForm.category" required>
+              <Select v-model="transactionForm.category" :disabled="isLoading" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -411,12 +436,11 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label for="entity" class="mb-2"
-                >Vendor/Supplier/Customer *</Label
-              >
+              <Label for="entity" class="mb-2">Vendor/Supplier/Customer *</Label>
               <Input
-                id="description"
+                id="entity"
                 v-model="transactionForm.entity"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -425,6 +449,7 @@
               <Input
                 id="description"
                 v-model="transactionForm.description"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -436,6 +461,7 @@
                 id="amount"
                 type="number"
                 v-model="transactionForm.amount"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -445,6 +471,7 @@
                 id="date"
                 type="datetime-local"
                 v-model="transactionForm.date"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -452,7 +479,7 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label for="paymentMethod" class="mb-2">Payment Method *</Label>
-              <Select v-model="transactionForm.paymentMethod" required>
+              <Select v-model="transactionForm.paymentMethod" :disabled="isLoading" required>
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
@@ -468,7 +495,7 @@
             </div>
             <div>
               <Label for="status" class="mb-2">Status</Label>
-              <Select v-model="transactionForm.status">
+              <Select v-model="transactionForm.status" :disabled="isLoading">
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -481,8 +508,22 @@
             </div>
           </div>
           <div>
+            <Label for="reference" class="mb-2">Reference Number</Label>
+            <Input
+              id="reference"
+              v-model="transactionForm.reference"
+              :disabled="isLoading"
+              placeholder="INV-2024-001, ORD-001, etc."
+            />
+          </div>
+          <div>
             <Label for="notes" class="mb-2">Notes</Label>
-            <Textarea id="notes" v-model="transactionForm.notes" rows="3" />
+            <Textarea 
+              id="notes" 
+              v-model="transactionForm.notes" 
+              :disabled="isLoading"
+              rows="3" 
+            />
           </div>
           <div>
             <Label for="receipt" class="mb-2">Receipt/Invoice</Label>
@@ -490,19 +531,25 @@
               id="receipt"
               type="file"
               accept="image/*,application/pdf"
+              :disabled="isLoading"
               @change="handleFileUpload"
             />
+            <p class="text-sm text-muted-foreground mt-1">
+              Maximum file size: 5MB. Supported formats: JPG, PNG, PDF
+            </p>
           </div>
           <div class="flex justify-end space-x-2">
             <Button
               type="button"
               variant="outline"
-              @click="closeTransactionModal"
-              >Cancel</Button
+              :disabled="isLoading"
+              @click="handleCancelTransaction"
             >
-            <Button type="submit"
-              >{{ editingTransaction ? "Update" : "Save" }} Transaction</Button
-            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isLoading">
+              {{ editingTransaction ? "Update" : "Save" }} Transaction
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -596,6 +643,15 @@
               {{ selectedTransaction.notes }}
             </p>
           </div>
+          <div v-if="selectedTransaction.receiptUrl">
+            <Label class="font-medium mb-2">Receipt/Invoice</Label>
+            <a
+              :href="selectedTransaction.receiptUrl"
+              target="_blank"
+              class="text-blue-600 underline"
+              >View Receipt</a
+            >
+          </div>
         </div>
       </DialogContent>
     </Dialog>
@@ -603,7 +659,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
 import {
   Card,
   CardContent,
@@ -615,6 +671,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -676,7 +733,6 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { nextTick } from "vue";
 
 definePageMeta({
   middleware: "auth",
@@ -693,6 +749,12 @@ const editingTransaction = ref(null);
 const selectedTransaction = ref(null);
 const currentPage = ref(1);
 const itemsPerPage = ref("25");
+const uploadingStatus = ref("");
+const message = ref("");
+const messageType = ref("");
+const isLoading = ref(false);
+const loadingTransactions = ref(false);
+const modalKey = ref(0);
 
 const filters = reactive({
   type: "all",
@@ -715,125 +777,125 @@ const transactionForm = reactive({
   status: "completed",
   reference: "",
   notes: "",
-  receipt: null,
+  receiptFile: null,
 });
 
-// Reactive state for transactions summary
+const transactions = ref([]);
 
-const transactions = ref([
-  {
-    id: 1,
-    transactionId: "TXN-001",
-    type: "income",
-    entity: "John Doe",
-    description: "Order Payment - ORD-001",
-    category: "sales",
-    amount: 2500000,
-    date: new Date(),
-    paymentMethod: "bank_transfer",
-    status: "completed",
-    reference: "ORD-001",
-    notes: "Payment for custom cake order",
-  },
-  {
-    id: 2,
-    transactionId: "TXN-002",
-    type: "expense",
-    entity: "Supplier A",
-    description: "Raw Material Purchase - Flour & Sugar",
-    category: "materials",
-    amount: 1200000,
-    date: new Date(Date.now() - 86400000),
-    paymentMethod: "cash",
-    status: "completed",
-    reference: "INV-2024-001",
-    notes: "Monthly ingredient stock",
-  },
-  {
-    id: 3,
-    transactionId: "TXN-003",
-    type: "expense",
-    entity: "Production Team",
-    description: "Employee Salary - Production Team",
-    category: "labor",
-    amount: 8000000,
-    date: new Date(Date.now() - 172800000),
-    paymentMethod: "bank_transfer",
-    status: "completed",
-    reference: "SAL-2024-01",
-    notes: "Monthly salary payment",
-  },
-  {
-    id: 4,
-    transactionId: "TXN-004",
-    type: "expense",
-    entity: "Office Landlord",
-    description: "Office Rent Payment",
-    category: "operational",
-    amount: 3000000,
-    date: new Date(Date.now() - 259200000),
-    paymentMethod: "bank_transfer",
-    status: "pending",
-    reference: "RENT-2024-01",
-    notes: "Monthly office rent",
-  },
-  {
-    id: 5,
-    transactionId: "TXN-005",
-    type: "income",
-    entity: "Jane Smith",
-    description: "Order Payment - ORD-002",
-    category: "sales",
-    amount: 1800000,
-    date: new Date(Date.now() - 345600000),
-    paymentMethod: "credit_card",
-    status: "completed",
-    reference: "ORD-002",
-    notes: "Wedding cake order",
-  },
-  {
-    id: 6,
-    transactionId: "TXN-006",
-    type: "expense",
-    entity: "Marketing Agency",
-    description: "Marketing Campaign - Social Media Ads",
-    category: "marketing",
-    amount: 500000,
-    date: new Date(Date.now() - 432000000),
-    paymentMethod: "credit_card",
-    status: "completed",
-    reference: "MKT-2024-001",
-    notes: "Facebook and Instagram ads",
-  },
-  {
-    id: 7,
-    transactionId: "TXN-007",
-    type: "expense",
-    entity: "Electricity Company",
-    description: "Electricity Bill",
-    category: "utilities",
-    amount: 750000,
-    date: new Date(Date.now() - 518400000),
-    paymentMethod: "bank_transfer",
-    status: "completed",
-    reference: "PLN-2024-01",
-    notes: "Monthly electricity bill",
-  },
-  {
-    id: 8,
-    transactionId: "TXN-008",
-    type: "expense",
-    entity: "Delivery Service",
-    description: "Delivery Service",
-    category: "transport",
-    amount: 300000,
-    date: new Date(Date.now() - 604800000),
-    paymentMethod: "cash",
-    status: "completed",
-    reference: "DEL-2024-001",
-    notes: "Customer delivery charges",
-  },
-]);
+// Function to upload receipt to Cloudinary
+const uploadToCloudinary = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", config.public.cloudinaryUploadPreset);
+    formData.append("folder", "TokoKueDlillah/transactions/receipts");
+
+    const timestamp = new Date().getTime();
+    const filename = `receipt_${timestamp}_${file.name.replace(
+      /[^a-zA-Z0-9.]/g,
+      "_"
+    )}`;
+    formData.append(
+      "public_id",
+      `TokoKueDlillah/transactions/receipts/${filename}`
+    );
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${config.public.cloudinaryCloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    return data.secure_url;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    throw new Error(`Failed to upload receipt: ${error.message}`);
+  }
+};
+
+// Function to generate transaction ID
+const generateTransactionId = async () => {
+  try {
+    const { $firebase } = useNuxtApp();
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `TXN-${currentYear}`;
+
+    const transactionsQuery = query(
+      collection($firebase.firestore, "transactions"),
+      where("transactionId", ">=", `${yearPrefix}-001`),
+      where("transactionId", "<", `${yearPrefix}-999`),
+      orderBy("transactionId", "desc"),
+      limit(1)
+    );
+
+    const querySnapshot = await getDocs(transactionsQuery);
+
+    let nextNumber = 1;
+
+    if (!querySnapshot.empty) {
+      const lastTransaction = querySnapshot.docs[0].data();
+      const lastId = lastTransaction.transactionId;
+      const parts = lastId.split("-");
+      if (parts.length === 3) {
+        const lastNumber = parseInt(parts[2]) || 0;
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    const formattedNumber = nextNumber.toString().padStart(3, "0");
+    return `${yearPrefix}-${formattedNumber}`;
+  } catch (error) {
+    console.error("Error generating transaction ID:", error);
+    return `TXN-${new Date().getFullYear()}-${Date.now().toString().slice(-3)}`;
+  }
+};
+
+// Function to fetch transactions from Firestore
+const fetchTransactions = async () => {
+  try {
+    loadingTransactions.value = true;
+    const { $firebase } = useNuxtApp();
+
+    const transactionsQuery = query(
+      collection($firebase.firestore, "transactions"),
+      orderBy("createdAt", "desc")
+    );
+
+    const querySnapshot = await getDocs(transactionsQuery);
+
+    transactions.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate()
+          : new Date(),
+      };
+    });
+
+    console.log("Fetched transactions:", transactions.value);
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    showMessage("Failed to load transactions", "error");
+  } finally {
+    loadingTransactions.value = false;
+  }
+};
 
 // Computed
 const filteredTransactions = computed(() => {
@@ -864,7 +926,8 @@ const filteredTransactions = computed(() => {
       (t) =>
         t.description.toLowerCase().includes(search) ||
         t.transactionId.toLowerCase().includes(search) ||
-        (t.reference && t.reference.toLowerCase().includes(search))
+        (t.reference && t.reference.toLowerCase().includes(search)) ||
+        (t.entity && t.entity.toLowerCase().includes(search))
     );
   }
 
@@ -934,7 +997,7 @@ const getCategoryLabel = (category) => {
     operational: "Operational",
     marketing: "Marketing",
     utilities: "Utilities",
-    transport: "Transport",
+    transportation: "Transportation",
     others: "Others",
   };
   return labels[category] || category;
@@ -969,7 +1032,7 @@ const getTransactionIcon = (category) => {
     operational: Settings,
     marketing: Smartphone,
     utilities: Zap,
-    transport: Car,
+    transportation: Car,
     others: FileText,
   };
   return icons[category] || FileText;
@@ -985,6 +1048,15 @@ const getPaymentIcon = (method) => {
     digital_wallet: Smartphone,
   };
   return icons[method] || CreditCard;
+};
+
+const showMessage = (msg, type) => {
+  message.value = msg;
+  messageType.value = type;
+  setTimeout(() => {
+    message.value = "";
+    messageType.value = "";
+  }, 5000);
 };
 
 const clearFilters = () => {
@@ -1038,47 +1110,200 @@ const editTransaction = (transaction) => {
   showAddTransactionModal.value = true;
 };
 
-const deleteTransaction = (transactionId) => {
+const deleteTransaction = async (transactionId) => {
   if (confirm("Are you sure you want to delete this transaction?")) {
-    const index = transactions.value.findIndex((t) => t.id === transactionId);
-    if (index !== -1) {
-      transactions.value.splice(index, 1);
+    try {
+      const { $firebase } = useNuxtApp();
+      await deleteDoc(doc($firebase.firestore, "transactions", transactionId));
+
+      transactions.value = transactions.value.filter((t) => t.id !== transactionId);
+      showMessage("Transaction deleted successfully!", "success");
+    } catch (error) {
+      console.error("Delete error:", error);
+      showMessage("Failed to delete transaction", "error");
     }
   }
 };
 
-const saveTransaction = () => {
-  if (editingTransaction.value) {
-    // Update existing transaction
-    const index = transactions.value.findIndex(
-      (t) => t.id === editingTransaction.value.id
-    );
-    if (index !== -1) {
-      transactions.value[index] = {
-        ...transactions.value[index],
-        ...transactionForm,
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    showMessage("File size must be less than 5MB", "error");
+    return;
+  }
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "application/pdf",
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    showMessage("Please select a valid image (JPG, PNG) or PDF file", "error");
+    return;
+  }
+
+  transactionForm.receiptFile = file;
+};
+
+const validateForm = () => {
+  if (
+    !transactionForm.type ||
+    !transactionForm.category ||
+    !transactionForm.entity ||
+    !transactionForm.description ||
+    !transactionForm.amount ||
+    !transactionForm.date ||
+    !transactionForm.paymentMethod
+  ) {
+    showMessage("Please fill in all required fields", "error");
+    return false;
+  }
+
+  if (transactionForm.amount <= 0) {
+    showMessage("Amount must be greater than 0", "error");
+    return false;
+  }
+
+  return true;
+};
+
+const saveTransaction = async () => {
+  console.log("Starting saveTransaction...");
+
+  if (!validateForm()) {
+    console.log("Form validation failed");
+    return;
+  }
+
+  isLoading.value = true;
+
+  try {
+    const { $firebase } = useNuxtApp();
+
+    // Generate transaction ID
+    const transactionId = await generateTransactionId();
+    console.log("Generated transaction ID:", transactionId);
+
+    // Upload receipt if exists
+    let receiptUrl = "";
+    if (transactionForm.receiptFile) {
+      try {
+        uploadingStatus.value = "Uploading receipt...";
+        receiptUrl = await uploadToCloudinary(transactionForm.receiptFile);
+        console.log("Receipt uploaded successfully:", receiptUrl);
+      } catch (error) {
+        console.error("Receipt upload failed:", error);
+        showMessage(`Failed to upload receipt: ${error.message}`, "error");
+        return;
+      }
+    }
+
+    uploadingStatus.value = "Saving transaction...";
+
+    if (editingTransaction.value) {
+      // Update existing transaction
+      const transactionData = {
+        type: transactionForm.type,
+        category: transactionForm.category,
+        entity: transactionForm.entity,
+        description: transactionForm.description,
+        amount: Number(transactionForm.amount),
         date: new Date(transactionForm.date),
+        paymentMethod: transactionForm.paymentMethod,
+        status: transactionForm.status,
+        reference: transactionForm.reference || "",
+        notes: transactionForm.notes || "",
+        receiptUrl: receiptUrl || editingTransaction.value.receiptUrl,
+        updatedAt: serverTimestamp(),
       };
+
+      await setDoc(
+        doc($firebase.firestore, "transactions", editingTransaction.value.id),
+        transactionData,
+        { merge: true }
+      );
+
+      // Update local state
+      const index = transactions.value.findIndex(
+        (t) => t.id === editingTransaction.value.id
+      );
+      if (index !== -1) {
+        transactions.value[index] = {
+          ...transactions.value[index],
+          ...transactionData,
+          date: new Date(transactionForm.date),
+          updatedAt: new Date(),
+        };
+      }
+
+      showMessage("Transaction updated successfully!", "success");
+    } else {
+      // Add new transaction
+      const transactionData = {
+        transactionId: transactionId,
+        type: transactionForm.type,
+        category: transactionForm.category,
+        entity: transactionForm.entity,
+        description: transactionForm.description,
+        amount: Number(transactionForm.amount),
+        date: new Date(transactionForm.date),
+        paymentMethod: transactionForm.paymentMethod,
+        status: transactionForm.status,
+        reference: transactionForm.reference || "",
+        notes: transactionForm.notes || "",
+        receiptUrl: receiptUrl,
+        submittedBy:
+          user.value?.firstName + " " + user.value?.lastName ||
+          user.value?.email ||
+          "Unknown",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      console.log("Saving new transaction data:", transactionData);
+
+      const docRef = await addDoc(
+        collection($firebase.firestore, "transactions"),
+        transactionData
+      );
+
+      // Add to local state
+      const newTransaction = {
+        id: docRef.id,
+        ...transactionData,
+        date: new Date(transactionForm.date),
+        createdAt: new Date(),
+      };
+
+      transactions.value.unshift(newTransaction);
+      showMessage("Transaction added successfully!", "success");
     }
-  } else {
-    // Add new transaction
-    const newTransaction = {
-      id: Date.now(),
-      transactionId: `TXN-${String(transactions.value.length + 1).padStart(
-        3,
-        "0"
-      )}`,
-      ...transactionForm,
-      date: new Date(transactionForm.date),
-    };
-    transactions.value.unshift(newTransaction);
+
+    // Close modal with delay
+    setTimeout(async () => {
+      await closeTransactionModal();
+    }, 500);
+  } catch (error) {
+    console.error("Error saving transaction:", error);
+    showMessage("Failed to save transaction. Please try again.", "error");
+  } finally {
+    isLoading.value = false;
+    uploadingStatus.value = "";
   }
-  closeTransactionModal();
 };
 
-const closeTransactionModal = () => {
+const closeTransactionModal = async () => {
+  console.log("Closing transaction modal...");
+
   showAddTransactionModal.value = false;
   editingTransaction.value = null;
+  uploadingStatus.value = "";
+
+  // Reset form
   Object.assign(transactionForm, {
     type: "",
     category: "",
@@ -1090,15 +1315,22 @@ const closeTransactionModal = () => {
     status: "completed",
     reference: "",
     notes: "",
-    receipt: null,
+    receiptFile: null,
   });
+
+  // Reset file input
+  await nextTick();
+  const fileInput = document.getElementById("receipt");
+  if (fileInput) {
+    fileInput.value = "";
+  }
+  
+  modalKey.value++;
 };
 
-const handleFileUpload = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    expenseForm.receipt = file;
-  }
+const handleCancelTransaction = async () => {
+  console.log("Cancel button clicked");
+  await closeTransactionModal();
 };
 
 const exportTransactions = () => {
@@ -1106,7 +1338,12 @@ const exportTransactions = () => {
   console.log("Exporting transactions...");
 };
 
+watch(showAddTransactionModal, (newVal, oldVal) => {
+  console.log(`Modal state changed from ${oldVal} to ${newVal}`);
+});
+
 onMounted(() => {
   console.log("Transaction management loaded");
+  fetchTransactions();
 });
 </script>

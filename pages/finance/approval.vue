@@ -16,7 +16,7 @@
           <p class="text-sm text-muted-foreground">
             Your current role: <Badge variant="outline">{{ user?.role }}</Badge>
           </p>
-          <Button @click="$router.push('/finance')" class="mt-4">
+          <Button @click="$router.push('/admin/finance')" class="mt-4">
             Back to Finance Dashboard
           </Button>
         </CardContent>
@@ -42,6 +42,15 @@
           </Button>
         </div>
       </div>
+
+      <!-- Alert Messages -->
+      <Alert
+        v-if="message"
+        :class="messageType === 'error' ? 'border-red-500' : 'border-green-500'"
+        class="mb-6"
+      >
+        <AlertDescription>{{ message }}</AlertDescription>
+      </Alert>
 
       <!-- Approval Summary -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -108,20 +117,6 @@
             <p class="text-xs text-muted-foreground">Expenses rejected</p>
           </CardContent>
         </Card>
-        <!-- <Card>
-          <CardHeader class="pb-2">
-            <CardTitle class="text-sm font-medium flex items-center">
-              <XCircle class="mr-2 h-4 w-4 text-red-600" />
-              Rejected Today
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="text-2xl font-bold text-red-600">
-              {{ todayRejectedCount }}
-            </div>
-            <p class="text-xs text-muted-foreground">Expenses rejected</p>
-          </CardContent>
-        </Card> -->
       </div>
 
       <!-- Pending Expenses Table -->
@@ -136,7 +131,18 @@
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div v-if="pendingExpenses.length === 0" class="text-center py-8">
+          <div v-if="loadingExpenses" class="text-center py-8">
+            <div
+              class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"
+            ></div>
+            <p class="mt-2 text-sm text-muted-foreground">
+              Loading expenses...
+            </p>
+          </div>
+          <div
+            v-else-if="pendingExpenses.length === 0"
+            class="text-center py-8"
+          >
             <CheckCircle class="h-12 w-12 text-green-500 mx-auto mb-4" />
             <h3 class="text-lg font-medium text-green-600 mb-2">
               All Caught Up!
@@ -214,10 +220,10 @@
                 </TableCell>
                 <TableCell>
                   <div class="text-sm">
-                    {{ formatDate(expense.submittedDate) }}
+                    {{ formatDate(expense.createdAt) }}
                   </div>
                   <div class="text-xs text-muted-foreground">
-                    {{ getTimeAgo(expense.submittedDate) }}
+                    {{ getTimeAgo(expense.createdAt) }}
                   </div>
                 </TableCell>
                 <TableCell>
@@ -372,6 +378,16 @@
               {{ selectedExpense.notes }}
             </p>
           </div>
+          <div v-if="selectedExpense.receiptUrl">
+            <Label class="font-medium">Receipt/Invoice</Label>
+            <a
+              :href="selectedExpense.receiptUrl"
+              target="_blank"
+              class="text-blue-600 underline"
+            >
+              View Receipt
+            </a>
+          </div>
           <div class="flex justify-end space-x-2 pt-4">
             <Button variant="outline" @click="showDetailsModal = false"
               >Close</Button
@@ -425,14 +441,30 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
-import { Card, CardContent } from "@/components/ui/card";
+import { computed, ref, reactive, onMounted } from "vue";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Shield, ShieldX, RefreshCw } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
-import { useAuth } from "~/composables/useAuth";
-import { definePageMeta } from "#imports";
 import {
   Clock,
   DollarSign,
@@ -444,11 +476,20 @@ import {
   X,
   History,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  doc,
+  setDoc,
+  serverTimestamp,
+} from "firebase/firestore";
 
 // Set page meta for role-based access
 definePageMeta({
-  middleware: ["auth", "role"],
-  requiredRole: ["owner", "manager"], // Allow both owner and manager
+  middleware: "auth",
 });
 
 const { user } = useAuth();
@@ -460,83 +501,89 @@ const hasApprovalAccess = computed(() => {
   );
 });
 
-// Sample pending expenses data
-const pendingExpenses = computed(() => {
-  // Implement logic to fetch pending expenses from API
-  return [
-    {
-      id: 1,
-      expenseId: "EXP-003",
-      description: "Office Electricity Bill",
-      category: "utilities",
-      amount: 2500000000,
-      vendor: "PLN",
-      submittedBy: "Admin",
-      department: "Operations",
-      submittedDate: new Date(Date.now() - 86400000),
-      paymentMethod: "bank_transfer",
-      priority: "normal",
-      notes: "Monthly electricity bill for main office",
-    },
-    {
-      id: 2,
-      expenseId: "EXP-006",
-      description: "Emergency Equipment Repair",
-      category: "operational",
-      amount: 5000000,
-      vendor: "Tech Solutions",
-      submittedBy: "Production Manager",
-      department: "Production",
-      submittedDate: new Date(Date.now() - 43200000),
-      paymentMethod: "cash",
-      priority: "urgent",
-      notes: "Oven repair needed immediately for production",
-    },
-    {
-      id: 3,
-      expenseId: "EXP-007",
-      description: "Marketing Materials - Brochures",
-      category: "marketing",
-      amount: 1500000,
-      vendor: "Print House",
-      submittedBy: "Marketing Team",
-      department: "Marketing",
-      submittedDate: new Date(Date.now() - 172800000),
-      paymentMethod: "credit_card",
-      priority: "normal",
-      notes: "New product brochures for Q4 campaign",
-    },
-  ];
-});
-
-const recentApprovalHistory = computed(() => {
-  // Implement logic to fetch recent approval history from API
-  return [
-    {
-      id: 1,
-      expenseDescription: "Raw Material Purchase - Cotton",
-      amount: 15000000,
-      action: "approved",
-      approvedBy: "Yoki Perkasa",
-      actionDate: new Date(),
-    },
-    {
-      id: 2,
-      expenseDescription: "Unnecessary Software License",
-      amount: 3000000,
-      action: "rejected",
-      approvedBy: "Yoki Perkasa",
-      actionDate: new Date(Date.now() - 86400000),
-    },
-  ];
-});
-
 // State
 const showDetailsModal = ref(false);
 const showRejectionModal = ref(false);
 const selectedExpense = ref(null);
 const rejectionReason = ref("");
 const expenseToReject = ref(null);
+const loadingExpenses = ref(false);
+const message = ref("");
+const messageType = ref("");
+
+const pendingExpenses = ref([]);
+const recentApprovalHistory = ref([]);
+
+// Function to fetch pending expenses from Firestore
+const fetchPendingExpenses = async () => {
+  try {
+    loadingExpenses.value = true;
+    const { $firebase } = useNuxtApp();
+
+    const expensesQuery = query(
+      collection($firebase.firestore, "expenses"),
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc")
+    );
+
+    const querySnapshot = await getDocs(expensesQuery);
+
+    pendingExpenses.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate()
+          : new Date(),
+        priority: data.priority || "normal",
+        department: data.department || "N/A",
+      };
+    });
+
+    console.log("Fetched pending expenses:", pendingExpenses.value);
+  } catch (error) {
+    console.error("Error fetching pending expenses:", error);
+    showMessage("Failed to load pending expenses", "error");
+  } finally {
+    loadingExpenses.value = false;
+  }
+};
+
+// Function to fetch approval history
+const fetchApprovalHistory = async () => {
+  try {
+    const { $firebase } = useNuxtApp();
+
+    const historyQuery = query(
+      collection($firebase.firestore, "expenses"),
+      where("status", "in", ["approved", "rejected"]),
+      orderBy("updatedAt", "desc"),
+      limit(10)
+    );
+
+    const querySnapshot = await getDocs(historyQuery);
+
+    recentApprovalHistory.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        expenseDescription: data.description,
+        amount: data.amount,
+        action: data.status,
+        approvedBy: data.approvedBy || "System",
+        actionDate: data.updatedAt?.toDate
+          ? data.updatedAt.toDate()
+          : new Date(),
+      };
+    });
+
+    console.log("Fetched approval history:", recentApprovalHistory.value);
+  } catch (error) {
+    console.error("Error fetching approval history:", error);
+  }
+};
 
 // Computed
 const totalPendingAmount = computed(() => {
@@ -591,7 +638,8 @@ const getCategoryLabel = (category) => {
     operational: "Operational",
     marketing: "Marketing",
     utilities: "Utilities",
-    transport: "Transportation",
+    transportation: "Transportation",
+    others: "Others",
   };
   return labels[category] || category;
 };
@@ -601,6 +649,9 @@ const getPaymentMethodLabel = (method) => {
     cash: "Cash",
     bank_transfer: "Bank Transfer",
     credit_card: "Credit Card",
+    debit_card: "Debit Card",
+    check: "Check",
+    digital_wallet: "Digital Wallet",
   };
   return labels[method] || method;
 };
@@ -615,6 +666,15 @@ const getPriorityVariant = (priority) => {
   return variants[priority] || "outline";
 };
 
+const showMessage = (msg, type) => {
+  message.value = msg;
+  messageType.value = type;
+  setTimeout(() => {
+    message.value = "";
+    messageType.value = "";
+  }, 5000);
+};
+
 const viewExpenseDetails = (expense) => {
   selectedExpense.value = expense;
   showDetailsModal.value = true;
@@ -622,8 +682,21 @@ const viewExpenseDetails = (expense) => {
 
 const approveExpense = async (expense) => {
   try {
-    // Here you would make API call to approve expense
-    console.log("Approving expense:", expense.expenseId);
+    const { $firebase } = useNuxtApp();
+
+    // Update expense status to approved
+    await setDoc(
+      doc($firebase.firestore, "expenses", expense.id),
+      {
+        status: "approved",
+        approvedBy:
+          user.value?.firstName + " " + user.value?.lastName ||
+          user.value?.email,
+        approvedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     // Remove from pending list
     const index = pendingExpenses.value.findIndex((e) => e.id === expense.id);
@@ -633,19 +706,22 @@ const approveExpense = async (expense) => {
 
     // Add to approval history
     recentApprovalHistory.value.unshift({
-      id: Date.now(),
+      id: expense.id,
       expenseDescription: expense.description,
       amount: expense.amount,
       action: "approved",
-      approvedBy: user.value.name,
+      approvedBy:
+        user.value?.firstName + " " + user.value?.lastName || user.value?.email,
       actionDate: new Date(),
     });
 
-    // Show success message (you can implement toast notification)
-    alert(`Expense ${expense.expenseId} has been approved successfully!`);
+    showMessage(
+      `Expense ${expense.expenseId} has been approved successfully!`,
+      "success"
+    );
   } catch (error) {
     console.error("Error approving expense:", error);
-    alert("Failed to approve expense. Please try again.");
+    showMessage("Failed to approve expense. Please try again.", "error");
   }
 };
 
@@ -657,17 +733,27 @@ const rejectExpense = (expense) => {
 
 const confirmRejection = async () => {
   if (!rejectionReason.value.trim()) {
-    alert("Please provide a reason for rejection.");
+    showMessage("Please provide a reason for rejection.", "error");
     return;
   }
 
   try {
+    const { $firebase } = useNuxtApp();
     const expense = expenseToReject.value;
-    console.log(
-      "Rejecting expense:",
-      expense.expenseId,
-      "Reason:",
-      rejectionReason.value
+
+    // Update expense status to rejected
+    await setDoc(
+      doc($firebase.firestore, "expenses", expense.id),
+      {
+        status: "rejected",
+        rejectedBy:
+          user.value?.firstName + " " + user.value?.lastName ||
+          user.value?.email,
+        rejectionReason: rejectionReason.value,
+        rejectedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
     );
 
     // Remove from pending list
@@ -678,19 +764,20 @@ const confirmRejection = async () => {
 
     // Add to approval history
     recentApprovalHistory.value.unshift({
-      id: Date.now(),
+      id: expense.id,
       expenseDescription: expense.description,
       amount: expense.amount,
       action: "rejected",
-      approvedBy: user.value.name,
+      approvedBy:
+        user.value?.firstName + " " + user.value?.lastName || user.value?.email,
       actionDate: new Date(),
     });
 
     showRejectionModal.value = false;
-    alert(`Expense ${expense.expenseId} has been rejected.`);
+    showMessage(`Expense ${expense.expenseId} has been rejected.`, "success");
   } catch (error) {
     console.error("Error rejecting expense:", error);
-    alert("Failed to reject expense. Please try again.");
+    showMessage("Failed to reject expense. Please try again.", "error");
   }
 };
 
@@ -705,6 +792,15 @@ const rejectExpenseFromModal = () => {
 };
 
 const refreshData = () => {
-  console.log("Refreshing approval data...");
+  fetchPendingExpenses();
+  fetchApprovalHistory();
+  showMessage("Data refreshed successfully!", "success");
 };
+
+onMounted(() => {
+  if (hasApprovalAccess.value) {
+    fetchPendingExpenses();
+    fetchApprovalHistory();
+  }
+});
 </script>

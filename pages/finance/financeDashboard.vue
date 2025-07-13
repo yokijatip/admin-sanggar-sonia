@@ -6,10 +6,22 @@
       description="Monitor your business financial performance"
     />
 
+    <!-- Alert Messages -->
+    <Alert
+      v-if="message"
+      :class="messageType === 'error' ? 'border-red-500' : 'border-green-500'"
+      class="mb-6"
+    >
+      <AlertDescription>{{ message }}</AlertDescription>
+    </Alert>
+
     <!-- Date Range Selector -->
     <div class="flex justify-between items-center mb-6">
       <div class="flex items-center space-x-4">
-        <Select v-model="selectedPeriod">
+        <Select
+          v-model="selectedPeriod"
+          @update:model-value="loadFinancialData"
+        >
           <SelectTrigger class="w-48">
             <SelectValue placeholder="Select period" />
           </SelectTrigger>
@@ -27,9 +39,19 @@
           v-if="selectedPeriod === 'custom'"
           class="flex items-center space-x-2"
         >
-          <Input type="date" v-model="customDateRange.start" class="w-40" />
+          <Input
+            type="date"
+            v-model="customDateRange.start"
+            class="w-40"
+            @change="loadFinancialData"
+          />
           <span>to</span>
-          <Input type="date" v-model="customDateRange.end" class="w-40" />
+          <Input
+            type="date"
+            v-model="customDateRange.end"
+            class="w-40"
+            @change="loadFinancialData"
+          />
         </div>
       </div>
 
@@ -68,7 +90,7 @@
               "
             >
               {{ financialData.revenueGrowth >= 0 ? "+" : ""
-              }}{{ financialData.revenueGrowth }}%
+              }}{{ financialData.revenueGrowth.toFixed(1) }}%
             </span>
             from last period
           </p>
@@ -96,7 +118,7 @@
               "
             >
               {{ financialData.expenseGrowth >= 0 ? "+" : ""
-              }}{{ financialData.expenseGrowth }}%
+              }}{{ financialData.expenseGrowth.toFixed(1) }}%
             </span>
             from last period
           </p>
@@ -112,15 +134,22 @@
           <DollarSign />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">
+          <div
+            class="text-xl font-bold"
+            :class="
+              financialData.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+            "
+          >
             Rp {{ formatPrice(financialData.netProfit) }}
           </div>
           <p class="text-xs text-muted-foreground">
             {{
-              (
-                (financialData.netProfit / financialData.totalRevenue) *
-                100
-              ).toFixed(1)
+              financialData.totalRevenue > 0
+                ? (
+                    (financialData.netProfit / financialData.totalRevenue) *
+                    100
+                  ).toFixed(1)
+                : 0
             }}% profit margin
           </p>
         </CardContent>
@@ -135,7 +164,12 @@
           <Wallet />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">
+          <div
+            class="text-xl font-bold"
+            :class="
+              financialData.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'
+            "
+          >
             Rp {{ formatPrice(financialData.cashFlow) }}
           </div>
           <p class="text-xs text-muted-foreground">Current cash position</p>
@@ -188,7 +222,7 @@
                   Rp {{ formatPrice(category.amount) }}
                 </div>
                 <div class="text-xs text-muted-foreground">
-                  {{ category.percentage }}%
+                  {{ category.percentage.toFixed(1) }}%
                 </div>
               </div>
             </div>
@@ -204,16 +238,21 @@
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>Latest financial activities</CardDescription>
         </div>
-        <Button
-          variant="outline"
-          @click="$router.push('/finance/transactions')"
-        >
+        <Button variant="outline" @click="$router.push('/admin/transaction')">
           View All
           <ArrowRight class="ml-2 h-4 w-4" />
         </Button>
       </CardHeader>
       <CardContent>
-        <div class="space-y-4">
+        <div v-if="loadingTransactions" class="text-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"
+          ></div>
+          <p class="mt-2 text-sm text-muted-foreground">
+            Loading transactions...
+          </p>
+        </div>
+        <div v-else class="space-y-4">
           <div
             v-for="transaction in recentTransactions"
             :key="transaction.id"
@@ -227,7 +266,7 @@
                 "
               >
                 <component
-                  :is="transaction.icon"
+                  :is="getTransactionIcon(transaction.category)"
                   :class="
                     transaction.type === 'income'
                       ? 'text-green-600'
@@ -239,7 +278,7 @@
               <div>
                 <div class="font-medium">{{ transaction.description }}</div>
                 <div class="text-sm text-muted-foreground">
-                  {{ transaction.category }} •
+                  {{ getCategoryLabel(transaction.category) }} •
                   {{ formatDate(transaction.date) }}
                 </div>
               </div>
@@ -282,6 +321,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -304,8 +344,20 @@ import {
   Users,
   Settings,
   CreditCard,
+  Smartphone,
+  Zap,
+  Car,
+  FileText,
 } from "lucide-vue-next";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+} from "firebase/firestore";
 
 definePageMeta({
   middleware: "auth",
@@ -317,81 +369,171 @@ const customDateRange = reactive({
   start: "",
   end: "",
 });
+const message = ref("");
+const messageType = ref("");
+const loadingTransactions = ref(false);
 
 const financialData = reactive({
-  totalRevenue: 125000000,
-  totalExpenses: 85000000,
-  netProfit: 40000000,
-  cashFlow: 15000000,
-  revenueGrowth: 12.5,
-  expenseGrowth: 8.3,
+  totalRevenue: 0,
+  totalExpenses: 0,
+  netProfit: 0,
+  cashFlow: 0,
+  revenueGrowth: 0,
+  expenseGrowth: 0,
 });
 
-const expenseCategories = ref([
-  {
-    name: "Raw Materials",
-    amount: 35000000,
-    percentage: 41.2,
-    color: "#ef4444",
-  },
-  { name: "Labor Costs", amount: 25000000, percentage: 29.4, color: "#f97316" },
-  { name: "Operational", amount: 15000000, percentage: 17.6, color: "#eab308" },
-  { name: "Marketing", amount: 7000000, percentage: 8.2, color: "#22c55e" },
-  { name: "Others", amount: 3000000, percentage: 3.5, color: "#6366f1" },
-]);
+const expenseCategories = ref([]);
+const recentTransactions = ref([]);
 
-const recentTransactions = ref([
-  {
-    id: 1,
-    type: "income",
-    description: "Order Payment - ORD-001",
-    category: "Sales",
-    amount: 2500000,
-    date: new Date(),
-    status: "completed",
-    icon: ShoppingCart,
-  },
-  {
-    id: 2,
-    type: "expense",
-    description: "Raw Material Purchase",
-    category: "Materials",
-    amount: 1200000,
-    date: new Date(Date.now() - 86400000),
-    status: "completed",
-    icon: Truck,
-  },
-  {
-    id: 3,
-    type: "expense",
-    description: "Employee Salary",
-    category: "Labor",
-    amount: 8000000,
-    date: new Date(Date.now() - 172800000),
-    status: "completed",
-    icon: Users,
-  },
-  {
-    id: 4,
-    type: "expense",
-    description: "Office Rent",
-    category: "Operational",
-    amount: 3000000,
-    date: new Date(Date.now() - 259200000),
-    status: "pending",
-    icon: Settings,
-  },
-  {
-    id: 5,
-    type: "income",
-    description: "Order Payment - ORD-002",
-    category: "Sales",
-    amount: 1800000,
-    date: new Date(Date.now() - 345600000),
-    status: "completed",
-    icon: CreditCard,
-  },
-]);
+// Helper function to get date range based on selected period
+const getDateRange = () => {
+  const now = new Date();
+  let startDate, endDate;
+
+  switch (selectedPeriod.value) {
+    case "today":
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      break;
+    case "week":
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      startDate = new Date(
+        weekStart.getFullYear(),
+        weekStart.getMonth(),
+        weekStart.getDate()
+      );
+      endDate = new Date(
+        weekStart.getFullYear(),
+        weekStart.getMonth(),
+        weekStart.getDate() + 7
+      );
+      break;
+    case "month":
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      break;
+    case "quarter":
+      const quarterStart = Math.floor(now.getMonth() / 3) * 3;
+      startDate = new Date(now.getFullYear(), quarterStart, 1);
+      endDate = new Date(now.getFullYear(), quarterStart + 3, 1);
+      break;
+    case "year":
+      startDate = new Date(now.getFullYear(), 0, 1);
+      endDate = new Date(now.getFullYear() + 1, 0, 1);
+      break;
+    case "custom":
+      if (customDateRange.start && customDateRange.end) {
+        startDate = new Date(customDateRange.start);
+        endDate = new Date(customDateRange.end);
+        endDate.setDate(endDate.getDate() + 1); // Include end date
+      } else {
+        // Default to current month if custom dates not set
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      }
+      break;
+    default:
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }
+
+  return { startDate, endDate };
+};
+
+// Function to fetch financial data from Firestore
+const loadFinancialData = async () => {
+  try {
+    const { $firebase } = useNuxtApp();
+    const { startDate, endDate } = getDateRange();
+
+    // Fetch transactions within date range
+    const transactionsQuery = query(
+      collection($firebase.firestore, "transactions"),
+      where("date", ">=", startDate),
+      where("date", "<", endDate),
+      orderBy("date", "desc")
+    );
+
+    const transactionsSnapshot = await getDocs(transactionsQuery);
+    const transactions = transactionsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+      };
+    });
+
+    // Calculate revenue (only sales income)
+    const revenue = transactions
+      .filter((t) => t.type === "income" && t.category === "sales")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate total expenses (all expense transactions)
+    const expenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Calculate net profit
+    const netProfit = revenue - expenses;
+
+    // Calculate cash flow (all income - all expenses)
+    const totalIncome = transactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpenses = transactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const cashFlow = totalIncome - totalExpenses;
+
+    // Update financial data
+    Object.assign(financialData, {
+      totalRevenue: revenue,
+      totalExpenses: expenses,
+      netProfit: netProfit,
+      cashFlow: cashFlow,
+      revenueGrowth: 12.5, // TODO: Calculate actual growth
+      expenseGrowth: 8.3, // TODO: Calculate actual growth
+    });
+
+    // Calculate expense categories
+    const categoryTotals = {};
+    transactions
+      .filter((t) => t.type === "expense")
+      .forEach((t) => {
+        categoryTotals[t.category] =
+          (categoryTotals[t.category] || 0) + t.amount;
+      });
+
+    const categoryColors = {
+      materials: "#ef4444",
+      labor: "#f97316",
+      operational: "#eab308",
+      marketing: "#22c55e",
+      utilities: "#6366f1",
+      transportation: "#8b5cf6",
+      others: "#64748b",
+    };
+
+    expenseCategories.value = Object.entries(categoryTotals)
+      .map(([category, amount]) => ({
+        name: getCategoryLabel(category),
+        amount,
+        percentage: expenses > 0 ? (amount / expenses) * 100 : 0,
+        color: categoryColors[category] || "#64748b",
+      }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Get recent transactions (last 5)
+    recentTransactions.value = transactions.slice(0, 5);
+
+    console.log("Financial data loaded:", financialData);
+  } catch (error) {
+    console.error("Error loading financial data:", error);
+    showMessage("Failed to load financial data", "error");
+  }
+};
 
 // Methods
 const formatPrice = (price) => {
@@ -407,18 +549,56 @@ const formatDate = (date) => {
   });
 };
 
+const getCategoryLabel = (category) => {
+  const labels = {
+    sales: "Sales",
+    materials: "Raw Materials",
+    labor: "Labor Costs",
+    operational: "Operational",
+    marketing: "Marketing",
+    utilities: "Utilities",
+    transportation: "Transportation",
+    others: "Others",
+  };
+  return labels[category] || category;
+};
+
+const getTransactionIcon = (category) => {
+  const icons = {
+    sales: ShoppingCart,
+    materials: Truck,
+    labor: Users,
+    operational: Settings,
+    marketing: Smartphone,
+    utilities: Zap,
+    transportation: Car,
+    others: FileText,
+  };
+  return icons[category] || FileText;
+};
+
+const showMessage = (msg, type) => {
+  message.value = msg;
+  messageType.value = type;
+  setTimeout(() => {
+    message.value = "";
+    messageType.value = "";
+  }, 5000);
+};
+
 const refreshData = () => {
-  // Implement data refresh logic
-  console.log("Refreshing financial data...");
+  loadFinancialData();
+  showMessage("Financial data refreshed successfully!", "success");
 };
 
 const exportData = () => {
-  // Implement export functionality
+  // TODO: Implement export functionality
   console.log("Exporting financial data...");
+  showMessage("Export functionality will be implemented soon", "info");
 };
 
 onMounted(() => {
-  // Load financial data
   console.log("Loading finance dashboard...");
+  loadFinancialData();
 });
 </script>

@@ -11,6 +11,10 @@
           <Filter class="mr-2 h-4 w-4" />
           Filters
         </Button>
+        <Button variant="outline" @click="exportExpenses">
+          <Download class="mr-2 h-4 w-4" />
+          Export
+        </Button>
         <Button @click="showAddExpenseModal = true">
           <Plus class="mr-2 h-4 w-4" />
           Add Expense
@@ -65,7 +69,7 @@
             </Select>
           </div>
           <div>
-            <Labe class="mb-2">Date From</Labe>
+            <Label class="mb-2">Date From</Label>
             <Input type="date" v-model="filters.dateFrom" />
           </div>
           <div>
@@ -73,15 +77,25 @@
             <Input type="date" v-model="filters.dateTo" />
           </div>
         </div>
-        <div class="flex justify-end mt-4 space-x-2">
-          <Button variant="outline" @click="clearFilters">Clear</Button>
-          <Button @click="applyFilters">Apply Filters</Button>
+        <div class="flex justify-between items-center mt-4">
+          <div class="flex items-center space-x-2">
+            <Label>Search:</Label>
+            <Input
+              v-model="filters.search"
+              placeholder="Search expenses..."
+              class="w-64"
+            />
+          </div>
+          <div class="flex space-x-2">
+            <Button variant="outline" @click="clearFilters">Clear</Button>
+            <Button @click="applyFilters">Apply Filters</Button>
+          </div>
         </div>
       </CardContent>
     </Card>
 
     <!-- Expense Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <Card>
         <CardHeader
           class="flex flex-row items-center justify-between space-y-0"
@@ -142,8 +156,28 @@
 
     <!-- Expenses Table -->
     <Card class="mb-4">
-      <CardHeader>
-        <CardTitle>Expense Records</CardTitle>
+      <CardHeader class="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Expense Records</CardTitle>
+          <CardDescription>
+            Showing {{ filteredExpenses.length }} of
+            {{ expenses.length }} expenses
+          </CardDescription>
+        </div>
+        <div class="flex items-center space-x-2">
+          <Select v-model="itemsPerPage">
+            <SelectTrigger class="w-20">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10</SelectItem>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+          <span class="text-sm text-muted-foreground">per page</span>
+        </div>
       </CardHeader>
       <CardContent>
         <div v-if="loadingExpenses" class="text-center py-8">
@@ -166,16 +200,24 @@
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="expense in filteredExpenses" :key="expense.id">
+            <TableRow v-for="expense in paginatedExpenses" :key="expense.id">
               <TableCell class="font-mono">{{ expense.expenseId }}</TableCell>
               <TableCell>
-                <div>
-                  <div class="font-medium">{{ expense.description }}</div>
-                  <div
-                    v-if="expense.vendor"
-                    class="text-sm text-muted-foreground"
-                  >
-                    Vendor: {{ expense.vendor }}
+                <div class="flex items-center space-x-3">
+                  <div class="p-2 rounded-full bg-red-100">
+                    <component
+                      :is="getCategoryIcon(expense.category)"
+                      class="h-4 w-4 text-red-600"
+                    />
+                  </div>
+                  <div>
+                    <div class="font-medium">{{ expense.description }}</div>
+                    <div
+                      v-if="expense.vendor"
+                      class="text-sm text-muted-foreground"
+                    >
+                      Vendor: {{ expense.vendor }}
+                    </div>
                   </div>
                 </div>
               </TableCell>
@@ -184,10 +226,17 @@
                   getCategoryLabel(expense.category)
                 }}</Badge>
               </TableCell>
-              <TableCell class="font-bold"
-                >Rp {{ formatPrice(expense.amount) }}</TableCell
+              <TableCell class="font-bold text-red-600"
+                >-Rp {{ formatPrice(expense.amount) }}</TableCell
               >
-              <TableCell>{{ formatDate(expense.date) }}</TableCell>
+              <TableCell>
+                <div class="text-sm">
+                  {{ formatDate(expense.date) }}
+                </div>
+                <div class="text-xs text-muted-foreground">
+                  {{ formatTime(expense.date) }}
+                </div>
+              </TableCell>
               <TableCell>{{ expense.submittedBy }}</TableCell>
               <TableCell>
                 <Badge :variant="getStatusVariant(expense.status)">
@@ -223,6 +272,40 @@
             </TableRow>
           </TableBody>
         </Table>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-4">
+          <div class="text-sm text-muted-foreground">
+            Showing {{ (currentPage - 1) * parseInt(itemsPerPage) + 1 }} to
+            {{
+              Math.min(
+                currentPage * parseInt(itemsPerPage),
+                filteredExpenses.length
+              )
+            }}
+            of {{ filteredExpenses.length }} results
+          </div>
+          <div class="flex space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              @click="previousPage"
+              :disabled="currentPage === 1"
+            >
+              <ChevronLeft class="h-4 w-4" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+            >
+              Next
+              <ChevronRight class="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
 
@@ -363,35 +446,68 @@
       </DialogContent>
     </Dialog>
 
-    <!-- View Model -->
+    <!-- View Modal -->
     <Dialog v-model:open="showViewExpenseModal">
       <DialogContent class="max-w-xl">
         <DialogHeader>
           <DialogTitle>Expense Details</DialogTitle>
         </DialogHeader>
-        <div class="space-y-2 text-sm">
-          <p><strong>ID:</strong> {{ selectedExpense?.expenseId }}</p>
-          <p>
-            <strong>Description:</strong> {{ selectedExpense?.description }}
-          </p>
-          <p>
-            <strong>Amount:</strong> Rp
-            {{ formatPrice(selectedExpense?.amount) }}
-          </p>
-          <p>
-            <strong>Category:</strong>
-            {{ getCategoryLabel(selectedExpense?.category) }}
-          </p>
-          <p><strong>Status:</strong> {{ selectedExpense?.status }}</p>
-          <p><strong>Date:</strong> {{ formatDate(selectedExpense?.date) }}</p>
-          <p><strong>Vendor:</strong> {{ selectedExpense?.vendor }}</p>
-          <p>
-            <strong>Payment Method:</strong>
-            {{ selectedExpense?.paymentMethod }}
-          </p>
-          <p><strong>Notes:</strong> {{ selectedExpense?.notes }}</p>
-          <div v-if="selectedExpense?.receiptUrl">
-            <p><strong>Receipt:</strong></p>
+        <div v-if="selectedExpense" class="space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="font-medium mb-2">Expense ID</Label>
+              <p class="font-mono">{{ selectedExpense.expenseId }}</p>
+            </div>
+            <div>
+              <Label class="font-medium mb-2">Status</Label>
+              <Badge :variant="getStatusVariant(selectedExpense.status)">
+                {{ selectedExpense.status }}
+              </Badge>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="font-medium mb-2">Amount</Label>
+              <p class="text-lg font-bold text-red-600">
+                -Rp {{ formatPrice(selectedExpense.amount) }}
+              </p>
+            </div>
+            <div>
+              <Label class="font-medium mb-2">Category</Label>
+              <p>{{ getCategoryLabel(selectedExpense.category) }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="font-medium mb-2">Description</Label>
+              <p>{{ selectedExpense.description }}</p>
+            </div>
+            <div>
+              <Label class="font-medium mb-2">Vendor/Supplier</Label>
+              <p>{{ selectedExpense.vendor || "-" }}</p>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <Label class="font-medium mb-2">Date</Label>
+              <p>
+                {{ formatDate(selectedExpense.date) }}
+                {{ formatTime(selectedExpense.date) }}
+              </p>
+            </div>
+            <div>
+              <Label class="font-medium mb-2">Payment Method</Label>
+              <p>{{ selectedExpense.paymentMethod || "-" }}</p>
+            </div>
+          </div>
+          <div v-if="selectedExpense.notes">
+            <Label class="font-medium mb-2">Notes</Label>
+            <p class="text-sm text-muted-foreground">
+              {{ selectedExpense.notes }}
+            </p>
+          </div>
+          <div v-if="selectedExpense.receiptUrl">
+            <Label class="font-medium mb-2">Receipt/Invoice</Label>
             <a
               :href="selectedExpense.receiptUrl"
               target="_blank"
@@ -406,8 +522,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ref, reactive, computed, onMounted, watch, nextTick } from "vue";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -438,6 +560,7 @@ import {
 import {
   Plus,
   Filter,
+  Download,
   Eye,
   Edit,
   Trash2,
@@ -445,6 +568,15 @@ import {
   Clock,
   CheckCircle,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
+  Truck,
+  Users,
+  Settings,
+  Smartphone,
+  Zap,
+  Car,
+  FileText,
 } from "lucide-vue-next";
 import {
   collection,
@@ -460,7 +592,6 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
-import { nextTick } from "vue";
 
 definePageMeta({
   middleware: "auth",
@@ -480,12 +611,16 @@ const isLoading = ref(false);
 const loadingExpenses = ref(false);
 const selectedExpense = ref(null);
 const showViewExpenseModal = ref(false);
+const currentPage = ref(1);
+const itemsPerPage = ref("25");
+const modalKey = ref(0);
 
 const filters = reactive({
   category: "all",
   status: "all",
   dateFrom: "",
   dateTo: "",
+  search: "",
 });
 
 // State for expense form
@@ -547,15 +682,13 @@ const uploadToCloudinary = async (file) => {
       throw new Error(data.error.message);
     }
 
-    // JANGAN tutup modal di sini!
-    // showAddExpenseModal.value = false; // HAPUS BARIS INI
-
     return data.secure_url;
   } catch (error) {
     console.error("Cloudinary upload error:", error);
     throw new Error(`Failed to upload receipt: ${error.message}`);
   }
 };
+
 // Function to generate expense ID with yearly format
 const generateExpenseId = async () => {
   try {
@@ -684,8 +817,29 @@ const filteredExpenses = computed(() => {
       (expense) => new Date(expense.date) <= new Date(filters.dateTo)
     );
   }
+  if (filters.search) {
+    const search = filters.search.toLowerCase();
+    filtered = filtered.filter(
+      (expense) =>
+        expense.description.toLowerCase().includes(search) ||
+        expense.expenseId.toLowerCase().includes(search) ||
+        (expense.vendor && expense.vendor.toLowerCase().includes(search))
+    );
+  }
 
   return filtered;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(
+    filteredExpenses.value.length / parseInt(itemsPerPage.value)
+  );
+});
+
+const paginatedExpenses = computed(() => {
+  const start = (currentPage.value - 1) * parseInt(itemsPerPage.value);
+  const end = start + parseInt(itemsPerPage.value);
+  return filteredExpenses.value.slice(start, end);
 });
 
 // Methods
@@ -702,6 +856,13 @@ const formatDate = (date) => {
   });
 };
 
+const formatTime = (date) => {
+  return new Date(date).toLocaleTimeString("id-ID", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 const getCategoryLabel = (category) => {
   const labels = {
     materials: "Raw Materials",
@@ -713,6 +874,19 @@ const getCategoryLabel = (category) => {
     others: "Others",
   };
   return labels[category] || category;
+};
+
+const getCategoryIcon = (category) => {
+  const icons = {
+    materials: Truck,
+    labor: Users,
+    operational: Settings,
+    marketing: Smartphone,
+    utilities: Zap,
+    transportation: Car,
+    others: FileText,
+  };
+  return icons[category] || FileText;
 };
 
 const getStatusVariant = (status) => {
@@ -740,12 +914,26 @@ const clearFilters = () => {
     status: "all",
     dateFrom: "",
     dateTo: "",
+    search: "",
   });
+  currentPage.value = 1;
 };
 
 const applyFilters = () => {
-  // Filters are applied automatically through computed property
+  currentPage.value = 1;
   showFilters.value = false;
+};
+
+const previousPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+  }
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+  }
 };
 
 const viewExpense = (expense) => {
@@ -981,12 +1169,17 @@ const closeExpenseModal = async () => {
     fileInput.value = "";
   }
 
+  modalKey.value++;
   console.log("Modal closed, showAddExpenseModal:", showAddExpenseModal.value);
 };
 
 const handleCancelExpense = async () => {
   console.log("Cancel button clicked");
   await closeExpenseModal();
+};
+
+const exportExpenses = () => {
+  console.log("Exporting expenses...");
 };
 
 watch(showAddExpenseModal, (newVal, oldVal) => {
