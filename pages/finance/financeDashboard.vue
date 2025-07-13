@@ -186,13 +186,8 @@
           <CardDescription>Monthly comparison</CardDescription>
         </CardHeader>
         <CardContent>
-          <div class="h-80 flex items-center justify-center bg-gray-50 rounded">
-            <div class="text-center">
-              <BarChart3 class="h-12 w-12 text-gray-400 mx-auto mb-2" />
-              <p class="text-gray-500">
-                Chart will be implemented with Chart.js
-              </p>
-            </div>
+          <div class="h-80">
+            <OverviewChart :data="chartData" />
           </div>
         </CardContent>
       </Card>
@@ -358,6 +353,35 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import OverviewChart from "@/components/chart/OverviewChart.vue";
+
+// Data untuk chart
+const chartData = {
+  labels: [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ],
+  datasets: [
+    {
+      data: [
+        5500, 4000, 2000, 2400, 3900, 1900, 3100, 2300, 4400, 3600, 5400, 4500,
+      ],
+      backgroundColor: "#FF4F0F",
+      borderRadius: 4,
+      borderSkipped: false,
+    },
+  ],
+};
 
 definePageMeta({
   middleware: "auth",
