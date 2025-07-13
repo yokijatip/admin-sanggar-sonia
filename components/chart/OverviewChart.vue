@@ -24,7 +24,7 @@ const data = {
       data: [
         5500, 4000, 2000, 2400, 3900, 1900, 3100, 2300, 4400, 3600, 5400, 4500,
       ],
-      backgroundColor: "#10b981",
+      backgroundColor: '#3B82F6',
     },
   ],
 };
@@ -38,6 +38,7 @@ const options = {
       onClick: () => {},
     },
   },
+  
 };
 </script>
 

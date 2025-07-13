@@ -7,11 +7,11 @@
         description="Monitor and manage your stock levels"
       />
       <div class="flex gap-2">
-        <Button @click="openStockAdjustment" variant="outline">
+        <Button @click="openStockAdjustment" variant="outline" class="cursor-pointer">
           <Package class="mr-2 h-4 w-4" />
           Stock Adjustment
         </Button>
-        <Button @click="exportInventory">
+        <Button @click="exportInventory" class="cursor-pointer">
           <Download class="mr-2 h-4 w-4" />
           Export
         </Button>
