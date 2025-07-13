@@ -18,12 +18,21 @@
       </div>
     </div>
 
+    <!-- Alert Messages -->
+    <Alert
+      v-if="message"
+      :class="messageType === 'error' ? 'border-red-500' : 'border-green-500'"
+      class="mb-6"
+    >
+      <AlertDescription>{{ message }}</AlertDescription>
+    </Alert>
+
     <!-- Filters -->
     <Card v-if="showFilters" class="mb-6">
       <CardContent class="pt-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <Label>Category</Label>
+            <Label class="mb-2">Category</Label>
             <Select v-model="filters.category">
               <SelectTrigger>
                 <SelectValue placeholder="All Categories" />
@@ -35,13 +44,13 @@
                 <SelectItem value="operational">Operational</SelectItem>
                 <SelectItem value="marketing">Marketing</SelectItem>
                 <SelectItem value="utilities">Utilities</SelectItem>
-                <SelectItem value="transport">Transportation</SelectItem>
+                <SelectItem value="transportation">Transportation</SelectItem>
                 <SelectItem value="others">Others</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label>Status</Label>
+            <Label class="mb-2">Status</Label>
             <Select v-model="filters.status">
               <SelectTrigger>
                 <SelectValue placeholder="All Status" />
@@ -56,11 +65,11 @@
             </Select>
           </div>
           <div>
-            <Label>Date From</Label>
+            <Labe class="mb-2">Date From</Labe>
             <Input type="date" v-model="filters.dateFrom" />
           </div>
           <div>
-            <Label>Date To</Label>
+            <Label class="mb-2">Date To</Label>
             <Input type="date" v-model="filters.dateTo" />
           </div>
         </div>
@@ -78,10 +87,10 @@
           class="flex flex-row items-center justify-between space-y-0"
         >
           <CardTitle class="text-sm font-medium">Total Expenses</CardTitle>
-          <DollarSign />
+          <DollarSign class="text-red-500" />
         </CardHeader>
         <CardContent>
-          <div class="text-xl font-bold">
+          <div class="text-xl font-bold text-red-600">
             Rp {{ formatPrice(expenseSummary.total) }}
           </div>
           <p class="text-xs text-muted-foreground">This month</p>
@@ -132,12 +141,18 @@
     </div>
 
     <!-- Expenses Table -->
-    <Card>
+    <Card class="mb-4">
       <CardHeader>
         <CardTitle>Expense Records</CardTitle>
       </CardHeader>
       <CardContent>
-        <Table>
+        <div v-if="loadingExpenses" class="text-center py-8">
+          <div
+            class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"
+          ></div>
+          <p class="mt-2 text-sm text-muted-foreground">Loading expenses...</p>
+        </div>
+        <Table v-else>
           <TableHeader>
             <TableRow>
               <TableHead>Expense ID</TableHead>
@@ -212,7 +227,7 @@
     </Card>
 
     <!-- Add/Edit Expense Modal -->
-    <Dialog v-model:open="showAddExpenseModal">
+    <Dialog v-model:open="showAddExpenseModal" :key="modalKey">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
           <DialogTitle>{{
@@ -220,18 +235,33 @@
           }}</DialogTitle>
         </DialogHeader>
         <form @submit.prevent="saveExpense" class="space-y-4">
+          <!-- Loading Status -->
+          <div v-if="uploadingStatus" class="text-center py-4">
+            <div
+              class="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto"
+            ></div>
+            <p class="mt-2 text-sm text-muted-foreground">
+              {{ uploadingStatus }}
+            </p>
+          </div>
+
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label for="description" class="mb-2">Description *</Label>
               <Input
                 id="description"
                 v-model="expenseForm.description"
+                :disabled="isLoading"
                 required
               />
             </div>
             <div>
               <Label for="category" class="mb-2">Category *</Label>
-              <Select v-model="expenseForm.category" required>
+              <Select
+                v-model="expenseForm.category"
+                :disabled="isLoading"
+                required
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -254,6 +284,7 @@
                 id="amount"
                 type="number"
                 v-model="expenseForm.amount"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -263,6 +294,7 @@
                 id="date"
                 type="date"
                 v-model="expenseForm.date"
+                :disabled="isLoading"
                 required
               />
             </div>
@@ -270,11 +302,15 @@
           <div class="grid grid-cols-2 gap-4">
             <div>
               <Label for="vendor" class="mb-2">Vendor/Supplier</Label>
-              <Input id="vendor" v-model="expenseForm.vendor" />
+              <Input
+                id="vendor"
+                v-model="expenseForm.vendor"
+                :disabled="isLoading"
+              />
             </div>
             <div>
               <Label for="paymentMethod" class="mb-2">Payment Method</Label>
-              <Select v-model="expenseForm.paymentMethod">
+              <Select v-model="expenseForm.paymentMethod" :disabled="isLoading">
                 <SelectTrigger>
                   <SelectValue placeholder="Select payment method" />
                 </SelectTrigger>
@@ -289,7 +325,12 @@
           </div>
           <div>
             <Label for="notes" class="mb-2">Notes</Label>
-            <Textarea id="notes" v-model="expenseForm.notes" rows="3" />
+            <Textarea
+              id="notes"
+              v-model="expenseForm.notes"
+              :disabled="isLoading"
+              rows="3"
+            />
           </div>
           <div>
             <Label for="receipt" class="mb-2">Receipt/Invoice</Label>
@@ -297,18 +338,68 @@
               id="receipt"
               type="file"
               accept="image/*,application/pdf"
+              :disabled="isLoading"
               @change="handleFileUpload"
             />
+            <p class="text-sm text-muted-foreground mt-1">
+              Maximum file size: 5MB. Supported formats: JPG, PNG, PDF
+            </p>
           </div>
+
           <div class="flex justify-end space-x-2">
-            <Button type="button" variant="outline" @click="closeExpenseModal"
-              >Cancel</Button
+            <Button
+              type="button"
+              variant="outline"
+              :disabled="isLoading"
+              @click="handleCancelExpense"
             >
-            <Button type="submit"
-              >{{ editingExpense ? "Update" : "Save" }} Expense</Button
-            >
+              Cancel
+            </Button>
+            <Button type="submit" :disabled="isLoading">
+              {{ editingExpense ? "Update" : "Save" }} Expense
+            </Button>
           </div>
         </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- View Model -->
+    <Dialog v-model:open="showViewExpenseModal">
+      <DialogContent class="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Expense Details</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-2 text-sm">
+          <p><strong>ID:</strong> {{ selectedExpense?.expenseId }}</p>
+          <p>
+            <strong>Description:</strong> {{ selectedExpense?.description }}
+          </p>
+          <p>
+            <strong>Amount:</strong> Rp
+            {{ formatPrice(selectedExpense?.amount) }}
+          </p>
+          <p>
+            <strong>Category:</strong>
+            {{ getCategoryLabel(selectedExpense?.category) }}
+          </p>
+          <p><strong>Status:</strong> {{ selectedExpense?.status }}</p>
+          <p><strong>Date:</strong> {{ formatDate(selectedExpense?.date) }}</p>
+          <p><strong>Vendor:</strong> {{ selectedExpense?.vendor }}</p>
+          <p>
+            <strong>Payment Method:</strong>
+            {{ selectedExpense?.paymentMethod }}
+          </p>
+          <p><strong>Notes:</strong> {{ selectedExpense?.notes }}</p>
+          <div v-if="selectedExpense?.receiptUrl">
+            <p><strong>Receipt:</strong></p>
+            <a
+              :href="selectedExpense.receiptUrl"
+              target="_blank"
+              class="text-blue-600 underline"
+              >View Receipt</a
+            >
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   </div>
@@ -321,6 +412,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
@@ -354,16 +446,40 @@ import {
   CheckCircle,
   CreditCard,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+  orderBy,
+  limit,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import HeadersContent from "~/components/ui/HeadersContent.vue";
+import { nextTick } from "vue";
 
 definePageMeta({
   middleware: "auth",
 });
 
+const config = useRuntimeConfig();
+const { user } = useAuth();
+
 // State
 const showFilters = ref(false);
 const showAddExpenseModal = ref(false);
 const editingExpense = ref(null);
+const uploadingStatus = ref("");
+const message = ref("");
+const messageType = ref("");
+const isLoading = ref(false);
+const loadingExpenses = ref(false);
+const selectedExpense = ref(null);
+const showViewExpenseModal = ref(false);
 
 const filters = reactive({
   category: "all",
@@ -372,7 +488,9 @@ const filters = reactive({
   dateTo: "",
 });
 
+// State for expense form
 const expenseForm = reactive({
+  expenseId: "",
   description: "",
   category: "",
   amount: "",
@@ -380,82 +498,169 @@ const expenseForm = reactive({
   vendor: "",
   paymentMethod: "",
   notes: "",
-  receipt: null,
+  receiptFile: null,
 });
 
 const expenseSummary = reactive({
-  total: 85000000,
-  pending: 12,
-  approved: 8,
-  paid: 45,
+  total: 0,
+  pending: 0,
+  approved: 0,
+  paid: 0,
 });
 
-const expenses = ref([
-  {
-    id: 1,
-    expenseId: "EXP-001",
-    description: "Raw Material Purchase - Cotton",
-    category: "materials",
-    amount: 15000000,
-    date: new Date(),
-    vendor: "PT Textile Indonesia",
-    submittedBy: "John Doe",
-    status: "approved",
-    paymentMethod: "bank_transfer",
-    notes: "Monthly cotton supply",
-  },
-  {
-    id: 2,
-    expenseId: "EXP-002",
-    description: "Employee Salary - Production Team",
-    category: "labor",
-    amount: 25000000,
-    date: new Date(Date.now() - 86400000),
-    submittedBy: "HR Department",
-    status: "paid",
-    paymentMethod: "bank_transfer",
-    notes: "Monthly salary payment",
-  },
-  {
-    id: 3,
-    expenseId: "EXP-003",
-    description: "Office Electricity Bill",
-    category: "utilities",
-    amount: 2500000,
-    date: new Date(Date.now() - 172800000),
-    vendor: "PLN",
-    submittedBy: "Admin",
-    status: "pending",
-    paymentMethod: "bank_transfer",
-    notes: "Monthly electricity bill",
-  },
-  {
-    id: 4,
-    expenseId: "EXP-004",
-    description: "Marketing Campaign - Social Media",
-    category: "marketing",
-    amount: 5000000,
-    date: new Date(Date.now() - 259200000),
-    vendor: "Digital Agency XYZ",
-    submittedBy: "Marketing Team",
-    status: "approved",
-    paymentMethod: "credit_card",
-    notes: "Q1 social media campaign",
-  },
-  {
-    id: 5,
-    expenseId: "EXP-005",
-    description: "Delivery Truck Fuel",
-    category: "transport",
-    amount: 1200000,
-    date: new Date(Date.now() - 345600000),
-    vendor: "Pertamina",
-    submittedBy: "Logistics",
-    status: "paid",
-    paymentMethod: "cash",
-    notes: "Weekly fuel refill",
-  },
-]);
+const expenses = ref([]);
+
+// Function to upload receipt to Cloudinary
+const uploadToCloudinary = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", config.public.cloudinaryUploadPreset);
+    formData.append("folder", "TokoKueDlillah/expenses/receipts");
+
+    const timestamp = new Date().getTime();
+    const filename = `receipt_${timestamp}_${file.name.replace(
+      /[^a-zA-Z0-9.]/g,
+      "_"
+    )}`;
+    formData.append(
+      "public_id",
+      `TokoKueDlillah/expenses/receipts/${filename}`
+    );
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${config.public.cloudinaryCloudName}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    // JANGAN tutup modal di sini!
+    // showAddExpenseModal.value = false; // HAPUS BARIS INI
+
+    return data.secure_url;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    throw new Error(`Failed to upload receipt: ${error.message}`);
+  }
+};
+// Function to generate expense ID with yearly format
+const generateExpenseId = async () => {
+  try {
+    const { $firebase } = useNuxtApp();
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `EXP-${currentYear}`;
+
+    // Query expenses from current year
+    const expensesQuery = query(
+      collection($firebase.firestore, "expenses"),
+      where("expenseId", ">=", `${yearPrefix}-001`),
+      where("expenseId", "<", `${yearPrefix}-999`),
+      orderBy("expenseId", "desc"),
+      limit(1)
+    );
+
+    const querySnapshot = await getDocs(expensesQuery);
+
+    let nextNumber = 1;
+
+    if (!querySnapshot.empty) {
+      const lastExpense = querySnapshot.docs[0].data();
+      const lastId = lastExpense.expenseId;
+      const parts = lastId.split("-");
+      if (parts.length === 3) {
+        const lastNumber = parseInt(parts[2]) || 0;
+        nextNumber = lastNumber + 1;
+      }
+    }
+
+    // Format: EXP-2025-001
+    const formattedNumber = nextNumber.toString().padStart(3, "0");
+    return `${yearPrefix}-${formattedNumber}`;
+  } catch (error) {
+    console.error("Error generating expense ID:", error);
+    // Fallback with timestamp
+    return `EXP-${new Date().getFullYear()}-${Date.now().toString().slice(-3)}`;
+  }
+};
+
+// Function to fetch expenses from Firestore
+const fetchExpenses = async () => {
+  try {
+    loadingExpenses.value = true;
+    const { $firebase } = useNuxtApp();
+
+    const expensesQuery = query(
+      collection($firebase.firestore, "expenses"),
+      orderBy("createdAt", "desc")
+    );
+
+    const querySnapshot = await getDocs(expensesQuery);
+
+    expenses.value = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Convert Firestore timestamp to Date
+        date: data.date?.toDate ? data.date.toDate() : new Date(data.date),
+        createdAt: data.createdAt?.toDate
+          ? data.createdAt.toDate()
+          : new Date(),
+      };
+    });
+
+    // Calculate summary
+    calculateExpenseSummary();
+
+    console.log("Fetched expenses:", expenses.value);
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    showMessage("Failed to load expenses", "error");
+  } finally {
+    loadingExpenses.value = false;
+  }
+};
+
+// Function to calculate expense summary
+const calculateExpenseSummary = () => {
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+
+  const thisMonthExpenses = expenses.value.filter((expense) => {
+    const expenseDate = new Date(expense.date);
+    return (
+      expenseDate.getMonth() === currentMonth &&
+      expenseDate.getFullYear() === currentYear
+    );
+  });
+
+  expenseSummary.total = thisMonthExpenses.reduce(
+    (total, expense) => total + expense.amount,
+    0
+  );
+  expenseSummary.pending = expenses.value.filter(
+    (expense) => expense.status === "pending"
+  ).length;
+  expenseSummary.approved = expenses.value.filter(
+    (expense) => expense.status === "approved"
+  ).length;
+  expenseSummary.paid = expenses.value.filter(
+    (expense) => expense.status === "paid"
+  ).length;
+};
 
 // Computed
 const filteredExpenses = computed(() => {
@@ -504,7 +709,7 @@ const getCategoryLabel = (category) => {
     operational: "Operational",
     marketing: "Marketing",
     utilities: "Utilities",
-    transport: "Transportation",
+    transportation: "Transportation",
     others: "Others",
   };
   return labels[category] || category;
@@ -518,6 +723,15 @@ const getStatusVariant = (status) => {
     rejected: "destructive",
   };
   return variants[status] || "secondary";
+};
+
+const showMessage = (msg, type) => {
+  message.value = msg;
+  messageType.value = type;
+  setTimeout(() => {
+    message.value = "";
+    messageType.value = "";
+  }, 5000);
 };
 
 const clearFilters = () => {
@@ -535,8 +749,8 @@ const applyFilters = () => {
 };
 
 const viewExpense = (expense) => {
-  // Implement view expense details
-  console.log("Viewing expense:", expense);
+  selectedExpense.value = expense;
+  showViewExpenseModal.value = true;
 };
 
 const editExpense = (expense) => {
@@ -553,49 +767,203 @@ const editExpense = (expense) => {
   showAddExpenseModal.value = true;
 };
 
-const deleteExpense = (expenseId) => {
+const deleteExpense = async (expenseId) => {
   if (confirm("Are you sure you want to delete this expense?")) {
-    const index = expenses.value.findIndex(
-      (expense) => expense.id === expenseId
-    );
-    if (index !== -1) {
-      expenses.value.splice(index, 1);
+    try {
+      const { $firebase } = useNuxtApp();
+      await deleteDoc(doc($firebase.firestore, "expenses", expenseId));
+
+      // Hapus dari lokal
+      expenses.value = expenses.value.filter((e) => e.id !== expenseId);
+      calculateExpenseSummary();
+
+      showMessage("Expense deleted successfully!", "success");
+    } catch (error) {
+      console.error("Delete error:", error);
+      showMessage("Failed to delete expense", "error");
     }
   }
 };
 
-const saveExpense = () => {
-  if (editingExpense.value) {
-    // Update existing expense
-    const index = expenses.value.findIndex(
-      (expense) => expense.id === editingExpense.value.id
-    );
-    if (index !== -1) {
-      expenses.value[index] = {
-        ...expenses.value[index],
-        ...expenseForm,
+const handleFileUpload = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file size (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    showMessage("File size must be less than 5MB", "error");
+    return;
+  }
+
+  // Validate file type
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/jpg",
+    "application/pdf",
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    showMessage("Please select a valid image (JPG, PNG) or PDF file", "error");
+    return;
+  }
+
+  expenseForm.receiptFile = file;
+};
+
+const validateForm = () => {
+  if (
+    !expenseForm.description ||
+    !expenseForm.category ||
+    !expenseForm.amount ||
+    !expenseForm.date
+  ) {
+    showMessage("Please fill in all required fields", "error");
+    return false;
+  }
+
+  if (expenseForm.amount <= 0) {
+    showMessage("Amount must be greater than 0", "error");
+    return false;
+  }
+
+  return true;
+};
+
+const saveExpense = async () => {
+  console.log("Starting saveExpense...");
+
+  if (!validateForm()) {
+    console.log("Form validation failed");
+    return;
+  }
+
+  isLoading.value = true;
+
+  try {
+    const { $firebase } = useNuxtApp();
+
+    // Generate expense ID
+    const expenseId = await generateExpenseId();
+    console.log("Generated expense ID:", expenseId);
+
+    // Upload receipt if exists
+    let receiptUrl = "";
+    if (expenseForm.receiptFile) {
+      try {
+        uploadingStatus.value = "Uploading receipt...";
+        receiptUrl = await uploadToCloudinary(expenseForm.receiptFile);
+        console.log("Receipt uploaded successfully:", receiptUrl);
+      } catch (error) {
+        console.error("Receipt upload failed:", error);
+        showMessage(`Failed to upload receipt: ${error.message}`, "error");
+        return;
+      }
+    }
+
+    // Prepare expense data
+    uploadingStatus.value = "Saving expense...";
+
+    if (editingExpense.value) {
+      // Update existing expense
+      const expenseData = {
+        description: expenseForm.description,
+        category: expenseForm.category,
+        amount: Number(expenseForm.amount),
         date: new Date(expenseForm.date),
+        vendor: expenseForm.vendor || "",
+        paymentMethod: expenseForm.paymentMethod || "",
+        notes: expenseForm.notes || "",
+        receiptUrl: receiptUrl || editingExpense.value.receiptUrl,
+        updatedAt: serverTimestamp(),
       };
+
+      await setDoc(
+        doc($firebase.firestore, "expenses", editingExpense.value.id),
+        expenseData,
+        { merge: true }
+      );
+
+      // Update local state
+      const index = expenses.value.findIndex(
+        (e) => e.id === editingExpense.value.id
+      );
+      if (index !== -1) {
+        expenses.value[index] = {
+          ...expenses.value[index],
+          ...expenseData,
+          date: new Date(expenseForm.date),
+          updatedAt: new Date(),
+        };
+      }
+
+      showMessage("Expense updated successfully!", "success");
+    } else {
+      // Add new expense
+      const expenseData = {
+        expenseId: expenseId,
+        description: expenseForm.description,
+        category: expenseForm.category,
+        amount: Number(expenseForm.amount),
+        date: new Date(expenseForm.date),
+        vendor: expenseForm.vendor || "",
+        paymentMethod: expenseForm.paymentMethod || "",
+        notes: expenseForm.notes || "",
+        receiptUrl: receiptUrl,
+        submittedBy:
+          user.value?.firstName + " " + user.value?.lastName ||
+          user.value?.email ||
+          "Unknown",
+        status: "pending",
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      console.log("Saving new expense data:", expenseData);
+
+      const docRef = await addDoc(
+        collection($firebase.firestore, "expenses"),
+        expenseData
+      );
+
+      // Add to local state
+      const newExpense = {
+        id: docRef.id,
+        ...expenseData,
+        date: new Date(expenseForm.date),
+        createdAt: new Date(),
+      };
+
+      expenses.value.unshift(newExpense);
+      showMessage("Expense added successfully!", "success");
     }
-  } else {
-    // Add new expense
-    const newExpense = {
-      id: Date.now(),
-      expenseId: `EXP-${String(expenses.value.length + 1).padStart(3, "0")}`,
-      ...expenseForm,
-      date: new Date(expenseForm.date),
-      submittedBy: "Current User",
-      status: "pending",
-    };
-    expenses.value.unshift(newExpense);
+
+    calculateExpenseSummary();
+
+    // Close modal dengan delay kecil untuk memastikan message muncul
+    setTimeout(async () => {
+      await closeExpenseModal();
+    }, 500);
+  } catch (error) {
+    console.error("Error saving expense:", error);
+    showMessage("Failed to save expense. Please try again.", "error");
+  } finally {
+    isLoading.value = false;
+    uploadingStatus.value = "";
   }
-  closeExpenseModal();
 };
 
-const closeExpenseModal = () => {
+const closeExpenseModal = async () => {
+  console.log("Closing expense modal...");
+
+  // Force close modal
   showAddExpenseModal.value = false;
   editingExpense.value = null;
+  uploadingStatus.value = "";
+
+  // Reset form
   Object.assign(expenseForm, {
+    expenseId: "",
     description: "",
     category: "",
     amount: "",
@@ -603,18 +971,30 @@ const closeExpenseModal = () => {
     vendor: "",
     paymentMethod: "",
     notes: "",
-    receipt: null,
+    receiptFile: null,
   });
+
+  // Reset file input dengan nextTick
+  await nextTick();
+  const fileInput = document.getElementById("receipt");
+  if (fileInput) {
+    fileInput.value = "";
+  }
+
+  console.log("Modal closed, showAddExpenseModal:", showAddExpenseModal.value);
 };
 
-const handleFileUpload = (event) => {
-  const file = event.target.files[0];
-  if (file) {
-    expenseForm.receipt = file;
-  }
+const handleCancelExpense = async () => {
+  console.log("Cancel button clicked");
+  await closeExpenseModal();
 };
+
+watch(showAddExpenseModal, (newVal, oldVal) => {
+  console.log(`Modal state changed from ${oldVal} to ${newVal}`);
+});
 
 onMounted(() => {
   console.log("Expense management loaded");
+  fetchExpenses();
 });
 </script>

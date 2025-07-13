@@ -297,7 +297,6 @@ definePageMeta({
   middleware: "auth",
 });
 
-// Tambahkan ini di bagian script setup
 const config = useRuntimeConfig();
 
 // State
