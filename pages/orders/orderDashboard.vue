@@ -435,6 +435,14 @@ import {
   Download,
   Settings,
 } from "lucide-vue-next";
+// Firebase imports - menggunakan struktur yang sama dengan history orders
+import { collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+
+import { useNuxtApp } from "#app";
+import { navigateTo } from "#app";
+
+// Firebase Instance - menggunakan struktur yang sama
+const { $firebase } = useNuxtApp();
 
 definePageMeta({
   middleware: "auth",
@@ -444,157 +452,342 @@ definePageMeta({
 const selectedDateRange = ref("month");
 const showSettings = ref(false);
 const refreshInterval = ref(null);
+const isLoading = ref(false);
+const error = ref(null);
 
 const settings = ref({
   refreshInterval: "5",
   notifications: true,
 });
 
-// Sample data
+// Reactive data
 const metrics = ref({
-  totalOrders: 156,
-  ordersGrowth: 12.5,
-  totalRevenue: 45231890,
-  revenueGrowth: 8.3,
-  avgOrderValue: 290076,
-  aovGrowth: -2.1,
-  completionRate: 94.2,
-  completionGrowth: 1.8,
+  totalOrders: 0,
+  ordersGrowth: 0,
+  totalRevenue: 0,
+  revenueGrowth: 0,
+  avgOrderValue: 0,
+  aovGrowth: 0,
+  completionRate: 0,
+  completionGrowth: 0,
 });
 
-const statusDistribution = ref([
-  { name: "completed", count: 89, percentage: 57, color: "#10b981" },
-  { name: "processing", count: 23, percentage: 15, color: "#3b82f6" },
-  { name: "queue", count: 31, percentage: 20, color: "#f59e0b" },
-  { name: "cancelled", count: 13, percentage: 8, color: "#ef4444" },
-]);
+const statusDistribution = ref([]);
+const topProducts = ref([]);
+const recentOrders = ref([]);
 
-const topProducts = ref([
-  {
-    id: "P1",
-    name: "Wedding Cake 3 Tier",
-    category: "Custom Cakes",
-    quantity: 12,
-    revenue: 30000000,
-  },
-  {
-    id: "P2",
-    name: "Birthday Cake",
-    category: "Regular Cakes",
-    quantity: 28,
-    revenue: 9800000,
-  },
-  {
-    id: "P3",
-    name: "Cupcakes",
-    category: "Small Items",
-    quantity: 156,
-    revenue: 7800000,
-  },
-  {
-    id: "P4",
-    name: "Donat",
-    category: "Small Items",
-    quantity: 89,
-    revenue: 4450000,
-  },
-  {
-    id: "P5",
-    name: "Custom Cake",
-    category: "Custom Cakes",
-    quantity: 8,
-    revenue: 6400000,
-  },
-]);
+// Date range helpers
+const getDateRange = (range) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (range) {
+    case 'today':
+      return {
+        start: today,
+        end: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+      };
+    case 'week':
+      const weekStart = new Date(today);
+      weekStart.setDate(today.getDate() - today.getDay());
+      return {
+        start: weekStart,
+        end: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000)
+      };
+    case 'month':
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      };
+    case 'quarter':
+      const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      return {
+        start: quarterStart,
+        end: new Date(quarterStart.getFullYear(), quarterStart.getMonth() + 3, 1)
+      };
+    case 'year':
+      return {
+        start: new Date(now.getFullYear(), 0, 1),
+        end: new Date(now.getFullYear() + 1, 0, 1)
+      };
+    default:
+      return {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 1)
+      };
+  }
+};
 
-const recentOrders = ref([
-  {
-    id: "ORD-156",
-    customer: { name: "Siti Aminah" },
-    total: 2500000,
-    status: "processing",
-    createdAt: "2024-01-17T10:30:00Z",
-  },
-  {
-    id: "ORD-155",
-    customer: { name: "Budi Santoso" },
-    total: 350000,
-    status: "completed",
-    createdAt: "2024-01-17T09:15:00Z",
-  },
-  {
-    id: "ORD-154",
-    customer: { name: "Maya Sari" },
-    total: 120000,
-    status: "queue",
-    createdAt: "2024-01-17T08:45:00Z",
-  },
-  {
-    id: "ORD-153",
-    customer: { name: "Ahmad Rizki" },
-    total: 800000,
-    status: "shipped",
-    createdAt: "2024-01-16T16:20:00Z",
-  },
-]);
+const getPreviousDateRange = (range) => {
+  const current = getDateRange(range);
+  const duration = current.end.getTime() - current.start.getTime();
+  
+  return {
+    start: new Date(current.start.getTime() - duration),
+    end: current.start
+  };
+};
 
-// Methods
+// Firebase data fetching functions - menggunakan struktur yang sama dengan history orders
+const fetchOrders = async (dateRange, statusFilter = null) => {
+  try {
+    const ordersCollection = collection($firebase.firestore, "orders");
+    
+    let ordersQuery;
+    if (statusFilter) {
+      ordersQuery = query(
+        ordersCollection,
+        where("status", "==", statusFilter)
+      );
+    } else {
+      ordersQuery = query(ordersCollection);
+    }
+    
+    const querySnapshot = await getDocs(ordersQuery);
+    
+    // Map data dari Firebase ke format yang dibutuhkan
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        customer: {
+          name: data.customerName || "",
+          email: data.customerEmail || "",
+          type: data.customerType || "regular",
+        },
+        products: data.products || [],
+        total: data.subtotal || 0,
+        subtotal: data.subtotal || 0,
+        tax: data.tax || 0,
+        orderDate: data.createdAt,
+        processingStarted: data.processingStarted || data.createdAt,
+        completionDate: data.updatedAt || data.createdAt,
+        duration: data.duration || 0,
+        status: data.status,
+        notes: data.notes || "",
+        shippingAddress: data.shippingAddress || "",
+        shippingCost: data.shippingCost || 0,
+        createdAt: data.createdAt,
+      };
+    });
+    
+    // Filter berdasarkan date range
+    const filteredOrders = orders.filter(order => {
+      const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt);
+      return orderDate >= dateRange.start && orderDate < dateRange.end;
+    });
+    
+    // Sort secara manual di client side
+    return filteredOrders.sort((a, b) => {
+      const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+      const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+      return dateB - dateA; // Descending order (terbaru ke terlama)
+    });
+    
+  } catch (err) {
+    console.error('Error fetching orders:', err);
+    throw err;
+  }
+};
+
+const fetchRecentOrders = async () => {
+  try {
+    const ordersCollection = collection($firebase.firestore, "orders");
+    const ordersQuery = query(ordersCollection);
+    
+    const querySnapshot = await getDocs(ordersQuery);
+    
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        customer: {
+          name: data.customerName || "",
+          email: data.customerEmail || "",
+        },
+        total: data.subtotal || 0,
+        status: data.status,
+        createdAt: data.createdAt,
+      };
+    });
+    
+    // Sort dan ambil 4 terbaru
+    return orders
+      .sort((a, b) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
+        return dateB - dateA;
+      })
+      .slice(0, 4);
+      
+  } catch (err) {
+    console.error('Error fetching recent orders:', err);
+    throw err;
+  }
+};
+
+// Data processing functions
+const calculateMetrics = (currentOrders, previousOrders) => {
+  const currentTotal = currentOrders.length;
+  const previousTotal = previousOrders.length;
+  
+  const currentRevenue = currentOrders.reduce((sum, order) => sum + (order.subtotal || 0), 0);
+  const previousRevenue = previousOrders.reduce((sum, order) => sum + (order.subtotal || 0), 0);
+  
+  const completedOrders = currentOrders.filter(order => order.status === 'complete' || order.status === 'completed');
+  const completionRate = currentTotal > 0 ? (completedOrders.length / currentTotal) * 100 : 0;
+  
+  const previousCompletedOrders = previousOrders.filter(order => order.status === 'complete' || order.status === 'completed');
+  const previousCompletionRate = previousTotal > 0 ? (previousCompletedOrders.length / previousTotal) * 100 : 0;
+  
+  const avgOrderValue = currentTotal > 0 ? currentRevenue / currentTotal : 0;
+  const previousAvgOrderValue = previousTotal > 0 ? previousRevenue / previousTotal : 0;
+  
+  return {
+    totalOrders: currentTotal,
+    ordersGrowth: previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal * 100).toFixed(1) : 0,
+    totalRevenue: currentRevenue,
+    revenueGrowth: previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue * 100).toFixed(1) : 0,
+    avgOrderValue: avgOrderValue,
+    aovGrowth: previousAvgOrderValue > 0 ? ((avgOrderValue - previousAvgOrderValue) / previousAvgOrderValue * 100).toFixed(1) : 0,
+    completionRate: completionRate.toFixed(1),
+    completionGrowth: previousCompletionRate > 0 ? ((completionRate - previousCompletionRate) / previousCompletionRate * 100).toFixed(1) : 0,
+  };
+};
+
+const calculateStatusDistribution = (orders) => {
+  const statusCounts = {};
+  const statusColors = {
+    complete: '#10b981',
+    completed: '#10b981',
+    processing: '#3b82f6',
+    queue: '#f59e0b',
+    cancelled: '#ef4444',
+    refunded: '#8b5cf6'
+  };
+  
+  orders.forEach(order => {
+    const status = order.status || 'unknown';
+    statusCounts[status] = (statusCounts[status] || 0) + 1;
+  });
+  
+  const total = orders.length;
+  
+  return Object.entries(statusCounts).map(([status, count]) => ({
+    name: status,
+    count,
+    percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    color: statusColors[status] || '#6b7280'
+  }));
+};
+
+const calculateTopProducts = (orders) => {
+  const productStats = {};
+  
+  orders.forEach(order => {
+    if (order.products && Array.isArray(order.products)) {
+      order.products.forEach(item => {
+        const key = item.id || item.name || 'Unknown Product';
+        if (!productStats[key]) {
+          productStats[key] = {
+            id: item.id || key,
+            name: item.name || key,
+            category: item.category || 'Uncategorized',
+            quantity: 0,
+            revenue: 0
+          };
+        }
+        productStats[key].quantity += item.quantity || 1;
+        productStats[key].revenue += (item.price || 0) * (item.quantity || 1);
+      });
+    }
+  });
+  
+  return Object.values(productStats)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+};
+
+// Main data refresh function
+const refreshData = async () => {
+  if (isLoading.value) return;
+  
+  isLoading.value = true;
+  error.value = null;
+  
+  try {
+    const currentRange = getDateRange(selectedDateRange.value);
+    const previousRange = getPreviousDateRange(selectedDateRange.value);
+    
+    // Fetch current and previous period data
+    const [currentOrders, previousOrders, recent] = await Promise.all([
+      fetchOrders(currentRange),
+      fetchOrders(previousRange),
+      fetchRecentOrders()
+    ]);
+    
+    // Calculate metrics
+    metrics.value = calculateMetrics(currentOrders, previousOrders);
+    
+    // Calculate distributions
+    statusDistribution.value = calculateStatusDistribution(currentOrders);
+    topProducts.value = calculateTopProducts(currentOrders);
+    recentOrders.value = recent;
+    
+  } catch (err) {
+    error.value = err.message;
+    console.error('Error refreshing dashboard data:', err);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// Utility methods
 const formatPrice = (price) => {
   return new Intl.NumberFormat("id-ID").format(price);
 };
 
 const getStatusVariant = (status) => {
   switch (status) {
+    case "complete":
     case "completed":
       return "default";
     case "processing":
       return "secondary";
     case "queue":
       return "outline";
-    case "shipped":
-      return "outline";
     case "cancelled":
       return "destructive";
+    case "refunded":
+      return "secondary";
     default:
       return "secondary";
   }
 };
 
 const updateDateRange = () => {
-  // Simulate data refresh based on date range
-  console.log("Updating data for range:", selectedDateRange.value);
   refreshData();
 };
 
-const refreshData = () => {
-  // Simulate API call to refresh dashboard data
-  console.log("Refreshing dashboard data...");
-  // In real implementation, this would fetch fresh data from Firebase
-};
-
 const navigateToOrderList = () => {
-  console.log("Navigate to order list");
+  navigateTo('/orders/historyOrder');
 };
 
 const navigateToAddOrder = () => {
-  console.log("Navigate to add order");
+  navigateTo('/orders/addOrder');
 };
 
 const navigateToQueue = () => {
-  console.log("Navigate to queue");
+  navigateTo('/orders/queueOrderProcess');
 };
 
 const exportData = () => {
   console.log("Export dashboard data");
-  // Implement CSV/Excel export functionality
 };
 
 const saveSettings = () => {
-  // Save settings to localStorage or user preferences
   localStorage.setItem("dashboardSettings", JSON.stringify(settings.value));
   showSettings.value = false;
-
-  // Setup auto refresh if enabled
   setupAutoRefresh();
 };
 
@@ -602,7 +795,6 @@ const setupAutoRefresh = () => {
   if (refreshInterval.value) {
     clearInterval(refreshInterval.value);
   }
-
   if (settings.value.refreshInterval !== "0") {
     const interval = parseInt(settings.value.refreshInterval) * 60 * 1000;
     refreshInterval.value = setInterval(refreshData, interval);
@@ -616,7 +808,6 @@ onMounted(() => {
   if (savedSettings) {
     settings.value = JSON.parse(savedSettings);
   }
-
   setupAutoRefresh();
   refreshData();
 });

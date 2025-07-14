@@ -596,7 +596,10 @@ const filteredHistory = computed(() => {
 const filteredStats = computed(() => {
   const orders = filteredHistory.value;
   const totalOrders = orders.length;
-  const totalRevenue = orders.reduce((sum, order) => sum + (order.subtotal || 0), 0);
+  const totalRevenue = orders.reduce(
+    (sum, order) => sum + (order.subtotal || 0),
+    0
+  );
   const completedOrders = orders.filter(
     (order) => order.status === "complete"
   ).length;
@@ -627,7 +630,7 @@ const formatPrice = (price) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return "";
-  
+
   let date;
   if (dateString.toDate) {
     // Firebase Timestamp
@@ -635,7 +638,7 @@ const formatDate = (dateString) => {
   } else {
     date = new Date(dateString);
   }
-  
+
   return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
@@ -645,7 +648,7 @@ const formatDate = (dateString) => {
 
 const formatDateTime = (dateString) => {
   if (!dateString) return "";
-  
+
   let date;
   if (dateString.toDate) {
     // Firebase Timestamp
@@ -653,7 +656,7 @@ const formatDateTime = (dateString) => {
   } else {
     date = new Date(dateString);
   }
-  
+
   return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
@@ -684,7 +687,7 @@ const { $firebase } = useNuxtApp();
 const loadOrderHistory = async () => {
   try {
     isLoading.value = true;
-    
+
     // Opsi 1: Query dengan index (setelah index dibuat di Firebase Console)
     // const ordersCollection = collection($firebase.firestore, "orders");
     // const ordersQuery = query(
@@ -692,27 +695,27 @@ const loadOrderHistory = async () => {
     //   where("status", "==", "complete"),
     //   orderBy("createdAt", "desc")
     // );
-    
+
     // Opsi 2: Query tanpa orderBy (temporary fix)
     const ordersCollection = collection($firebase.firestore, "orders");
     const ordersQuery = query(
       ordersCollection,
       where("status", "==", "complete")
     );
-    
+
     const querySnapshot = await getDocs(ordersQuery);
-    
+
     // Map data dari Firebase ke format yang dibutuhkan
     const orders = querySnapshot.docs.map((doc) => {
       const data = doc.data();
-      
+
       // Transform data sesuai struktur yang dibutuhkan
       return {
         id: doc.id,
         customer: {
           name: data.customerName || "",
           email: data.customerEmail || "",
-          type: data.customerType || "regular"
+          type: data.customerType || "regular",
         },
         products: data.products || [],
         total: data.subtotal || 0,
@@ -725,17 +728,20 @@ const loadOrderHistory = async () => {
         status: data.status,
         notes: data.notes || "",
         shippingAddress: data.shippingAddress || "",
-        shippingCost: data.shippingCost || 0
+        shippingCost: data.shippingCost || 0,
       };
     });
-    
+
     // Sort secara manual di client side
     orderHistory.value = orders.sort((a, b) => {
-      const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate);
-      const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate);
+      const dateA = a.orderDate?.toDate
+        ? a.orderDate.toDate()
+        : new Date(a.orderDate);
+      const dateB = b.orderDate?.toDate
+        ? b.orderDate.toDate()
+        : new Date(b.orderDate);
       return dateB - dateA; // Descending order (terbaru ke terlama)
     });
-    
   } catch (error) {
     console.error("Error loading order history:", error);
     // Tampilkan error notification jika diperlukan
