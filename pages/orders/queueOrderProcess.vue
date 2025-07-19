@@ -97,27 +97,27 @@
           <div class="text-center">
             <div class="font-semibold text-red-600">Deadline Score</div>
             <div class="text-muted-foreground">40% weight</div>
-            <div class="text-xs mt-1">Urgent orders first</div>
+            <div class="text-xs mt-1">Urgensi Acara yang Akan Datang</div>
           </div>
           <div class="text-center">
-            <div class="font-semibold text-green-600">Value Score</div>
+            <div class="font-semibold text-green-600">Available Score</div>
             <div class="text-muted-foreground">25% weight</div>
-            <div class="text-xs mt-1">High-value priority</div>
+            <div class="text-xs mt-1">Ketersediaan Anggota</div>
           </div>
           <div class="text-center">
             <div class="font-semibold text-blue-600">Complexity Score</div>
             <div class="text-muted-foreground">20% weight</div>
-            <div class="text-xs mt-1">Simple products first</div>
+            <div class="text-xs mt-1">Kesulitan Tari</div>
           </div>
           <div class="text-center">
-            <div class="font-semibold text-purple-600">Customer Score</div>
+            <div class="font-semibold text-purple-600">Group Priority Score</div>
             <div class="text-muted-foreground">10% weight</div>
-            <div class="text-xs mt-1">VIP customers</div>
+            <div class="text-xs mt-1">Status Grup atau VIP</div>
           </div>
           <div class="text-center">
-            <div class="font-semibold text-orange-600">Time Score</div>
+            <div class="font-semibold text-orange-600">Exercise Submission Time</div>
             <div class="text-muted-foreground">5% weight</div>
-            <div class="text-xs mt-1">FIFO tie-breaker</div>
+            <div class="text-xs mt-1">Pertama Datang Pertama Dilayani</div>
           </div>
         </div>
       </CardContent>

@@ -439,6 +439,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  where,
 } from "firebase/firestore";
 
 definePageMeta({
@@ -664,7 +665,7 @@ const navigateToAddCustomer = () => {
 };
 
 const viewCustomer = (id) => {
-  console.log("View customer:", id);
+  navigateTo("/customers/customerInformation");
 };
 
 const editCustomer = (id) => {

@@ -483,7 +483,7 @@
 
 <script setup>
 import HeadersContent from "~/components/ui/HeadersContent.vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -515,127 +515,47 @@ import {
   Settings,
   FileText,
 } from "lucide-vue-next";
+import { useNuxtApp } from "#app";
+import { useRoute} from "#app";
+
+// Firebase imports
+import { doc, getDoc, collection, query, where, getDocs, orderBy } from "firebase/firestore";
 
 definePageMeta({
   middleware: "auth",
 });
 
-// Props (in real app, this would come from route params)
-const customerId = ref("CUST-001");
+// Firebase Instance
+const { $firebase } = useNuxtApp();
+// Route parameter and debugging
+const route = useRoute();
+const customerId = ref(null);
+
 
 // State
 const isLoading = ref(true);
+const error = ref(null);
 const orderFilter = ref("all");
 
-// Sample customer data
-const customer = ref(null);
+// Data
+const customer = ref(null); // This will hold the full customer object including stats
 const orderHistory = ref([]);
 
-// Sample data
-const sampleCustomer = {
-  id: "CUST-001",
-  name: "Siti Aminah",
-  email: "siti.aminah@email.com",
-  phone: "+62 812-3456-7890",
-  type: "vip",
-  address: {
-    street: "Jl. Sudirman No. 123",
-    city: "Jakarta Selatan",
-    province: "DKI Jakarta",
-    postalCode: "12190",
+// Watch for route params changes to load customer data
+watch(
+  () => route.params.id,
+  (newId) => {
+    console.log('Route param changed:', newId);
+    customerId.value = newId;
+    if (newId && newId !== 'undefined' && newId !== '') {
+      loadCustomerData();
+    } else {
+      error.value = "Customer ID is missing in the URL.";
+      isLoading.value = false;
+    }
   },
-  orderCount: 15,
-  totalSpent: 12500000,
-  avgOrderValue: 833333,
-  loyaltyPoints: 1250,
-  clv: 15000000,
-  lastOrderDate: "2024-01-15T10:30:00Z",
-  daysSinceLastOrder: 3,
-  favoriteCategory: "Custom Cakes",
-  activityStatus: "active",
-  joinDate: "2023-03-15T08:00:00Z",
-  preferences: {
-    emailNotifications: true,
-    smsNotifications: true,
-    promotionalEmails: false,
-    dietary: {
-      vegetarian: false,
-      vegan: false,
-      glutenFree: true,
-      sugarFree: false,
-    },
-  },
-  notes:
-    "VIP customer with gluten-free dietary requirements. Prefers custom wedding cakes. Very responsive to email communications.",
-  recentActivity: [
-    {
-      id: "ACT-001",
-      description: "Placed order ORD-156 for Wedding Cake 3 Tier",
-      timestamp: "2024-01-15T10:30:00Z",
-    },
-    {
-      id: "ACT-002",
-      description: "Updated delivery address",
-      timestamp: "2024-01-10T14:20:00Z",
-    },
-    {
-      id: "ACT-003",
-      description: "Left 5-star review for previous order",
-      timestamp: "2024-01-08T16:45:00Z",
-    },
-  ],
-};
-
-const sampleOrderHistory = [
-  {
-    id: "ORD-156",
-    orderDate: "2024-01-15T10:30:00Z",
-    status: "processing",
-    total: 2500000,
-    items: [
-      { id: "P1", name: "Wedding Cake 3 Tier", quantity: 1, subtotal: 2500000 },
-    ],
-    timeline: {
-      ordered: "2024-01-15T10:30:00Z",
-      processing: "2024-01-15T12:00:00Z",
-    },
-  },
-  {
-    id: "ORD-142",
-    orderDate: "2024-01-08T14:20:00Z",
-    status: "completed",
-    total: 850000,
-    items: [
-      { id: "P2", name: "Birthday Cake Custom", quantity: 1, subtotal: 600000 },
-      { id: "P3", name: "Cupcakes", quantity: 25, subtotal: 250000 },
-    ],
-    timeline: {
-      ordered: "2024-01-08T14:20:00Z",
-      processing: "2024-01-08T16:00:00Z",
-      completed: "2024-01-09T10:30:00Z",
-    },
-  },
-  {
-    id: "ORD-128",
-    orderDate: "2023-12-20T09:15:00Z",
-    status: "completed",
-    total: 1200000,
-    items: [
-      {
-        id: "P4",
-        name: "Christmas Cake Special",
-        quantity: 1,
-        subtotal: 800000,
-      },
-      { id: "P5", name: "Cookies Gift Box", quantity: 2, subtotal: 400000 },
-    ],
-    timeline: {
-      ordered: "2023-12-20T09:15:00Z",
-      processing: "2023-12-20T11:00:00Z",
-      completed: "2023-12-21T15:30:00Z",
-    },
-  },
-];
+  { immediate: true }
+);
 
 // Computed
 const filteredOrderHistory = computed(() => {
@@ -648,7 +568,7 @@ const filteredOrderHistory = computed(() => {
 });
 
 const hasAnyDietaryPreference = computed(() => {
-  if (!customer.value) return false;
+  if (!customer.value?.preferences?.dietary) return false;
   const dietary = customer.value.preferences.dietary;
   return (
     dietary.vegetarian ||
@@ -658,21 +578,295 @@ const hasAnyDietaryPreference = computed(() => {
   );
 });
 
-// Methods
+// Firebase Methods
+const loadCustomerData = async () => {
+  console.log('Loading customer data for ID:', customerId.value);
+  if (!customerId.value || customerId.value === 'undefined' || customerId.value === '') {
+    console.error('No valid customer ID provided for loadCustomerData:', customerId.value);
+    error.value = "Customer ID is required. Please check the URL format.";
+    isLoading.value = false;
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+    error.value = null;
+
+    // Load customer data from 'customers' collection
+    const customerDocRef = doc($firebase.firestore, "customers", customerId.value);
+    const customerDoc = await getDoc(customerDocRef);
+
+    if (customerDoc.exists()) {
+      const customerData = customerDoc.data();
+      console.log('Customer data from Firestore:', customerData);
+
+      // Initialize customer object with safe defaults for nested properties
+      customer.value = {
+        id: customerDoc.id,
+        name: customerData.fullName || customerData.firstName + ' ' + (customerData.lastName || '') || 'Unknown Customer',
+        email: customerData.email || '',
+        phone: customerData.phone || customerData.emergencyContact?.phone || '',
+        type: customerData.customerType || 'regular',
+        address: { // Ensure address is always an object
+          street: customerData.address?.street || '',
+          city: customerData.address?.city || '',
+          province: customerData.address?.province || '',
+          postalCode: customerData.address?.postalCode || ''
+        },
+        joinDate: customerData.createdAt,
+        dateOfBirth: customerData.dateOfBirth,
+        lastOrderDate: customerData.lastOrderDate,
+        activityStatus: customerData.activityStatus || 'active',
+        preferences: { // Ensure preferences is always an object
+          emailNotifications: customerData.preferences?.emailNotifications ?? true,
+          smsNotifications: customerData.preferences?.smsNotifications ?? false,
+          promotionalEmails: customerData.preferences?.promotionalEmails ?? false,
+          orderUpdates: customerData.preferences?.orderUpdates ?? true,
+          dietary: { // Ensure dietary is always an object
+            vegetarian: customerData.preferences?.dietary?.vegetarian ?? false,
+            vegan: customerData.preferences?.dietary?.vegan ?? false,
+            glutenFree: customerData.preferences?.dietary?.glutenFree ?? false,
+            sugarFree: customerData.preferences?.dietary?.sugarFree ?? false
+          }
+        },
+        notes: customerData.notes || '',
+        recentActivity: customerData.recentActivity || [],
+        emergencyContact: customerData.emergencyContact || {},
+        // Initialize stats directly on customer object
+        orderCount: customerData.totalOrders || 0, // Use existing totalOrders from customer doc
+        totalSpent: customerData.totalSpent || 0, // Use existing totalSpent from customer doc
+        avgOrderValue: 0, // Will be calculated from orders
+        loyaltyPoints: 0, // Will be calculated from orders
+        clv: 0, // Will be calculated from orders
+        daysSinceLastOrder: 0, // Will be calculated from orders
+        favoriteCategory: 'N/A' // Will be calculated from orders
+      };
+      console.log('Customer object set:', customer.value);
+
+      // Load customer orders and calculate derived stats
+      await loadCustomerOrders();
+
+    } else {
+      console.log('Customer not found in customers collection, trying orders collection...');
+      // Fallback: Try to load customer info from orders if not found in 'customers' collection
+      await loadCustomerFromOrders();
+    }
+  } catch (err) {
+    console.error('Error loading customer data:', err);
+    error.value = 'Failed to load customer data: ' + err.message;
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const loadCustomerFromOrders = async () => {
+  try {
+    console.log('Attempting to load customer from orders collection as fallback...');
+    const ordersCollection = collection($firebase.firestore, "orders");
+
+    // Try to query by customerEmail first (assuming customerId might be an email)
+    let customerOrdersQuery = query(
+      ordersCollection,
+      where("customerEmail", "==", customerId.value),
+      orderBy("createdAt", "desc"),
+      limit(1) // Get the most recent order to extract customer info
+    );
+    let querySnapshot = await getDocs(customerOrdersQuery);
+
+    // If no orders found by email, try by customerName
+    if (querySnapshot.empty) {
+      console.log('No orders found by email, trying by customerName...');
+      customerOrdersQuery = query(
+        ordersCollection,
+        where("customerName", "==", customerId.value),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      querySnapshot = await getDocs(customerOrdersQuery);
+    }
+
+    if (querySnapshot.empty) {
+      error.value = `Customer not found. Searched for: ${customerId.value}`;
+      return;
+    }
+
+    const firstOrder = querySnapshot.docs[0].data();
+    console.log('Customer info derived from first order:', firstOrder);
+
+    // Create a temporary customer object from order data
+    customer.value = {
+      id: customerId.value, // Use customerId from URL as ID
+      name: firstOrder.customerName || 'Unknown Customer',
+      email: firstOrder.customerEmail || '',
+      phone: firstOrder.customerPhone || '',
+      type: firstOrder.customerType || 'regular',
+      address: { street: firstOrder.shippingAddress || '', city: '', province: '', postalCode: '' },
+      joinDate: firstOrder.createdAt,
+      lastOrderDate: null, // Will be updated by calculateCustomerStats
+      activityStatus: 'active',
+      preferences: { emailNotifications: true, smsNotifications: false, promotionalEmails: false, orderUpdates: true, dietary: {} },
+      notes: '',
+      recentActivity: [],
+      emergencyContact: {},
+      // Initialize stats directly on customer object
+      orderCount: 0,
+      totalSpent: 0,
+      avgOrderValue: 0,
+      loyaltyPoints: 0,
+      clv: 0,
+      daysSinceLastOrder: 0,
+      favoriteCategory: 'N/A'
+    };
+
+    // Now load all orders for this customer (using email/name from the derived customer object)
+    await loadCustomerOrders();
+
+  } catch (err) {
+    console.error('Error loading customer from orders as fallback:', err);
+    error.value = 'Failed to load customer data from orders: ' + err.message;
+  }
+};
+
+const loadCustomerOrders = async () => {
+  if (!customer.value) return; // Ensure customer object exists
+
+  try {
+    const ordersCollection = collection($firebase.firestore, "orders");
+    let customerOrdersQuery;
+
+    // Prioritize querying by customerId if it's a valid Firestore document ID
+    if (customer.value.id && customer.value.id !== 'undefined' && customer.value.id !== '') {
+      customerOrdersQuery = query(
+        ordersCollection,
+        where("customerId", "==", customer.value.id),
+        orderBy("createdAt", "desc")
+      );
+    } else if (customer.value.email) { // Fallback to email if no customerId or it's not a doc ID
+      customerOrdersQuery = query(
+        ordersCollection,
+        where("customerEmail", "==", customer.value.email),
+        orderBy("createdAt", "desc")
+      );
+    } else if (customer.value.name) { // Fallback to name if no email
+      customerOrdersQuery = query(
+        ordersCollection,
+        where("customerName", "==", customer.value.name),
+        orderBy("createdAt", "desc")
+      );
+    } else {
+      console.warn("Cannot load customer orders: No valid customer ID, email, or name available.");
+      orderHistory.value = [];
+      calculateCustomerStats([]); // Calculate stats with empty orders
+      return;
+    }
+
+    const querySnapshot = await getDocs(customerOrdersQuery);
+    console.log('Orders found for customer:', querySnapshot.size);
+
+    const orders = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: data.orderId || doc.id, // Use orderId if available, otherwise doc.id
+        orderDate: data.createdAt,
+        status: data.status,
+        total: data.grandTotal || data.total || data.subtotal || 0, // Use grandTotal
+        items: data.products || data.items || [], // Use products or items
+        timeline: {
+          ordered: data.createdAt,
+          processing: data.processingStarted,
+          completed: data.completedAt || data.completionDate,
+        }
+      };
+    });
+
+    orderHistory.value = orders.sort((a, b) => {
+      const dateA = a.orderDate?.toDate ? a.orderDate.toDate() : new Date(a.orderDate);
+      const dateB = b.orderDate?.toDate ? b.orderDate.toDate() : new Date(b.orderDate);
+      return dateB - dateA;
+    });
+
+    calculateCustomerStats(orderHistory.value); // Pass the loaded orders to calculate stats
+  } catch (err) {
+    console.error('Error loading customer orders:', err);
+    error.value = 'Failed to load customer orders: ' + err.message;
+  }
+};
+
+const calculateCustomerStats = (orders) => {
+  if (!customer.value) return; // Safety check
+
+  const completedOrders = orders.filter(order => order.status === 'complete' || order.status === 'completed');
+  const totalSpent = completedOrders.reduce((sum, order) => sum + (order.total || 0), 0);
+  const orderCount = completedOrders.length;
+  const avgOrderValue = orderCount > 0 ? totalSpent / orderCount : 0;
+
+  let daysSinceLastOrder = 0;
+  if (orders.length > 0) {
+    const lastOrderDate = orders[0].orderDate?.toDate ? orders[0].orderDate.toDate() : new Date(orders[0].orderDate);
+    const now = new Date();
+    daysSinceLastOrder = Math.floor((now - lastOrderDate) / (1000 * 60 * 60 * 24));
+    customer.value.lastOrderDate = orders[0].orderDate; // Update customer's last order date directly
+  } else {
+    customer.value.lastOrderDate = null; // No orders, so no last order date
+  }
+
+  const categoryCount = {};
+  orders.forEach(order => {
+    if (order.items && Array.isArray(order.items)) {
+      order.items.forEach(item => {
+        const category = item.category || 'Uncategorized';
+        categoryCount[category] = (categoryCount[category] || 0) + 1;
+      });
+    }
+  });
+  const favoriteCategory = Object.keys(categoryCount).length > 0
+    ? Object.keys(categoryCount).reduce((a, b) => categoryCount[a] > categoryCount[b] ? a : b)
+    : 'N/A';
+
+  // Update customer.value directly with calculated stats
+  customer.value.orderCount = orderCount;
+  customer.value.totalSpent = totalSpent;
+  customer.value.avgOrderValue = avgOrderValue;
+  customer.value.loyaltyPoints = Math.floor(totalSpent / 10000); // 1 point per 10k spent
+  customer.value.clv = totalSpent * 1.2; // Simple CLV calculation
+  customer.value.daysSinceLastOrder = daysSinceLastOrder;
+  customer.value.favoriteCategory = favoriteCategory;
+};
+
+// Utility Methods
 const formatPrice = (price) => {
+  if (typeof price !== 'number') return "0"; // Ensure price is a number
   return new Intl.NumberFormat("id-ID").format(price);
 };
 
-const formatDate = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+const formatDate = (dateInput) => {
+  if (!dateInput) return "N/A";
+  let date;
+  if (dateInput.toDate && typeof dateInput.toDate === "function") {
+    date = dateInput.toDate();
+  } else if (typeof dateInput === "string" || typeof dateInput === "number") {
+    date = new Date(dateInput);
+  } else {
+    date = new Date(); // Fallback to current date if invalid
+  }
+  return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "long",
     day: "numeric",
   });
 };
 
-const formatDateTime = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+const formatDateTime = (dateInput) => {
+  if (!dateInput) return "N/A";
+  let date;
+  if (dateInput.toDate && typeof dateInput.toDate === "function") {
+    date = dateInput.toDate();
+  } else if (typeof dateInput === "string" || typeof dateInput === "number") {
+    date = new Date(dateInput);
+  } else {
+    date = new Date(); // Fallback to current date if invalid
+  }
+  return date.toLocaleDateString("id-ID", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -681,8 +875,17 @@ const formatDateTime = (dateString) => {
   });
 };
 
-const formatTime = (dateString) => {
-  return new Date(dateString).toLocaleDateString("id-ID", {
+const formatTime = (dateInput) => {
+  if (!dateInput) return "N/A";
+  let date;
+  if (dateInput.toDate && typeof dateInput.toDate === "function") {
+    date = dateInput.toDate();
+  } else if (typeof dateInput === "string" || typeof dateInput === "number") {
+    date = new Date(dateInput);
+  } else {
+    date = new Date(); // Fallback to current date if invalid
+  }
+  return date.toLocaleDateString("id-ID", {
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -691,10 +894,10 @@ const formatTime = (dateString) => {
 };
 
 const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return "N/A";
   const now = new Date();
-  const time = new Date(timestamp);
+  const time = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
   const diffInHours = Math.floor((now - time) / (1000 * 60 * 60));
-
   if (diffInHours < 1) return "Just now";
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
@@ -742,6 +945,7 @@ const getStatusLabel = (status) => {
 
 const getOrderStatusVariant = (status) => {
   switch (status) {
+    case "complete":
     case "completed":
       return "default";
     case "processing":
@@ -759,7 +963,7 @@ const filterOrders = () => {
 
 // Actions
 const navigateBack = () => {
-  console.log("Navigate back to customer list");
+  navigateTo('/customers/listCustomer');
 };
 
 const sendEmail = () => {
@@ -767,50 +971,63 @@ const sendEmail = () => {
 };
 
 const editCustomer = () => {
-  console.log("Edit customer:", customer.value.id);
+  navigateTo(`/customers/${customer.value.id}/edit`);
 };
 
 const createOrder = () => {
-  console.log("Create order for customer:", customer.value.id);
+  navigateTo(`/orders/add?customerId=${customer.value.id}`);
 };
 
 const exportOrderHistory = () => {
   console.log("Export order history for customer:", customer.value.id);
+  // Implement CSV/Excel export for customer's orders
+  const csvData = orderHistory.value.map(order => ({
+    'Order ID': order.id,
+    'Order Date': formatDateTime(order.orderDate),
+    'Status': order.status,
+    'Total': order.total,
+    'Items': order.items.map(item => `${item.name} x${item.quantity}`).join('; ')
+  }));
+
+  const csv = convertToCSV(csvData);
+  downloadCSV(csv, `customer-${customer.value.id}-orders.csv`);
 };
 
 const viewOrderDetails = (orderId) => {
-  console.log("View order details:", orderId);
+  navigateTo(`/orders/${orderId}`);
 };
 
 const reorderItems = (orderId) => {
-  console.log("Reorder items from order:", orderId);
+  navigateTo(`/orders/add?reorder=${orderId}`);
 };
 
 const downloadInvoice = (orderId) => {
   console.log("Download invoice for order:", orderId);
 };
 
-// Load customer data
-const loadCustomerData = async () => {
-  isLoading.value = true;
+const convertToCSV = (data) => {
+  if (!data.length) return '';
 
-  try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => headers.map(header => `"${String(row[header]).replace(/"/g, '""')}"`).join(','))
+  ].join('n');
 
-    customer.value = sampleCustomer;
-    orderHistory.value = sampleOrderHistory;
-  } catch (error) {
-    console.error("Error loading customer data:", error);
-  } finally {
-    isLoading.value = false;
-  }
+  return csvContent;
 };
 
-// Initialize
-onMounted(() => {
-  loadCustomerData();
-});
+const downloadCSV = (csv, filename) => {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 </script>
 
 <style scoped>

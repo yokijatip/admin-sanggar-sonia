@@ -561,6 +561,9 @@ import {
   limit,
   serverTimestamp,
   Timestamp,
+  increment,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 
 definePageMeta({
@@ -579,6 +582,7 @@ const getDefaultDeadline = () => {
 // State
 const form = reactive({
   orderId: "",
+  customerId: null,
   customerName: "",
   customerEmail: "",
   deadlineDate: getDefaultDeadline(), // Use datetime-local format
@@ -742,10 +746,16 @@ const handleCustomerInput = () => {
       customer.name.toLowerCase() === customerInput.value.toLowerCase()
   );
 
-  if (!exactMatch) {
-    // Jika tidak ada yang cocok persis, kosongkan email
-    form.customerEmail = "";
-    form.customerName = customerInput.value;
+  if (exactMatch) {
+    form.customerId = exactMatch.id;
+    form.customerName = exactMatch.name;
+    form.customerEmail = exactMatch.email;
+  } else {
+    // If no exact match, assume it's a new customer or partial input
+    form.customerId = null;
+    form.customerName = customerInput.value; // Use typed value as name
+    // Keep form.customerEmail as is, or clear if you want to force selection/new email input
+    // For now, we'll assume if no match, email might be typed later or is new.
   }
   showCustomerDropdown.value = true;
 };
@@ -758,6 +768,7 @@ const handleCustomerBlur = () => {
 
 const selectCustomer = (customer) => {
   customerInput.value = customer.name;
+  form.customerId = customer.id; // Set customer ID
   form.customerName = customer.name;
   form.customerEmail = customer.email;
   showCustomerDropdown.value = false;
@@ -835,6 +846,7 @@ const validateForm = () => {
   if (
     !form.orderId ||
     !customerInput.value ||
+    !form.customerEmail || // Check if customer email is filled
     !form.deadlineDate ||
     !form.status ||
     !form.shippingAddress
@@ -871,16 +883,63 @@ const handleSubmit = async () => {
   if (!validateForm()) return;
   isLoading.value = true;
   try {
-    // Convert deadline string to Timestamp
     const deadlineTimestamp = Timestamp.fromDate(new Date(form.deadlineDate));
+    const grandTotal = calculateGrandTotal();
+
+    let targetCustomerId = form.customerId; // Start with selected customer ID
+
+    // If no customer was selected from dropdown (meaning a new customer was typed or existing not found by name)
+    if (!targetCustomerId) {
+      // Try to find customer by email (if provided)
+      if (form.customerEmail) {
+        const existingCustomerQuery = query(
+          collection($firebase.firestore, "customers"),
+          where("email", "==", form.customerEmail)
+        );
+        const existingCustomerSnapshot = await getDocs(existingCustomerQuery);
+
+        if (!existingCustomerSnapshot.empty) {
+          // Customer with this email already exists, use their ID
+          targetCustomerId = existingCustomerSnapshot.docs[0].id;
+          const existingCustomerData = existingCustomerSnapshot.docs[0].data();
+          // Update form fields to reflect the found customer's data
+          form.customerName = existingCustomerData.fullName || existingCustomerData.firstName + ' ' + (existingCustomerData.lastName || '');
+          customerInput.value = form.customerName;
+          console.log("Existing customer found by email:", targetCustomerId);
+        }
+      }
+
+      // If still no targetCustomerId (meaning truly a new customer)
+      if (!targetCustomerId) {
+        const newCustomerData = {
+          fullName: form.customerName, // Use the typed name
+          email: form.customerEmail,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          status: "active",
+          totalOrders: 0, // Will be incremented below
+          totalSpent: 0, // Will be incremented below
+          lastOrderDate: null, // Will be updated below
+          customerType: "regular", // Default type for new customers
+          address: { street: "", city: "", province: "", postalCode: "" }, // Default empty address
+          preferences: { emailNotifications: true, smsNotifications: true, promotionalEmails: false, orderUpdates: true, dietary: { vegetarian: false, vegan: false, glutenFree: false, sugarFree: false } },
+          emergencyContact: { name: "", phone: "", relationship: "" },
+          notes: "",
+        };
+        const newCustomerRef = await addDoc(collection($firebase.firestore, "customers"), newCustomerData);
+        targetCustomerId = newCustomerRef.id;
+        console.log("New customer created with ID:", targetCustomerId);
+      }
+    }
 
     // Prepare order data
     const orderData = {
       orderId: form.orderId,
-      customerName: customerInput.value,
+      customerId: targetCustomerId, // Link order to customer ID
+      customerName: form.customerName,
       customerEmail: form.customerEmail || "",
-      deadline: deadlineTimestamp, // ✅ Proper deadline timestamp
-      orderTime: serverTimestamp(), // ✅ When order was created (for FIFO)
+      deadline: deadlineTimestamp,
+      orderTime: serverTimestamp(),
       status: form.status,
       products: form.products.map((product) => ({
         productId: product.productId,
@@ -894,22 +953,35 @@ const handleSubmit = async () => {
       shippingCost: Number(form.shippingCost),
       subtotal: calculateTotal(),
       tax: calculateTax(),
-      grandTotal: calculateGrandTotal(),
-      createdAt: serverTimestamp(), // ✅ Document creation time
+      grandTotal: grandTotal,
+      createdAt: serverTimestamp(),
     };
 
-    // Save to Firestore
+    // Save order to Firestore
     const docRef = await addDoc(
       collection($firebase.firestore, "orders"),
       orderData
     );
     console.log("Order saved with ID: ", docRef.id);
 
+    // Update customer's totalOrders, totalSpent, and lastOrderDate
+    if (targetCustomerId) {
+      const customerRef = doc($firebase.firestore, "customers", targetCustomerId);
+      await updateDoc(customerRef, {
+        totalOrders: increment(1),
+        totalSpent: increment(grandTotal),
+        lastOrderDate: serverTimestamp(), // Update last order date
+      });
+      console.log(`Customer ${form.customerName} (ID: ${targetCustomerId}) updated with new order data.`);
+    } else {
+      console.warn("No customer ID found or created for order update. Customer metrics not updated.");
+    }
+
     // Show success modal
     showSuccessModal.value = true;
     showPreview.value = false;
   } catch (error) {
-    console.error("Error creating order:", error);
+    console.error("Error creating order or updating customer:", error);
     errorMessage.value = "Failed to create order. Please try again.";
     setTimeout(() => {
       errorMessage.value = "";
@@ -923,6 +995,7 @@ const handleCancel = () => {
   if (confirm("Are you sure you want to cancel? All data will be lost.")) {
     Object.assign(form, {
       orderId: "",
+      customerId: null, // Reset customer ID
       customerName: "",
       customerEmail: "",
       deadlineDate: getDefaultDeadline(),
@@ -943,6 +1016,7 @@ const createAnother = () => {
   showSuccessModal.value = false;
   Object.assign(form, {
     orderId: "",
+    customerId: null, // Reset customer ID
     customerName: "",
     customerEmail: "",
     deadlineDate: getDefaultDeadline(),
@@ -959,7 +1033,7 @@ const createAnother = () => {
 
 const viewOrder = () => {
   showSuccessModal.value = false;
-  navigateTo(`/orders/${form.orderId}`);
+  navigateTo(`/orders/listOrder`);
 };
 
 // Initialize component

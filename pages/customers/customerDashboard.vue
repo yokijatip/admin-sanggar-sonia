@@ -7,7 +7,6 @@
         description="Monitor customer analytics and insights"
       />
     </div>
-
     <!-- Date Range Filter -->
     <div class="flex items-center gap-4 mb-6 px-4">
       <div class="flex items-center gap-2">
@@ -25,21 +24,18 @@
           <SelectItem value="year">This Year</SelectItem>
           <SelectItem value="all">All Time</SelectItem>
           <!-- If custom range di klik maka muncul toast, tapi nanti di ganti dengan rentang kalendar -->
-          <SelectItem @click="showCustomRange" value="custom"
-            >Custom Range</SelectItem
-          >
+          <SelectItem value="custom">Custom Range</SelectItem>
         </SelectContent>
       </Select>
-      <Button variant="outline" @click="refreshData">
-        <RefreshCw class="h-4 w-4 mr-2" />
+      <Button variant="outline" @click="refreshData" :disabled="loadingData">
+        <Loader2 v-if="loadingData" class="animate-spin h-4 w-4 mr-2" />
+        <RefreshCw v-else class="h-4 w-4 mr-2" />
         Refresh
       </Button>
     </div>
-
     <!-- Key Metrics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 px-4">
       <!-- Total Customers -->
-      <!-- Total Pemasukan  -->
       <Card>
         <CardHeader
           class="flex flex-row items-center justify-between space-y-0"
@@ -50,19 +46,11 @@
         <CardContent>
           <div class="text-xl font-bold">{{ metrics.totalCustomers }}</div>
           <p class="text-xs text-muted-foreground mt-1">
-            <span
-              :class="
-                metrics.customerGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              "
-            >
-              {{ metrics.customerGrowth >= 0 ? "+" : ""
-              }}{{ metrics.customerGrowth }}%
-            </span>
-            this period
+            <!-- Growth metrics removed for simplicity, as they require historical data not easily available from single fetch -->
+            Total customers in selected period
           </p>
         </CardContent>
       </Card>
-
       <!-- New Customers -->
       <Card>
         <CardHeader
@@ -74,21 +62,10 @@
         <CardContent>
           <div class="text-xl font-bold">{{ metrics.newCustomers }}</div>
           <p class="text-xs text-muted-foreground mt-1">
-            <span
-              :class="
-                metrics.newCustomerGrowth >= 0
-                  ? 'text-green-600'
-                  : 'text-red-600'
-              "
-            >
-              {{ metrics.newCustomerGrowth >= 0 ? "+" : ""
-              }}{{ metrics.newCustomerGrowth }}%
-            </span>
-            this period
+            New customers in selected period
           </p>
         </CardContent>
       </Card>
-
       <!-- VIP Customers -->
       <Card>
         <CardHeader
@@ -108,7 +85,6 @@
           </p>
         </CardContent>
       </Card>
-
       <!-- Average Customer Lifetime Value -->
       <Card>
         <CardHeader
@@ -122,43 +98,11 @@
             Rp {{ formatPrice(metrics.avgCLV) }}
           </div>
           <p class="text-xs text-muted-foreground mt-1">
-            <span
-              :class="
-                metrics.clvGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-              "
-            >
-              {{ metrics.clvGrowth >= 0 ? "+" : "" }}{{ metrics.clvGrowth }}%
-            </span>
-            vs last period
+            Average lifetime value
           </p>
         </CardContent>
       </Card>
-      <!-- <Card>
-        <CardContent class="p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-muted-foreground">Avg CLV</p>
-              <p class="text-3xl font-bold">
-                Rp {{ formatPrice(metrics.avgCLV) }}
-              </p>
-              <p class="text-xs text-muted-foreground mt-1">
-                <span
-                  :class="
-                    metrics.clvGrowth >= 0 ? 'text-green-600' : 'text-red-600'
-                  "
-                >
-                  {{ metrics.clvGrowth >= 0 ? "+" : ""
-                  }}{{ metrics.clvGrowth }}%
-                </span>
-                vs last period
-              </p>
-            </div>
-            <TrendingUp class="h-8 w-8 text-purple-500" />
-          </div>
-        </CardContent>
-      </Card> -->
     </div>
-
     <!-- Customer Segmentation & Activity -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 px-4">
       <!-- Customer Segmentation -->
@@ -198,7 +142,6 @@
           </div>
         </CardContent>
       </Card>
-
       <!-- Customer Activity -->
       <Card>
         <CardHeader>
@@ -225,7 +168,6 @@
                 </div>
               </div>
             </div>
-
             <div
               class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg"
             >
@@ -242,7 +184,6 @@
                 </div>
               </div>
             </div>
-
             <div
               class="flex items-center justify-between p-3 bg-red-50 rounded-lg"
             >
@@ -263,7 +204,6 @@
         </CardContent>
       </Card>
     </div>
-
     <!-- Top Customers & Recent Activity -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 px-4">
       <!-- Top Customers by Value -->
@@ -324,7 +264,6 @@
           </div>
         </CardContent>
       </Card>
-
       <!-- Recent Customer Activity -->
       <Card>
         <CardHeader>
@@ -360,7 +299,7 @@
                 <p class="text-sm text-muted-foreground">
                   {{ activity.description }}
                 </p>
-                <p class="text-xs text-muted-foreground">
+                <p class="text-sm text-muted-foreground">
                   {{ formatRelativeTime(activity.timestamp) }}
                 </p>
               </div>
@@ -369,7 +308,6 @@
         </CardContent>
       </Card>
     </div>
-
     <!-- Customer Insights & Quick Actions -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 px-4 mb-4">
       <!-- Customer Insights -->
@@ -392,29 +330,26 @@
                 rates among VIP customers.
               </p>
             </div>
-
             <div class="p-4 bg-green-50 rounded-lg">
               <div class="flex items-center space-x-2 mb-2">
                 <Target class="h-5 w-5 text-green-600" />
                 <span class="font-medium text-green-900">Opportunity</span>
               </div>
               <p class="text-sm text-green-700">
-                23 customers are close to VIP status. Consider targeted
+                {{ metrics.customersNearVIP }} customers are close to VIP status. Consider targeted
                 promotions to boost their spending.
               </p>
             </div>
-
             <div class="p-4 bg-yellow-50 rounded-lg">
               <div class="flex items-center space-x-2 mb-2">
                 <AlertTriangle class="h-5 w-5 text-yellow-600" />
                 <span class="font-medium text-yellow-900">At Risk</span>
               </div>
               <p class="text-sm text-yellow-700">
-                12 VIP customers haven't ordered in 60+ days. Implement
+                {{ activityStats.atRisk }} VIP customers haven't ordered in 60+ days. Implement
                 re-engagement campaigns.
               </p>
             </div>
-
             <div class="p-4 bg-purple-50 rounded-lg">
               <div class="flex items-center space-x-2 mb-2">
                 <Heart class="h-5 w-5 text-purple-600" />
@@ -428,7 +363,6 @@
           </div>
         </CardContent>
       </Card>
-
       <!-- Quick Actions -->
       <Card>
         <CardHeader>
@@ -484,7 +418,7 @@
 
 <script setup>
 import HeadersContent from "~/components/ui/HeadersContent.vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted} from "vue";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -516,150 +450,102 @@ import {
   Download,
   Mail,
   BarChart3,
+  Loader2,
 } from "lucide-vue-next";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+} from "firebase/firestore";
+import { useNuxtApp } from "#app";
 
 definePageMeta({
   middleware: "auth",
 });
 
-// State
+// Firebase Instance
+const { $firebase } = useNuxtApp();
+
+// Reactive data
+const allCustomersData = ref([]);
+const allOrdersData = ref([]);
+const loadingData = ref(true);
 const selectedPeriod = ref("month");
 
-// Sample data
-const metrics = ref({
-  totalCustomers: 342,
-  customerGrowth: 12.5,
-  newCustomers: 28,
-  newCustomerGrowth: 15.8,
-  vipCustomers: 45,
-  avgCLV: 2450000,
-  clvGrowth: 8.2,
+// Reactive metrics and segments (will be populated by fetchData)
+const metrics = reactive({
+  totalCustomers: 0,
+  newCustomers: 0,
+  vipCustomers: 0,
+  avgCLV: 0,
+  customersNearVIP: 0, // New metric for insights
 });
 
-const customerSegments = ref([
+const customerSegments = reactive([
   {
     name: "VIP Customers",
     description: "High-value repeat customers",
-    count: 45,
-    percentage: 13,
+    count: 0,
+    percentage: 0,
     color: "#fbbf24",
   },
   {
     name: "Regular Customers",
     description: "Consistent buyers",
-    count: 156,
-    percentage: 46,
+    count: 0,
+    percentage: 0,
     color: "#3b82f6",
   },
   {
     name: "New Customers",
     description: "First-time buyers",
-    count: 89,
-    percentage: 26,
+    count: 0,
+    percentage: 0,
     color: "#10b981",
   },
   {
     name: "Inactive Customers",
     description: "No recent activity",
-    count: 52,
-    percentage: 15,
+    count: 0,
+    percentage: 0,
     color: "#ef4444",
   },
 ]);
 
-const activityStats = ref({
-  active: 234,
-  activePercentage: 68,
-  inactive: 76,
-  inactivePercentage: 22,
-  atRisk: 32,
-  atRiskPercentage: 10,
+const activityStats = reactive({
+  active: 0,
+  activePercentage: 0,
+  inactive: 0,
+  inactivePercentage: 0,
+  atRisk: 0,
+  atRiskPercentage: 0,
 });
 
-const topCustomers = ref([
-  {
-    id: "C001",
-    name: "Siti Aminah",
-    email: "siti@email.com",
-    type: "vip",
-    totalSpent: 15750000,
-    orderCount: 12,
-  },
-  {
-    id: "C002",
-    name: "Budi Santoso",
-    email: "budi@email.com",
-    type: "vip",
-    totalSpent: 12300000,
-    orderCount: 8,
-  },
-  {
-    id: "C003",
-    name: "Maya Sari",
-    email: "maya@email.com",
-    type: "vip",
-    totalSpent: 9850000,
-    orderCount: 15,
-  },
-  {
-    id: "C004",
-    name: "Ahmad Rizki",
-    email: "ahmad@email.com",
-    type: "regular",
-    totalSpent: 7200000,
-    orderCount: 6,
-  },
-  {
-    id: "C005",
-    name: "Dewi Lestari",
-    email: "dewi@email.com",
-    type: "regular",
-    totalSpent: 5400000,
-    orderCount: 9,
-  },
-]);
+const topCustomers = ref([]);
+const recentActivity = ref([]);
 
-const recentActivity = ref([
-  {
-    id: "A001",
-    customer: "Siti Aminah",
-    type: "order",
-    description: "Placed a new order for Wedding Cake 3 Tier",
-    timestamp: "2024-01-17T10:30:00Z",
-  },
-  {
-    id: "A002",
-    customer: "Budi Santoso",
-    type: "registration",
-    description: "Registered as a new customer",
-    timestamp: "2024-01-17T09:15:00Z",
-  },
-  {
-    id: "A003",
-    customer: "Maya Sari",
-    type: "vip_upgrade",
-    description: "Upgraded to VIP status",
-    timestamp: "2024-01-16T16:45:00Z",
-  },
-  {
-    id: "A004",
-    customer: "Ahmad Rizki",
-    type: "review",
-    description: "Left a 5-star review for Birthday Cake",
-    timestamp: "2024-01-16T14:20:00Z",
-  },
-]);
-
-// Methods
+// Helper functions
 const formatPrice = (price) => {
+  if (typeof price !== 'number') return "0";
   return new Intl.NumberFormat("id-ID").format(price);
 };
 
 const formatRelativeTime = (timestamp) => {
-  const now = new Date();
-  const time = new Date(timestamp);
-  const diffInHours = Math.floor((now - time) / (1000 * 60 * 60));
+  if (!timestamp) return "N/A";
+  let date;
+  if (timestamp.toDate && typeof timestamp.toDate === "function") {
+    date = timestamp.toDate();
+  } else if (typeof timestamp === "string" || typeof timestamp === "number") {
+    date = new Date(timestamp);
+  } else {
+    date = new Date(); // Fallback
+  }
 
+  const now = new Date();
+  const diffInHours = Math.floor((now - date) / (1000 * 60 * 60));
   if (diffInHours < 1) return "Just now";
   if (diffInHours < 24) return `${diffInHours}h ago`;
   const diffInDays = Math.floor(diffInHours / 24);
@@ -681,42 +567,290 @@ const getActivityVariant = (type) => {
   }
 };
 
+// Main data fetching and processing function
+const fetchData = async () => {
+  loadingData.value = true;
+  try {
+    const db = $firebase.firestore;
+
+    // 1. Fetch Customers
+    const customersCollection = collection(db, "customers");
+    const customersQuery = query(customersCollection, orderBy("createdAt", "desc"));
+    const customersSnapshot = await getDocs(customersQuery);
+    allCustomersData.value = customersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(), // Convert Timestamp to Date
+      lastOrderDate: doc.data().lastOrderDate?.toDate(), // Convert Timestamp to Date
+    }));
+
+    // 2. Fetch Orders (for recent activity and potentially CLV if not pre-calculated on customer doc)
+    const ordersCollection = collection(db, "orderHistory");
+    // Fetch recent orders, e.g., last 100 or orders from the last 90 days
+    const ninetyDaysAgo = Timestamp.fromDate(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+    const ordersQuery = query(
+      ordersCollection,
+      where("createdAt", ">=", ninetyDaysAgo), // Filter for recent orders
+      orderBy("createdAt", "desc")
+    );
+    const ordersSnapshot = await getDocs(ordersQuery);
+    allOrdersData.value = ordersSnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate(),
+      orderDate: doc.data().orderDate?.toDate(),
+      completedAt: doc.data().completedAt?.toDate(),
+    }));
+
+    calculateDashboardMetrics();
+  } catch (error) {
+    console.error("Error fetching dashboard data:", error);
+    // Optionally show a toast or alert to the user
+  } finally {
+    loadingData.value = false;
+  }
+};
+
+// Function to calculate all dashboard metrics
+const calculateDashboardMetrics = () => {
+  const customers = allCustomersData.value;
+  const orders = allOrdersData.value;
+  const now = new Date();
+
+  // Filter customers based on selectedPeriod for metrics
+  let customersInPeriod = customers;
+  if (selectedPeriod.value !== "all") {
+    customersInPeriod = customers.filter((customer) => {
+      const createdAt = customer.createdAt;
+      if (!createdAt) return false; // Skip if no creation date
+
+      switch (selectedPeriod.value) {
+        case "today":
+          return createdAt.toDateString() === now.toDateString();
+        case "week":
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return createdAt >= weekAgo;
+        case "month":
+          return (
+            createdAt.getMonth() === now.getMonth() &&
+            createdAt.getFullYear() === now.getFullYear()
+          );
+        case "quarter":
+          const quarter = Math.floor(now.getMonth() / 3);
+          const customerQuarter = Math.floor(createdAt.getMonth() / 3);
+          return (
+            customerQuarter === quarter &&
+            createdAt.getFullYear() === now.getFullYear()
+          );
+        case "year":
+          return createdAt.getFullYear() === now.getFullYear();
+        default:
+          return true;
+      }
+    });
+  }
+
+  // Metrics
+  metrics.totalCustomers = customersInPeriod.length;
+  metrics.newCustomers = customersInPeriod.filter(
+    (c) => (now - c.createdAt) / (1000 * 60 * 60 * 24) <= 30 // New in last 30 days
+  ).length;
+  metrics.vipCustomers = customersInPeriod.filter(
+    (c) => c.customerType === "vip"
+  ).length;
+
+  const totalSpentAllCustomers = customers.reduce(
+    (sum, c) => sum + (c.totalSpent || 0),
+    0
+  );
+  metrics.avgCLV =
+    customers.length > 0 ? totalSpentAllCustomers / customers.length : 0;
+
+  // Customers near VIP status (example: totalSpent > 80% of VIP threshold, assuming VIP threshold is 10,000,000)
+  const vipThreshold = 10000000; // Example threshold
+  metrics.customersNearVIP = customers.filter(
+    (c) => c.customerType !== "vip" && (c.totalSpent || 0) >= vipThreshold * 0.8 && (c.totalSpent || 0) < vipThreshold
+  ).length;
+
+
+  // Customer Segmentation
+  const vipCount = customers.filter((c) => c.customerType === "vip").length;
+  const regularCount = customers.filter(
+    (c) => c.customerType === "regular"
+  ).length;
+  const newCustomerCount = customers.filter(
+    (c) => (now - c.createdAt) / (1000 * 60 * 60 * 24) <= 30
+  ).length;
+  const inactiveCount = customers.filter(
+    (c) =>
+      c.lastOrderDate && (now - c.lastOrderDate) / (1000 * 60 * 60 * 24) > 90
+  ).length; // Inactive if no order in 90+ days
+
+  const totalCustomersForSegments = customers.length;
+
+  customerSegments[0].count = vipCount;
+  customerSegments[0].percentage =
+    totalCustomersForSegments > 0
+      ? ((vipCount / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+
+  customerSegments[1].count = regularCount;
+  customerSegments[1].percentage =
+    totalCustomersForSegments > 0
+      ? ((regularCount / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+
+  customerSegments[2].count = newCustomerCount;
+  customerSegments[2].percentage =
+    totalCustomersForSegments > 0
+      ? ((newCustomerCount / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+
+  customerSegments[3].count = inactiveCount;
+  customerSegments[3].percentage =
+    totalCustomersForSegments > 0
+      ? ((inactiveCount / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+
+  // Customer Activity
+  const activeCustomers = customers.filter(
+    (c) =>
+      c.lastOrderDate && (now - c.lastOrderDate) / (1000 * 60 * 60 * 24) <= 30
+  ).length;
+  const inactiveCustomers = customers.filter(
+    (c) =>
+      c.lastOrderDate &&
+      (now - c.lastOrderDate) / (1000 * 60 * 60 * 24) > 30 &&
+      (now - c.lastOrderDate) / (1000 * 60 * 60 * 24) <= 90
+  ).length;
+  const atRiskCustomers = customers.filter(
+    (c) =>
+      c.lastOrderDate && (now - c.lastOrderDate) / (1000 * 60 * 60 * 24) > 90
+  ).length;
+
+  activityStats.active = activeCustomers;
+  activityStats.activePercentage =
+    totalCustomersForSegments > 0
+      ? ((activeCustomers / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+  activityStats.inactive = inactiveCustomers;
+  activityStats.inactivePercentage =
+    totalCustomersForSegments > 0
+      ? ((inactiveCustomers / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+  activityStats.atRisk = atRiskCustomers;
+  activityStats.atRiskPercentage =
+    totalCustomersForSegments > 0
+      ? ((atRiskCustomers / totalCustomersForSegments) * 100).toFixed(1)
+      : 0;
+
+  // Top Customers by Value
+  topCustomers.value = [...customers]
+    .sort((a, b) => (b.totalSpent || 0) - (a.totalSpent || 0))
+    .slice(0, 5)
+    .map(c => ({
+      id: c.id,
+      name: c.fullName || c.firstName + ' ' + (c.lastName || ''),
+      email: c.email,
+      type: c.customerType,
+      totalSpent: c.totalSpent || 0,
+      orderCount: c.totalOrders || 0,
+    }));
+
+  // Recent Customer Activity (from orders)
+  recentActivity.value = orders
+    .slice(0, 5) // Take top 5 recent orders
+    .map((order) => {
+      const customer = allCustomersData.value.find(c => c.id === order.customerId);
+      const customerName = customer ? (customer.fullName || customer.firstName + ' ' + (customer.lastName || '')) : 'Unknown Customer';
+      return {
+        id: order.id,
+        customer: customerName,
+        type: "order", // Assuming all recent activities are orders for now
+        description: `Placed a new order for Rp ${formatPrice(order.grandTotal || order.total || 0)}`,
+        timestamp: order.createdAt || order.orderDate,
+      };
+    });
+};
+
 const updatePeriod = () => {
   console.log("Updating period to:", selectedPeriod.value);
-  refreshData();
+  fetchData(); // Re-fetch and re-calculate based on new period
 };
 
 const refreshData = () => {
   console.log("Refreshing customer dashboard data...");
+  fetchData();
 };
 
 const navigateToCustomerList = () => {
-  console.log("Navigate to customer list");
+  navigateTo("/customers/listCustomer"); // Assuming this is the path to your list customer page
 };
 
 const navigateToAddCustomer = () => {
-  console.log("Navigate to add customer");
+  navigateTo("/customers/addCustomer"); // Assuming this is the path to your add customer page
 };
 
 const exportCustomerData = () => {
   console.log("Export customer data");
+  // Implement CSV/Excel export for all customers
+  const csvData = allCustomersData.value.map(customer => ({
+    'Customer ID': customer.id,
+    'Full Name': customer.fullName || customer.firstName + ' ' + (customer.lastName || ''),
+    'Email': customer.email,
+    'Phone': customer.phone,
+    'Customer Type': customer.customerType,
+    'Total Spent': customer.totalSpent || 0,
+    'Total Orders': customer.totalOrders || 0,
+    'Created At': customer.createdAt ? customer.createdAt.toLocaleDateString() : 'N/A',
+  }));
+
+  const csv = convertToCSV(csvData);
+  downloadCSV(csv, 'customer-data.csv');
 };
 
 const sendBulkEmail = () => {
   console.log("Send bulk email");
+  // Implement bulk email functionality
 };
 
 const createSegment = () => {
   console.log("Create customer segment");
+  // Implement customer segmentation tool
 };
 
 const viewAnalytics = () => {
   console.log("View detailed analytics");
+  // Navigate to a more detailed analytics page if available
 };
 
-// Initialize
+const convertToCSV = (data) => {
+  if (!data.length) return '';
+
+  const headers = Object.keys(data[0]);
+  const csvContent = [
+    headers.join(','),
+    ...data.map(row => headers.map(header => `"${String(row[header]).replace(/"/g, '""')}"`).join(','))
+  ].join('\n');
+
+  return csvContent;
+};
+
+const downloadCSV = (csv, filename) => {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Initialize on component mount
 onMounted(() => {
-  refreshData();
+  fetchData();
 });
 </script>
 
