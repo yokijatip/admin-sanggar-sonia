@@ -30,7 +30,6 @@
               v-model="form.category"
               @update:model-value="handleCategoryChange"
               required
-
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a category" />

@@ -2,10 +2,10 @@
   <div class="container mx-auto min-w-full">
     <!-- Title and Button -->
     <div class="flex items-center justify-between px-4">
-      <HeadersContent title="Products" description="Manage your products" />
+      <HeadersContent title="Ruangan Sanggar" description="Kelola ruangan sanggar Anda" />
       <Button @click="navigateToAddProduct" class="bg-primary cursor-pointer">
         <Plus class="mr-2 h-4 w-4" />
-        Add Product
+        Tambah Ruangan
       </Button>
     </div>
 
@@ -15,7 +15,7 @@
         <Search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           v-model="searchQuery"
-          placeholder="Search products..."
+          placeholder="Cari ruangan..."
           class="pl-8"
           @input="filterProducts"
         />
@@ -23,10 +23,10 @@
 
       <Select v-model="selectedCategory">
         <SelectTrigger class="w-48">
-          <SelectValue placeholder="All Categories" />
+          <SelectValue placeholder="Semua Kategori" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
+          <SelectItem value="all">Semua Kategori</SelectItem>
           <SelectItem
             v-for="category in categories"
             :key="category.id"
@@ -37,15 +37,27 @@
         </SelectContent>
       </Select>
 
+      <Select v-model="selectedAvailability" @update:modelValue="filterProducts">
+        <SelectTrigger class="w-44">
+          <SelectValue placeholder="Ketersediaan" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">Semua</SelectItem>
+          <SelectItem value="tersedia">Tersedia</SelectItem>
+          <SelectItem value="dibooking">Dibooking</SelectItem>
+          <SelectItem value="maintenance">Maintenance</SelectItem>
+          <SelectItem value="tidak_aktif">Tidak Aktif</SelectItem>
+        </SelectContent>
+      </Select>
+
       <Select v-model="selectedStatus" @update:modelValue="filterProducts">
         <SelectTrigger class="w-36">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="inactive">Inactive</SelectItem>
-          <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+          <SelectItem value="all">Semua Status</SelectItem>
+          <SelectItem value="active">Aktif</SelectItem>
+          <SelectItem value="inactive">Tidak Aktif</SelectItem>
         </SelectContent>
       </Select>
     </div>
@@ -69,11 +81,11 @@
               />
             </TableHead>
             <TableHead class="w-20">ID</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead class="w-64">Description</TableHead>
-            <TableHead class="text-left">Price</TableHead>
-            <TableHead class="text-left">Stock</TableHead>
+            <TableHead>Nama Ruangan</TableHead>
+            <TableHead>Kategori</TableHead>
+            <TableHead class="w-64">Deskripsi</TableHead>
+            <TableHead class="text-left">Harga</TableHead>
+            <TableHead class="text-left">Ketersediaan</TableHead>
             <TableHead class="text-left">Status</TableHead>
             <TableHead class="text-center">Actions</TableHead>
           </TableRow>
@@ -115,27 +127,19 @@
             <TableCell class="text-left font-medium">
               Rp {{ Number(product.price).toLocaleString() }}
             </TableCell>
-            <!-- Product Stock -->
+            <!-- Room Availability (previously Stock) -->
             <TableCell class="text-left">
-              <Badge
-                :variant="
-                  product.stock > 10
-                    ? 'default'
-                    : product.stock > 0
-                    ? 'secondary'
-                    : 'destructive'
-                "
-              >
-                {{ product.stock }}
+              <Badge :variant="getAvailabilityVariant(getRoomAvailability(product))">
+                {{ getAvailabilityText(getRoomAvailability(product)) }}
               </Badge>
             </TableCell>
-            <!-- Product Status -->
+            <!-- Room Status -->
             <TableCell class="text-left">
               <Badge
-                :variant="getStatusVariant(getProductStatus(product))"
+                :variant="getStatusVariant(getRoomStatus(product))"
                 class="capitalize"
               >
-                {{ getProductStatus(product) || "unknown" }}
+                {{ getRoomStatus(product) === 'active' ? 'Aktif' : 'Tidak Aktif' }}
               </Badge>
             </TableCell>
             <!-- Actions -->
@@ -178,14 +182,14 @@
         v-if="!loading && filteredProducts.length === 0"
         class="text-center py-8"
       >
-        <p class="text-muted-foreground">No products found</p>
+        <p class="text-muted-foreground">Tidak ada ruangan ditemukan</p>
       </div>
     </div>
 
     <!-- Pagination -->
     <div class="flex items-center justify-between space-x-2 p-4">
       <div class="flex items-center space-x-2">
-        <p class="text-sm font-medium">Rows per page</p>
+        <p class="text-sm font-medium">Baris per halaman</p>
         <Select v-model="itemsPerPage" @update:modelValue="changePage(1)">
           <SelectTrigger class="h-8 w-16">
             <SelectValue />
@@ -201,7 +205,7 @@
 
       <div class="flex items-center space-x-6 lg:space-x-8">
         <div class="flex w-32 items-center justify-center text-sm font-medium">
-          Page {{ currentPage }} of {{ totalPages }}
+          Halaman {{ currentPage }} dari {{ totalPages }}
         </div>
         <div class="flex items-center space-x-2">
           <Button
@@ -244,54 +248,52 @@
     <Dialog v-model:open="viewModalOpen">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Product Details</DialogTitle>
+          <DialogTitle>Detail Ruangan</DialogTitle>
           <DialogDescription>
-            View detailed information about this product
+            Informasi lengkap tentang ruangan ini
           </DialogDescription>
         </DialogHeader>
         <div v-if="currentProduct" class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label class="text-sm font-medium">Product Name</Label>
+              <Label class="text-sm font-medium">Nama Ruangan</Label>
               <p class="text-sm text-muted-foreground">
                 {{ currentProduct.title }}
               </p>
             </div>
             <div>
-              <Label class="text-sm font-medium">Category</Label>
+              <Label class="text-sm font-medium">Kategori</Label>
               <p class="text-sm text-muted-foreground">
                 {{ getCategoryName(currentProduct.category) }}
               </p>
             </div>
             <div>
-              <Label class="text-sm font-medium">Price</Label>
+              <Label class="text-sm font-medium">Harga per Jam</Label>
               <p class="text-sm text-muted-foreground">
-                ${{ currentProduct.price?.toFixed(2) }}
+                Rp {{ currentProduct.price?.toLocaleString() }}
               </p>
             </div>
             <div>
-              <Label class="text-sm font-medium">Stock</Label>
-              <p class="text-sm text-muted-foreground">
-                {{ currentProduct.stock }}
-              </p>
+              <Label class="text-sm font-medium">Ketersediaan</Label>
+              <Badge :variant="getAvailabilityVariant(getRoomAvailability(currentProduct))">
+                {{ getAvailabilityText(getRoomAvailability(currentProduct)) }}
+              </Badge>
             </div>
             <div>
               <Label class="text-sm font-medium">Status</Label>
-              <Badge
-                :variant="getStatusVariant(getProductStatus(currentProduct))"
-              >
-                {{ getProductStatus(currentProduct).replace("_", " ") }}
+              <Badge :variant="getStatusVariant(getRoomStatus(currentProduct))">
+                {{ getRoomStatus(currentProduct) === 'active' ? 'Aktif' : 'Tidak Aktif' }}
               </Badge>
             </div>
           </div>
           <div>
-            <Label class="text-sm font-medium">Description</Label>
+            <Label class="text-sm font-medium">Deskripsi</Label>
             <p class="text-sm text-muted-foreground mt-1">
-              {{ currentProduct.description || "No description available" }}
+              {{ currentProduct.description || "Tidak ada deskripsi" }}
             </p>
           </div>
           <div v-if="currentProduct.image">
-            <Label class="text-sm font-medium">Product Image</Label>
+            <Label class="text-sm font-medium">Foto Ruangan</Label>
             <img
               :src="currentProduct.image"
               :alt="currentProduct.title"
@@ -306,26 +308,26 @@
     <Dialog v-model:open="editModalOpen">
       <DialogContent class="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Product</DialogTitle>
+          <DialogTitle>Edit Ruangan</DialogTitle>
           <DialogDescription>
-            Make changes to the product information
+            Ubah informasi ruangan
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label for="edit-title">Product Name</Label>
+              <Label for="edit-title">Nama Ruangan</Label>
               <Input
                 id="edit-title"
                 v-model="editProduct.title"
-                placeholder="Enter product name"
+                placeholder="Masukkan nama ruangan"
               />
             </div>
             <div>
-              <Label for="edit-category">Category</Label>
+              <Label for="edit-category">Kategori</Label>
               <Select v-model="editProduct.category">
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Pilih kategori" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem
@@ -339,53 +341,58 @@
               </Select>
             </div>
             <div>
-              <Label for="edit-price">Price</Label>
+              <Label for="edit-price">Harga per Jam</Label>
               <Input
                 id="edit-price"
                 v-model="editProduct.price"
                 type="number"
-                step="0.01"
-                placeholder="0.00"
+                step="1000"
+                placeholder="0"
               />
             </div>
             <div>
-              <Label for="edit-stock">Stock</Label>
-              <Input
-                id="edit-stock"
-                v-model="editProduct.stock"
-                type="number"
-                placeholder="0"
-              />
+              <Label for="edit-availability">Ketersediaan</Label>
+              <Select v-model="editProduct.availability">
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih ketersediaan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="tersedia">Tersedia</SelectItem>
+                  <SelectItem value="dibooking">Dibooking</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="tidak_aktif">Tidak Aktif</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <Label for="edit-status">Status</Label>
               <Select v-model="editProduct.status">
                 <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
+                  <SelectValue placeholder="Pilih status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="active">Aktif</SelectItem>
+                  <SelectItem value="inactive">Tidak Aktif</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
           <div>
-            <Label for="edit-description">Description</Label>
+            <Label for="edit-description">Deskripsi</Label>
             <Textarea
               id="edit-description"
               v-model="editProduct.description"
-              placeholder="Enter product description"
+              placeholder="Masukkan deskripsi ruangan"
               rows="3"
             />
           </div>
           <div class="flex justify-end gap-2">
             <Button variant="outline" @click="editModalOpen = false">
-              Cancel
+              Batal
             </Button>
             <Button @click="saveEditedProduct" :disabled="editLoading">
               <Loader2 v-if="editLoading" class="w-4 h-4 animate-spin mr-2" />
-              Save Changes
+              Simpan Perubahan
             </Button>
           </div>
         </div>
@@ -401,7 +408,7 @@
         class="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-4"
       >
         <span class="text-sm font-medium"
-          >{{ selectedProducts.length }} selected</span
+          >{{ selectedProducts.length }} dipilih</span
         >
         <div class="flex gap-2">
           <Button
@@ -412,11 +419,11 @@
           >
             <Loader2 v-if="bulkDeleting" class="h-4 w-4 mr-1 animate-spin" />
             <Trash2 v-else class="h-4 w-4 mr-1" />
-            Delete
+            Hapus
           </Button>
-          <Button variant="secondary" size="sm" @click="bulkStatusUpdate">
+          <Button variant="secondary" size="sm" @click="bulkAvailabilityUpdate">
             <Settings class="h-4 w-4 mr-1" />
-            Update Status
+            Update Ketersediaan
           </Button>
           <Button variant="secondary" size="sm" @click="clearSelection">
             <X class="h-4 w-4" />
@@ -429,15 +436,15 @@
     <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
           <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete
+            Tindakan ini tidak dapat dibatalkan. Ini akan menghapus ruangan
             <span class="font-medium">{{ productToDelete?.title }}</span>
-            and remove it from our servers.
+            secara permanen dari sistem.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="cancelDelete">Cancel</AlertDialogCancel>
+          <AlertDialogCancel @click="cancelDelete">Batal</AlertDialogCancel>
           <AlertDialogAction
             @click="deleteProduct"
             class="bg-destructive hover:bg-destructive/90"
@@ -447,7 +454,7 @@
               v-if="deletingProducts.length > 0"
               class="h-4 w-4 mr-2 animate-spin"
             />
-            Delete
+            Hapus
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -457,25 +464,22 @@
     <AlertDialog v-model:open="bulkDeleteDialogOpen">
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Multiple Products</AlertDialogTitle>
+          <AlertDialogTitle>Hapus Beberapa Ruangan</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete
-            {{ selectedProducts.length }} selected products? This action cannot
-            be undone and will permanently remove these products from the
-            database.
+            Apakah Anda yakin ingin menghapus
+            {{ selectedProducts.length }} ruangan yang dipilih? Tindakan ini tidak dapat
+            dibatalkan dan akan menghapus ruangan tersebut secara permanen.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel @click="cancelBulkDelete"
-            >Cancel</AlertDialogCancel
-          >
+          <AlertDialogCancel @click="cancelBulkDelete">Batal</AlertDialogCancel>
           <AlertDialogAction
             @click="bulkDelete"
             class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             :disabled="bulkDeleting"
           >
             <Loader2 v-if="bulkDeleting" class="h-4 w-4 mr-2 animate-spin" />
-            Delete All
+            Hapus Semua
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -485,9 +489,18 @@
 
 <script setup>
 import HeadersContent from "@/components/ui/HeadersContent.vue";
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -579,6 +592,7 @@ const fetchCategories = () => {
 const allProducts = ref([]);
 const searchQuery = ref("");
 const selectedCategory = ref("all");
+const selectedAvailability = ref("all"); // Changed from selectedStatus
 const selectedStatus = ref("all");
 const filteredProducts = ref([]);
 const selectedProducts = ref([]);
@@ -602,7 +616,7 @@ const editProduct = ref({
   title: "",
   description: "",
   price: 0,
-  stock: 0,
+  availability: "tersedia", // Changed from stock
   category: "",
   status: "active",
 });
@@ -610,6 +624,11 @@ const editLoading = ref(false);
 
 // Watch for category changes
 watch(selectedCategory, () => {
+  filterProducts();
+});
+
+// Watch for availability changes
+watch(selectedAvailability, () => {
   filterProducts();
 });
 
@@ -666,9 +685,55 @@ const fetchProducts = async () => {
   }
 };
 
-// Get product status
-const getProductStatus = (product) => {
-  return product.stock === 0 ? "out_of_stock" : product.statusProduct;
+// Get room availability (replaces getProductStatus for stock)
+const getRoomAvailability = (product) => {
+  // Map old stock-based logic to new availability
+  if (product.availability) {
+    return product.availability;
+  }
+  
+  // Fallback logic for existing data
+  if (product.stock === 0) {
+    return "tidak_aktif";
+  }
+  return "tersedia";
+};
+
+// Get room status 
+const getRoomStatus = (product) => {
+  return product.statusProduct || product.status || "active";
+};
+
+// Get availability variant for badge styling
+const getAvailabilityVariant = (availability) => {
+  switch (availability) {
+    case "tersedia":
+      return "default"; // Green
+    case "dibooking":
+      return "secondary"; // Blue/Gray
+    case "maintenance":
+      return "destructive"; // Red
+    case "tidak_aktif":
+      return "outline"; // Gray outline
+    default:
+      return "outline";
+  }
+};
+
+// Get availability text
+const getAvailabilityText = (availability) => {
+  switch (availability) {
+    case "tersedia":
+      return "Tersedia";
+    case "dibooking":
+      return "Dibooking";
+    case "maintenance":
+      return "Maintenance";
+    case "tidak_aktif":
+      return "Tidak Aktif";
+    default:
+      return "Tidak Diketahui";
+  }
 };
 
 // Filter products
@@ -682,7 +747,8 @@ const filterProducts = () => {
       (product) =>
         product.title?.toLowerCase().includes(query) ||
         product.description?.toLowerCase().includes(query) ||
-        product.id?.toLowerCase().includes(query)
+        product.id?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query)
     );
   }
 
@@ -693,10 +759,17 @@ const filterProducts = () => {
     );
   }
 
+  // Filter by availability
+  if (selectedAvailability.value && selectedAvailability.value !== "all") {
+    filtered = filtered.filter(
+      (product) => getRoomAvailability(product) === selectedAvailability.value
+    );
+  }
+
   // Filter by status
   if (selectedStatus.value && selectedStatus.value !== "all") {
     filtered = filtered.filter(
-      (product) => getProductStatus(product) === selectedStatus.value
+      (product) => getRoomStatus(product) === selectedStatus.value
     );
   }
 
@@ -711,8 +784,6 @@ const getStatusVariant = (status) => {
       return "default";
     case "inactive":
       return "secondary";
-    case "out_of_stock":
-      return "destructive";
     default:
       return "outline";
   }
@@ -779,20 +850,12 @@ const deleteProduct = async () => {
     );
     filterProducts();
 
-    toast({
-      title: "Success",
-      description: `Product "${productToDelete.value.title}" deleted successfully`,
-    });
+    console.log(`Room "${productToDelete.value.title}" deleted successfully`);
 
     deleteDialogOpen.value = false;
     productToDelete.value = null;
   } catch (error) {
     console.error("Error deleting product:", error);
-    toast({
-      title: "Error",
-      description: "Failed to delete product",
-      variant: "destructive",
-    });
   } finally {
     deletingProducts.value = deletingProducts.value.filter(
       (id) => id !== productToDelete.value?.id
@@ -817,7 +880,10 @@ const bulkDelete = async () => {
 
     // Delete all selected products from Firestore
     const deletePromises = selectedProducts.value.map(async (productId) => {
-      return await deleteDoc(doc($firebase.firestore, "products", productId));
+      const product = allProducts.value.find((p) => p.id === productId);
+      if (product) {
+        return await deleteDoc(doc($firebase.firestore, "products", product.firestoreId));
+      }
     });
 
     await Promise.all(deletePromises);
@@ -828,20 +894,12 @@ const bulkDelete = async () => {
     );
     filterProducts();
 
-    toast({
-      title: "Success",
-      description: `${selectedProducts.value.length} products deleted successfully`,
-    });
+    console.log(`${selectedProducts.value.length} rooms deleted successfully`);
 
     selectedProducts.value = [];
     bulkDeleteDialogOpen.value = false;
   } catch (error) {
     console.error("Error bulk deleting products:", error);
-    toast({
-      title: "Error",
-      description: "Failed to delete some products",
-      variant: "destructive",
-    });
   } finally {
     bulkDeleting.value = false;
   }
@@ -871,9 +929,9 @@ const openEditModal = (id) => {
       title: product.title || "",
       description: product.description || "",
       price: product.price || 0,
-      stock: product.stock || 0,
+      availability: getRoomAvailability(product), // Use availability instead of stock
       category: product.category || "",
-      status: product.status || "active",
+      status: getRoomStatus(product),
     };
     editModalOpen.value = true;
   }
@@ -884,7 +942,7 @@ const saveEditedProduct = async () => {
   try {
     editLoading.value = true;
 
-    console.log("Saving product:", editProduct.value); // debug
+    console.log("Saving room:", editProduct.value); // debug
 
     const productDoc = doc(
       $firebase.firestore,
@@ -895,7 +953,7 @@ const saveEditedProduct = async () => {
       title: editProduct.value.title,
       description: editProduct.value.description,
       price: parseFloat(editProduct.value.price),
-      stock: parseInt(editProduct.value.stock),
+      availability: editProduct.value.availability, // Save availability instead of stock
       category: editProduct.value.category,
       statusProduct: editProduct.value.status,
       updatedAt: new Date(),
@@ -911,7 +969,7 @@ const saveEditedProduct = async () => {
         title: editProduct.value.title,
         description: editProduct.value.description,
         price: parseFloat(editProduct.value.price),
-        stock: parseInt(editProduct.value.stock),
+        availability: editProduct.value.availability,
         category: editProduct.value.category,
         statusProduct: editProduct.value.status,
         updatedAt: new Date(),
@@ -920,15 +978,19 @@ const saveEditedProduct = async () => {
 
     filterProducts();
     editModalOpen.value = false;
+    
+    console.log("Room updated successfully");
   } catch (error) {
-    console.error("Error updating product:", error);
+    console.error("Error updating room:", error);
   } finally {
     editLoading.value = false;
   }
 };
 
-const bulkStatusUpdate = () => {
-  console.log("Bulk status update:", selectedProducts.value);
+const bulkAvailabilityUpdate = () => {
+  console.log("Bulk availability update:", selectedProducts.value);
+  // TODO: Implement bulk availability update functionality
+  // This could open a modal to select new availability status for all selected rooms
 };
 
 // Helper function to get category name
@@ -944,4 +1006,4 @@ onMounted(() => {
 });
 </script>
 
-<style></style>
+<style></style> 
